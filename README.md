@@ -9,6 +9,7 @@ Windows
 
 ## Getting started
 * Copy the **SE** directory in your data directory.
+* Start the **SearchEngine.exe** to bring up a graphical user interface.
 * Follow the instructions of the manual in the **doc** directory and browse through the slides.
 * Your data has to be in tab-delimited text-format with header names.
 * The **data** directory contains two sample files to train your matching skills.
