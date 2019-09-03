@@ -73,5 +73,8 @@ Windows
 - removed "txt2fox.exe" from th package because the SearchEngine now handles text files
 - removed "fox2txt.exe" from th package because the SearchEngine now handles text files
 
+## Acknowledgements
+Joel Leach [ParallelFox](https://github.com/VFPX/ParallelFox)
+
 ### Author
 * **Thorsten Doherr** - [ZEW](https://www.zew.de/en/team/tdo/)
