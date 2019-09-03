@@ -2,7 +2,9 @@
 **SearchEngine** is a tool written in Foxpro. It impletements heuristic matching of large databases by fuzzy criteria like addresses.
 The fundament of the heuristic is the registry, a dictionary containing the words of your data along with the occurences.
 The incremental approach allows for fine-tuning of mutliple search runs to reduce false positives while preventing false negatives.
-This is only the distribution master. The program master will follow.
+
+You can ignore the **code** directory if you are not interested in the source code.
+
 
 ## Prerequisites
 Windows
@@ -11,8 +13,9 @@ Windows
 * Copy the **SE** directory in your data directory.
 * Start the **SearchEngine.exe** to bring up a graphical user interface.
 * Follow the instructions of the manual in the **doc** directory and browse through the slides.
-* Your data has to be in tab-delimited text-format with header names.
+* Your data has to be in tab-delimited text-format with header names und unique keys.
 * The **data** directory contains two sample files to train your matching skills.
+* You will need a **SE** directory for every dataset constituting the base of a search project.
 
 ## Version history
 
