@@ -1,9 +1,7 @@
 # searchengine
-**SearchEngine** is a tool written in Foxpro. It impletements heuristic matching of large databases by fuzzy criteria like addresses.
-The fundament of the heuristic is the registry, a dictionary containing the words of your data along with the occurences.
-The incremental approach allows for fine-tuning of mutliple search runs to reduce false positives while preventing false negatives.
+**SearchEngine** is a tool written in Foxpro. It impletements heuristic matching of large databases by fuzzy criteria like addresses. The fundament of the heuristic is constituted in the registry, a dictionary containing the words of your data along with the occurences. An important word has a low occurrence while filler words have high occurrences. The tool allows to specify weights on your search fields (e.g. firm name, street, city), which, in conjunction with a threshold, define the basic search strategy. This strategy can be further refined by additional options controlling weight distributions (log, softmax, offset), defining feedback of surplus words, activation of countermeassures for suspiciously large candidate list and so on. A search consists of multiple search runs. The firste run is always a basic search run, defining the overall settings atuned to the data followed by several specialized runs taking the specifics of the data into account, e.g. missing address parts, misspellings, noise in the name field and so on. It is strongly advised to go through the manual and the presentation slides in the **doc** directory.
 
-You can ignore the **code** directory if you are not interested in the source code.
+Ignore the **code** directory, if you are not interested in the source code.
 
 
 ## Prerequisites
