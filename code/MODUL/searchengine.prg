@@ -1,6 +1,6 @@
 *=========================================================================*
 *	Modul: 		searchengine.prg
-*	Date:		2019.07.04
+*	Date:		2019.10.17
 *	Author:		Thorsten Doherr
 *	Procedure: 	custom.prg
 *               cluster.prg
@@ -110,12 +110,13 @@ define class LRCPD as Custom  && Least Character Position Delta
 enddefine
 
 define class RunFilter as Custom
-	hidden run[256], valid, start
+	hidden run[256], valid, start, filtering
 	
 	function init(filter as String)
 	local i, j, lexcnt, lexArray, subcnt, subArray, val, runset
 		this.start = -1
 		this.valid = .f.
+		this.filtering = .f.
 		m.runset = .f.
 		if empty(m.filter)
 			for m.i = 1 to 255
@@ -128,7 +129,7 @@ define class RunFilter as Custom
 		if vartype(m.filter) == "N"
 			m.filter = ltrim(str(m.filter))
 		endif
-		if vartype(m.filter) != "C"
+		if not vartype(m.filter) == "C"
 			return
 		endif
 		dimension m.lexArray[1]
@@ -176,10 +177,15 @@ define class RunFilter as Custom
 			endfor
 		endif
 		this.valid = .t.
+		this.filtering = this.start > 0 or m.runset == .t.
 	endfunc
 	
 	function isValid()
 		return this.valid
+	endfunc
+	
+	function isFiltering()
+		return this.filtering
 	endfunc
 	
 	function isFiltered(run as Integer)
@@ -220,6 +226,79 @@ define class RunFilter as Custom
 	
 	function getStart()
 		return this.start
+	endfunc
+enddefine
+
+define class MetaFilter as Custom
+	count = 0
+	dimension meta[1]
+	
+	function init(filter as String, types as SearchTypes)
+	local lexArray, lexcnt, subArray, subcnt, auxArray, auxcnt
+	local count, val, i, j, start, stop, default
+		if not vartype(m.filter) == "C" or empty(m.filter)
+			m.filter = "5"
+		endif
+		if vartype(types) == "N"
+			m.count = m.types
+		else
+			m.count = m.types.getSearchTypeCount()
+		endif
+		if m.count <= 0
+			return
+		endif
+		dimension this.meta[m.count]
+		dimension m.lexArray[1]
+		dimension m.subArray[1]
+		dimension m.auxArray[1]
+		m.default = 5
+		m.lexcnt = alines(m.lexArray,m.filter,5,";")
+		for m.i = 1 to m.lexcnt
+			m.subcnt = alines(m.subArray,m.lexArray[m.i],5,"=")
+			if m.subcnt > 2
+				return
+			endif
+			m.val = val(m.subArray[m.subcnt])
+			if m.val < 0 or not ltrim(str(m.val)) == m.subArray[m.subcnt]
+				return
+			endif
+			if m.subcnt == 1
+				m.default = m.val
+				loop
+			endif
+			m.subcnt = alines(m.subArray,m.subArray[1],5,",")
+			for m.j = 1 to m.subcnt
+				m.auxcnt = alines(m.auxArray,m.subArray[m.j],5,"-")
+				if m.auxcnt > 2
+					return
+				endif
+				m.start = val(m.auxArray[1])
+				if m.start < 1 or m.start > m.count or not ltrim(str(m.start)) == m.auxArray[1]
+					return
+				endif
+				if m.auxcnt == 2
+					m.stop = val(m.auxArray[2])
+					if m.stop < m.start or m.stop > m.count or not ltrim(str(m.stop)) == m.auxArray[2]
+						return
+					endif
+				else
+					m.stop = m.start
+				endif
+				for m.start = m.start to m.stop
+					this.meta[m.start] = m.val
+				endfor
+			endfor
+		endfor
+		for m.i = 1 to m.count
+			if not vartype(this.meta[m.i]) == "N"
+				this.meta[m.i] = m.default
+			endif
+		endfor
+		this.count = m.count
+	endfunc
+		
+	function isValid()
+		return vartype(this.count) == "N" and this.count == alen(this.meta)
 	endfunc
 enddefine
 
@@ -372,7 +451,7 @@ define class Phonetic as Custom
 
 	function init(normizer as Object)
 	local i
-		if vartype(m.normizer) != "O"
+		if not vartype(m.normizer) == "O"
 			this.normizer = createobject("StringNormizer")
 		else
 			this.normizer = m.normizer
@@ -422,7 +501,7 @@ define class Phonetic as Custom
 		m.last = m.newstr
 		for m.i = 2 to m.len
 			m.chr = substr(m.str,m.i,1)
-			if m.chr != m.last
+			if not m.chr == m.last
 				m.last = m.chr
 				m.newstr = m.newstr + m.chr
 			endif
@@ -719,7 +798,7 @@ define class SearchType as Custom
 		for m.i = 1 to this.prepList.count
 			m.preparerName = this.prepList.item(m.i)
 			m.preparerType = this.preparer.getPreparerType(m.preparerName)
-			if vartype(m.preparerType) != "O"
+			if not vartype(m.preparerType) == "O"
 				m.preparerType = createobject("PreparerType",m.preparerName)
 			endif
 			m.prepList.add(m.preparerType)
@@ -738,7 +817,7 @@ define class SearchType as Custom
 	endfunc
 	
 	function isPreparerReady()
-		if vartype(this.preparer) != "O"
+		if not vartype(this.preparer) == "O"
 			return .f.
 		endif
 		return .t.
@@ -895,7 +974,7 @@ define class SearchType as Custom
 	endfunc
 
 	function toString(simple as Boolean)
-	local str, sub
+	local str
 		if m.simple
 			m.str = this.field+" "+ltrim(str(this.priority,18))
 			if this.offset != 0
@@ -934,7 +1013,7 @@ define class SearchTypes as Custom
 	local lexArray, cnt, i, type, index, searchtypes
 		this.searchFields = createobject("Collection")
 		this.searchTypes = createobject("Collection")
-		if vartype(m.str) != "C" or empty(m.str)
+		if not vartype(m.str) == "C" or empty(m.str)
 			return
 		endif
 		dimension m.lexArray[1]
@@ -1073,7 +1152,7 @@ define class SearchTypes as Custom
 	
 	function mergeSearchTypeData(searchTypes)
 	local i, j, cnt, field, searchType1, searchType2, index
-		if vartype(m.searchTypes) != "O"
+		if not vartype(m.searchTypes) == "O"
 			m.searchTypes = createobject("SearchTypes",m.searchTypes)
 		endif
 		for m.i = 1 to m.searchTypes.getSearchFieldCount()
@@ -2143,13 +2222,13 @@ define class IndexCluster as Custom
 	function create(collector as Collection, indexField as String, targetField as String, continuous as Boolean)
 		local ps1, ps2, ps3, pa, lm, pk
 		local sort, err, sql, table, struc, i
-		local name, f, t, ok, target, index
-		local msg1, msg2, oldIndex, actIndex, actTarget, targetCount
+		local name, f, ok, target, index
+		local oldIndex, actIndex, actTarget, targetCount
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		m.name = createobject("BaseTable",this.indexStub)
 		m.name = proper(m.name.getPureName())
 		this.messenger.forceMessage("Creating "+m.name+"...")
@@ -2161,19 +2240,18 @@ define class IndexCluster as Custom
 		endif
 		this.erase()
 		m.sort = createobject("UniqueAlias",.t.)
-		m.t = createobject("timing")
 		m.ok = .t.
 		m.oldIndex = 0
 		for m.i = 1 to m.collector.Count
 			m.table = m.collector.item(m.i)
 			m.struc = m.table.getTableStructure()
 			m.f = m.table.getFieldStructure(m.indexField)
-			if m.f.getType() != "I"
+			if not m.f.getType() == "I"
 				this.messenger.errormessage("Invalid index field. Integer required.")
 				return .f.
 			endif
 			m.f = m.table.getFieldStructure(m.targetField)
-			if m.f.getType() != "I"
+			if not m.f.getType() == "I"
 				this.messenger.errormessage("Invalid target field. Integer required.")
 				return .f.
 			endif
@@ -2218,17 +2296,13 @@ define class IndexCluster as Custom
 			endif
 			m.targetCount = 0
 			select (m.sort.alias)
-			m.msg1 = "Created ("+proper(m.index.getPureName())+") "
-			m.msg2 = "/"+ltrim(str(reccount()))
+			this.messenger.setDefault("Created")
+			this.messenger.startProgress(reccount())
+			this.messenger.startCancel("Cancel Operation?","Creating","Canceled.")
 			scan
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Create") == 6
-							this.erase()
-							return .f.
-						endif
-					endif
+				if this.messenger.queryCancel()
+					this.erase()
+					return .f.
 				endif
 				m.actTarget = evaluate(m.targetField)
 				m.actIndex = evaluate(m.indexField)
@@ -2238,7 +2312,8 @@ define class IndexCluster as Custom
 					insert into (m.index.alias) values (m.targetCount)
 					m.oldIndex = m.oldindex+1
 				enddo
-				this.messenger.postMessage(m.msg1+ltrim(str(m.targetCount))+m.msg2)
+				this.messenger.setProgress(m.targetCount)
+				this.messenger.postProgress()
 			endscan
 			insert into (m.index.alias) values (m.targetCount+1)
 		endfor
@@ -2407,401 +2482,6 @@ define class RegistryTable as BaseTable
 	endfunc
 enddefine
 
-define class ResultTable as BaseTable
-	searchKey = ""
-	foundKey = ""
-	engine = .f.
-	
-	protected function init(table)
-		BaseTable::init(m.table)
-		this.setRequiredTableStructure("searched i, found i, identity b, equal n(1), score b, run c(1)")
-		this.setRequiredKeys("searched; found")
-		this.resizeRequirements()
-	endfunc
-	
-	function isValid()
-		return this.hasValidStructure() and this.hasValidAlias()
-	endfunc
-	
-	function isFunctional()
-		if not this.isValid()
-			return .f.
-		endif
-		return this.reccount() > 1
-	endfunc
-
-	function create()
-		if BaseTable::create()
-			insert into (this.alias) (searched, found, identity, score, run) values (0, 0, -1, -1, chr(0))
-			return .t.
-		endif
-		return .f.
-	endfunc
-	
-	function setRun(run as Integer)
-	local pos, pk
-		if not this.isValid()
-			return .f.
-		endif
-		if m.run < 0 or m.run > 255
-			return .f.
-		endif
-		if this.reccount() == 0
-			return .f.
-		endif
-		m.pk = createobject("PreservedKey",this)		
-		m.pos = this.getPosition()
-		this.setKey()
-		this.goTop()
-		if this.getValue("searched") > 0
-			this.setPosition(m.pos)
-			return .f.
-		endif
-		replace run with chr(m.run) in (this.alias)
-		this.setPosition(m.pos)
-		return .t.
-	endfunc
-		
-	function getRun()
-	local pos, run, pk
-		if not this.isValid()
-			if this.isCreatable()
-				return 0
-			else
-				return -1
-			endif
-		endif
-		if this.reccount() == 0
-			return -1
-		endif
-		m.pk = createobject("PreservedKey",this)
-		m.pos = this.getPosition()
-		this.setKey()
-		this.goTop()
-		if this.getValue("searched") <= 0
-			m.run = asc(this.getValue("run"))
-		else
-			m.run = -1
-		endif
-		this.setPosition(m.pos)
-		return m.run
-	endfunc
-	
-	function mimicExportTable(m.searchkey, m.foundkey, m.engine)
-		this.searchKey = m.searchKey
-		this.foundKey = m.foundKey
-		this.engine = m.engine
-	endfunc
-	
-	function getSearchKey()
-		return this.searchKey
-	endfunc
-
-	function getFoundKey()
-		return this.foundKey
-	endfunc
-	
-	function getEngine()
-		return this.engine
-	endfunc
-	
-	function analyse(type, ignore, from, to, step)
-		return this.analyseResult(.f., m.type, m.ignore, m.from, m.to, m.step)
-	endfunc
-
-	hidden function analyseResult(usekey, type, ignore, from, to, step)
-		local ps1, ps2, ps3, pa, lm, pk
-		local pos, rec, key, t, err, msg, oldkey
-		local tigs, i, base, complete, table, perc, equal
-		local array stat(1,7), act(1,4)
-		m.ps1 = createobject("PreservedSetting","escape","off")
-		m.ps2 = createobject("PreservedSetting","talk","off")
-		m.ps3 = createobject("PreservedSetting","exact","on")
-		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
-		this.messenger.forceMessage("Analysing...")
-		if vartype(m.from) == "L"
-			m.from = 100
-		endif
-		if vartype(m.to) == "L"
-			m.to = 0
-		endif
-		if vartype(m.type) == "L"
-			m.type = 1
-		endif
-		if vartype(m.step) == "L"
-			m.step = 1
-		endif
-		m.table = createobject("BaseCursor","percent n(6,2), comp i, comphit i, compnohit i, incomp i, hits i, nohits i, missing i, error n(8,4), unobserved n(8,4)")
-		if not this.isValid()
-			this.messenger.errormessage("ResultTable is not valid.")
-			return m.table
-		endif
-		if m.type < 1 or m.type > 3
-			this.messenger.errormessage("Illegal check type.")
-			return m.table
-		endif
-		if not vartype(m.to) == "N"
-			m.to = m.from
-		endif
-		if m.from > 100 or m.from < 0 or m.to > 100 or m.to < 0
-			this.messenger.errormessage("Illegal percentage.")
-			return m.table
-		endif
-		if vartype(m.step) == "N"
-			if m.step < 0.1
-				this.messenger.errormessage("Illegal step width.")
-				return m.table
-			endif
-		else
-			m.step = 1
-		endif
-		if m.from <= m.to
-			m.tigs = int((m.to-m.from)/m.step)+2
-		else
-			m.tigs = 1
-		endif
-		dimension stat[m.tigs,7]
-		dimension act[m.tigs,4]
-		for m.i = 1 to m.tigs
-			stat[m.i,1] = 0
-			stat[m.i,2] = 0
-			stat[m.i,3] = 0
-			stat[m.i,4] = 0
-			stat[m.i,5] = 0
-			stat[m.i,6] = 0
-			stat[m.i,7] = 0
-		endfor
-		m.pk = createobject("PreservedKey",this)
-		if m.usekey
-			this.forceKey("searched")
-		else
-			this.setKey()
-		endif
-		m.t = createobject("Timing")
-		this.messenger.start()
-		m.complete = 0
-		m.rec = 0
-		m.oldkey = 0
-		this.select()
-		m.msg = "/"+ltrim(str(reccount()))
-		go top
-		if searched <= 0
-			skip
-		endif
-		do while not eof()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Analyse ResultTable") == 6
-						exit
-					endif
-				endif
-			endif
-			m.pos = recno()
-			m.key = searched
-			if m.oldkey >= m.key
-				if not m.usekey
-					if messagebox("Unable to analyse the ResultTable using the physical order."+chr(10)+"Restart analysis using an index?",36,"Analyse ResultTable") == 7
-						exit
-					endif
-					return this.analyseResult(.t., m.type, m.ignore, m.from, m.to, m.step)
-				endif
-			endif
-			m.oldkey = m.key
-			for m.i = 1 to m.tigs
-				act[m.i,1] = 0
-				act[m.i,2] = 0
-				act[m.i,3] = 0
-				act[m.i,4] = 0
-			endfor
-			do while not eof() and searched == m.key
-				do case
-					case equal >= 8
-						m.act[1,2] = m.act[1,2]+1
-					case equal > 0
-						m.act[1,1] = m.act[1,1]+1
-					otherwise
-						m.act[1,3] = m.act[1,3]+1
-				endcase
-				skip
-			enddo
-			if m.act[1,3] == 0
-				m.complete = m.complete+act[1,1]+act[1,2]
-			endif
-			goto m.pos
-			do while not eof() and searched == m.key
-				for m.i = 2 to m.tigs
-					m.perc = m.from+m.step*(m.i-2)
-					do case
-						case equal > 8
-							m.base = 9
-						case equal > 0
-							m.base = 1
-						otherwise
-							m.base = 0
-					endcase
-					m.equal = m.base
-					do case
-						case m.type == 1
-							if identity >= m.perc
-								m.equal = 1
-							else
-								m.equal = 9
-							endif
-						case m.type == 2
-							if identity >= m.perc
-								m.equal = 1
-							endif
-						otherwise
-							if identity < m.perc
-								m.equal = 9
-							endif
-					endcase
-					if m.act[1,3] == 0
-						if m.base != m.equal
-							m.act[m.i,4] = m.act[m.i,4]+1
-						endif
-						if not m.ignore
-							m.equal = m.base
-						endif
-					endif
-					do case
-						case m.equal == 9
-							m.act[m.i,2] = m.act[m.i,2]+1
-						case m.equal > 0
-							m.act[m.i,1] = m.act[m.i,1]+1
-						otherwise
-							m.act[m.i,3] = m.act[m.i,3]+1
-					endcase
-				endfor
-				skip
-			enddo
-			m.rec = m.rec+m.act[1,1]+m.act[1,2]+m.act[1,3]
-			for m.i = 1 to m.tigs
-				m.stat[m.i,1] = m.stat[m.i,1]+m.act[m.i,1]
-				m.stat[m.i,2] = m.stat[m.i,2]+m.act[m.i,2]
-				m.stat[m.i,3] = m.stat[m.i,3]+m.act[m.i,3]
-				m.stat[m.i,4] = m.stat[m.i,4]+m.act[m.i,4]
-				if m.act[m.i,3] == 0
-					m.stat[m.i,5] = m.stat[m.i,5]+1
-					if m.act[m.i,1] > 0
-						m.stat[m.i,6] = m.stat[m.i,6]+1
-					endif
-				else
-					m.stat[m.i,7] = m.stat[m.i,7]+1
-				endif
-			endfor
-			this.messenger.postMessage("Analysed "+ltrim(str(m.rec))+m.msg)
-		enddo
-		this.messenger.forceMessage("Closing...")
-		for m.i = 1 to m.tigs
-			if m.i == 1
-				m.perc = -1
-			else
-				m.perc = m.from+m.step*(m.i-2)
-			endif
-			m.err = m.stat[m.i,4]/m.complete*100
-			insert into (m.table.alias) values (m.perc,m.stat[m.i,5],m.stat[m.i,6],m.stat[m.i,5]-m.stat[m.i,6],m.stat[m.i,7],m.stat[m.i,1],m.stat[m.i,2],m.stat[m.i,3],m.err,m.err*m.stat[m.i,5]/(m.stat[m.i,5]+m.stat[m.i,7]))
-		endfor
-		m.table.synchronize()
-		m.table.goTop()
-		return m.table
-	endfunc
-
-	function check(type, ignore, perc)
-		local ps1, ps2, ps3, pa, lm, pk
-		local pos, rec, complete, key, t, msg
-		m.ps1 = createobject("PreservedSetting","escape","off")
-		m.ps2 = createobject("PreservedSetting","talk","off")
-		m.ps3 = createobject("PreservedSetting","exact","on")
-		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
-		this.messenger.forceMessage("Checking...")
-		if not this.isValid()
-			this.messenger.errormessage("ResultTable is not valid.")
-			return .f.
-		endif
-		if m.type > 3 or m.type < 1
-			this.messenger.errormessage("Illegal check type.")
-			return .f.
-		endif
-		if m.perc > 100 or m.perc < 0
-			this.messenger.errormessage("Illegal percentage.")
-			return .f.
-		endif
-		m.pk = createobject("PreservedKey",this)
-		this.setKey()
-		m.t = createobject("Timing")
-		this.messenger.start()
-		m.rec = 0
-		this.select()
-		m.msg = "/"+ltrim(str(reccount()))
-		this.goTop()
-		if searched <= 0
-			skip
-		endif
-		do while not eof()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Check ResultTable") == 6
-						exit
-					endif
-				endif
-			endif
-			m.pos = recno()
-			m.key = searched
-			m.complete = .t.
-			do while not eof() and searched == m.key
-				if equal <= 0
-					m.complete = .f.
-				endif
-				m.rec = m.rec+1
-				skip
-			enddo
-			if m.ignore or m.complete == .f.
-				goto m.pos
-				do case
-					case m.type == 1
-						do while not eof() and searched == m.key
-							if identity >= m.perc
-								replace equal with 2
-							else
-								replace equal with 8
-							endif
-							skip
-						enddo
-					case m.type == 2
-						do while not eof() and searched == m.key
-							if identity >= m.perc
-								replace equal with 2
-							endif
-							skip
-						enddo
-					otherwise
-						do while not eof() and searched == m.key
-							if identity < m.perc
-								replace equal with 8
-							endif
-							skip
-						enddo
-				endcase
-			endif
-			this.messenger.postMessage("Checked "+ltrim(str(m.rec))+m.msg)
-		enddo
-		this.messenger.forceMessage("Closing...")
-		return .t.
-	endfunc
-	
-	function toString()
-		local str
-		m.str = BaseTable::toString()
-		m.str = m.str+"Run: "+ltrim(str(this.getRun()))+chr(10)
-		return m.str
-	endfunc
-enddefine
-
 define class EngineTable as BaseTable
 	protected function init(table)
 		BaseTable::init(m.table)
@@ -2911,6 +2591,516 @@ define class EngineTable as BaseTable
 	endfunc
 enddefine
 
+define class ResultTable as BaseTable
+	searchKey = ""
+	foundKey = ""
+	engine = .f.
+	
+	protected function init(table)
+		BaseTable::init(m.table)
+		this.setRequiredTableStructure("searched i, found i, identity b, equal n(1), score b, run c(1)")
+		this.setRequiredKeys("searched; found")
+		this.resizeRequirements()
+	endfunc
+
+	function create(engine as SearchEngine, shuffle as Double, low as Double, high as Double, runFilter as String, newrun as boolean)
+		if pcount() == 0
+			if BaseTable::create()
+				insert into (this.alias) (searched, found, identity, score, run) values (0, 0, -1, -1, chr(0))
+				return .t.
+			endif
+			return .f.
+		endif
+		local ps1, ps2, pa, lm, pk
+		local result, search, searched
+		local array content[1]
+		m.ps1 = createobject("PreservedSetting","escape","off")
+		m.ps2 = createobject("PreservedSetting","talk","off")
+		m.pa = createobject("PreservedAlias")
+		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Exporting...")
+		if not vartype(m.engine) == "O"
+			this.messenger.errorMessage("Engine object is invalid.")
+			return .f.
+		endif
+		if m.engine.idontcare()
+			this.erase()
+		endif
+		if not this.iscreatable()
+			this.messenger.errorMessage("Unable to shuffle ResultTable.")
+			return .f.
+		endif
+		m.result = m.engine.getResultTable()
+		if not m.result.isValid()
+			this.messenger.errorMessage("Invalid source ResultTable.")
+			return .f.
+		endif
+		if not vartype(m.shuffle) == "N"
+			m.shuffle = -1
+		endif
+		if not inlist(vartype(m.low),"N","L")
+			this.messenger.errormessage("Invalid low range.")
+			return .f.
+		endif
+		if not inlist(vartype(m.high),"N","L") 
+			this.messenger.errormessage("Invalid high range.")
+			return .f.
+		endif
+		m.low = iif(vartype(m.low) == "N", max(m.low,0), 0)
+		m.high = iif(vartype(m.high) == "N", max(m.high,0), 999)
+		if m.high <= m.low
+			m.high = m.low+1
+		endif
+		if not inlist(vartype(m.runFilter),"O","C","L")
+			this.messenger.errormessage("Invalid runFilter setting.")
+			return .f.
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+		endif
+		if not m.runFilter.isValid()
+			this.messenger.errormessage("Run filter expression is invalid.")
+			return .f.
+		endif
+		if not vartype(m.newrun) == "L"
+			this.messenger.errormessage("Invalid setting.")
+			return .f.
+		endif
+		if not this.create()
+			this.errorMessage("Unable to create ResultTable.")
+			return .f.
+		endif
+		m.result.select()
+		go top
+		scatter to m.content
+		this.select()
+		gather from m.content
+		m.pk = createobject("PreservedKey",m.result)
+		if not m.result.forceKey("searched")
+			this.messenger.errorMessage("Unable to index source ResultTable.")
+			return .f.
+		endif
+		m.search = createobject("UniqueAlias",.t.)
+		select distinct searched from (m.result.alias) where searched > 0 into cursor (m.search.alias) readwrite
+		if m.shuffle > 0
+			select searched, cast(rand() as b) as rnd from (m.search.alias) order by 2 into cursor (m.search.alias) readwrite
+			if m.shuffle < 1
+				m.shuffle = int(reccount(m.search.alias) * m.shuffle + 0.5)
+			endif
+		else
+			m.shuffle = reccount()
+		endif
+		select (m.search.alias)
+		go top
+		this.messenger.setDefault("Exported")
+		this.messenger.startProgress(m.shuffle)
+		this.messenger.startCancel("Cancel Operation?","Exporting ResultTable","Canceled.")
+		scan
+			if this.messenger.getProgress() >= m.shuffle
+				exit
+			endif
+			if this.messenger.queryCancel()
+				exit
+			endif
+			m.searched = searched
+			select * from (m.result.alias) where searched == m.searched and identity >= m.low and identity < m.high and m.runFilter.isFiltered(asc(run)) into array content
+			if _tally > 0
+				select (this.alias)
+				append from array m.content
+				this.messenger.incProgress()
+				this.messenger.postProgress()
+			endif
+		endscan
+		this.messenger.sneakMessage("Closing...")
+		this.forceRequiredKeys()
+		if this.messenger.isCanceled()
+			return .f.
+		endif
+		if m.newrun
+			this.compressRun()
+		endif
+		return .t.
+	endfunc
+	
+	function isValid()
+		return this.hasValidStructure() and this.hasValidAlias()
+	endfunc
+	
+	function isFunctional()
+		if not this.isValid()
+			return .f.
+		endif
+		return this.reccount() > 1
+	endfunc
+
+	function setRun(run as Integer)
+	local pos, pk
+		if not this.isValid()
+			return .f.
+		endif
+		if m.run < 0 or m.run > 255
+			return .f.
+		endif
+		if this.reccount() == 0
+			return .f.
+		endif
+		m.pk = createobject("PreservedKey",this)		
+		m.pos = this.getPosition()
+		this.setKey()
+		this.goTop()
+		if this.getValue("searched") > 0
+			this.setPosition(m.pos)
+			return .f.
+		endif
+		replace run with chr(m.run) in (this.alias)
+		this.setPosition(m.pos)
+		return .t.
+	endfunc
+		
+	function getRun()
+	local pos, run, pk
+		if not this.isValid()
+			if this.isCreatable()
+				return 0
+			else
+				return -1
+			endif
+		endif
+		if this.reccount() == 0
+			return -1
+		endif
+		m.pk = createobject("PreservedKey",this)
+		m.pos = this.getPosition()
+		this.setKey()
+		this.goTop()
+		if this.getValue("searched") <= 0
+			m.run = asc(this.getValue("run"))
+		else
+			m.run = -1
+		endif
+		this.setPosition(m.pos)
+		return m.run
+	endfunc
+	
+	function mimicExportTable(m.searchkey, m.foundkey, m.engine)
+		this.searchKey = m.searchKey
+		this.foundKey = m.foundKey
+		this.engine = m.engine
+	endfunc
+	
+	function getSearchKey()
+		return this.searchKey
+	endfunc
+
+	function getFoundKey()
+		return this.foundKey
+	endfunc
+	
+	function getEngine()
+		return this.engine
+	endfunc
+
+	function analyse(type, ignore, from, to, step)
+		return this.analyseResult(.f., m.type, m.ignore, m.from, m.to, m.step)
+	endfunc
+	
+	function compressRun()
+	local ps1, run, sql
+		if not this.isValid()
+			return .f.
+		endif
+		m.ps1 = createobject("PreservedSetting","talk","off")
+		m.run = createobject("UniqueAlias",.t.)
+		select distinct run, cast(" " as c(1)) as newrun from (this.alias) into cursor (m.run.alias) readwrite
+		update (m.run.alias) set newrun = chr(recno())
+		index on run tag run
+		m.sql = "update "+this.alias+" set run = "+m.run.alias+".newrun from "+m.run.alias+" where "+this.alias+".run == "+m.run.alias+".run"
+		&sql
+		return .t.
+	endfunc
+	
+	function check(type, ignore, perc)
+		local ps1, ps2, ps3, pa, lm, pk
+		local pos, rec, complete, key
+		m.ps1 = createobject("PreservedSetting","escape","off")
+		m.ps2 = createobject("PreservedSetting","talk","off")
+		m.ps3 = createobject("PreservedSetting","exact","on")
+		m.pa = createobject("PreservedAlias")
+		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Checking...")
+		if not this.isValid()
+			this.messenger.errormessage("ResultTable is not valid.")
+			return .f.
+		endif
+		if m.type > 3 or m.type < 1
+			this.messenger.errormessage("Illegal check type.")
+			return .f.
+		endif
+		if m.perc > 100 or m.perc < 0
+			this.messenger.errormessage("Illegal percentage.")
+			return .f.
+		endif
+		m.pk = createobject("PreservedKey",this)
+		this.setKey()
+		m.rec = 0
+		this.select()
+		this.goTop()
+		if searched <= 0
+			skip
+		endif
+		this.messenger.setDefault("Checked")
+		this.messenger.startProgress(reccount()-recno()+1)
+		this.messenger.startCancel("Cancel Operation?","Checking","Canceled.")
+		do while not eof()
+			if this.messenger.queryCancel()
+				return .f.
+			endif
+			m.pos = recno()
+			m.key = searched
+			m.complete = .t.
+			do while not eof() and searched == m.key
+				if equal <= 0
+					m.complete = .f.
+				endif
+				this.messenger.incProgress()
+				skip
+			enddo
+			if m.ignore or m.complete == .f.
+				goto m.pos
+				do case
+					case m.type == 1
+						do while not eof() and searched == m.key
+							if identity >= m.perc
+								replace equal with 2
+							else
+								replace equal with 8
+							endif
+							skip
+						enddo
+					case m.type == 2
+						do while not eof() and searched == m.key
+							if identity >= m.perc
+								replace equal with 2
+							endif
+							skip
+						enddo
+					otherwise
+						do while not eof() and searched == m.key
+							if identity < m.perc
+								replace equal with 8
+							endif
+							skip
+						enddo
+				endcase
+			endif
+			this.messenger.postProgress()
+		enddo
+		return .t.
+	endfunc
+	
+	function toString()
+		local str
+		m.str = BaseTable::toString()
+		m.str = m.str+"Run: "+ltrim(str(this.getRun()))+chr(10)
+		return m.str
+	endfunc
+
+	hidden function analyseResult(usekey, type, ignore, from, to, step)
+		local ps1, ps2, ps3, pa, lm, pk
+		local pos, key, err, oldkey
+		local tigs, i, base, complete, table, perc, equal
+		local array stat(1,7), act(1,4)
+		m.ps1 = createobject("PreservedSetting","escape","off")
+		m.ps2 = createobject("PreservedSetting","talk","off")
+		m.ps3 = createobject("PreservedSetting","exact","on")
+		m.pa = createobject("PreservedAlias")
+		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Analysing...")
+		if vartype(m.from) == "L"
+			m.from = 100
+		endif
+		if vartype(m.to) == "L"
+			m.to = 0
+		endif
+		if vartype(m.type) == "L"
+			m.type = 1
+		endif
+		if vartype(m.step) == "L"
+			m.step = 1
+		endif
+		m.table = createobject("BaseCursor","percent n(6,2), comp i, comphit i, compnohit i, incomp i, hits i, nohits i, missing i, error n(8,4), unobserved n(8,4)")
+		if not this.isValid()
+			this.messenger.errormessage("ResultTable is not valid.")
+			return m.table
+		endif
+		if m.type < 1 or m.type > 3
+			this.messenger.errormessage("Illegal check type.")
+			return m.table
+		endif
+		if not vartype(m.to) == "N"
+			m.to = m.from
+		endif
+		if m.from > 100 or m.from < 0 or m.to > 100 or m.to < 0
+			this.messenger.errormessage("Illegal percentage.")
+			return m.table
+		endif
+		if vartype(m.step) == "N"
+			if m.step < 0.1
+				this.messenger.errormessage("Illegal step width.")
+				return m.table
+			endif
+		else
+			m.step = 1
+		endif
+		if m.from <= m.to
+			m.tigs = int((m.to-m.from)/m.step)+2
+		else
+			m.tigs = 1
+		endif
+		dimension stat[m.tigs,7]
+		dimension act[m.tigs,4]
+		for m.i = 1 to m.tigs
+			stat[m.i,1] = 0
+			stat[m.i,2] = 0
+			stat[m.i,3] = 0
+			stat[m.i,4] = 0
+			stat[m.i,5] = 0
+			stat[m.i,6] = 0
+			stat[m.i,7] = 0
+		endfor
+		m.pk = createobject("PreservedKey",this)
+		if m.usekey
+			this.forceKey("searched")
+		else
+			this.setKey()
+		endif
+		m.complete = 0
+		m.oldkey = 0
+		this.select()
+		go top
+		if searched <= 0
+			skip
+		endif
+		this.messenger.setDefault("Analysed")
+		this.messenger.startProgress(reccount()-recno()+1)
+		this.messenger.startCancel("Cancel Operation?","Analysing ResultTable","Canceled.")
+		do while not eof()
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				exit
+			endif
+			m.pos = recno()
+			m.key = searched
+			if m.oldkey >= m.key
+				if not m.usekey
+					if messagebox("Unable to analyse the ResultTable using the physical order."+chr(10)+"Restart analysis using an index?",36,"Analyse ResultTable") == 7
+						exit
+					endif
+					return this.analyseResult(.t., m.type, m.ignore, m.from, m.to, m.step)
+				endif
+			endif
+			m.oldkey = m.key
+			for m.i = 1 to m.tigs
+				act[m.i,1] = 0
+				act[m.i,2] = 0
+				act[m.i,3] = 0
+				act[m.i,4] = 0
+			endfor
+			do while not eof() and searched == m.key
+				do case
+					case equal >= 8
+						m.act[1,2] = m.act[1,2]+1
+					case equal > 0
+						m.act[1,1] = m.act[1,1]+1
+					otherwise
+						m.act[1,3] = m.act[1,3]+1
+				endcase
+				skip
+			enddo
+			if m.act[1,3] == 0
+				m.complete = m.complete+act[1,1]+act[1,2]
+			endif
+			goto m.pos
+			do while not eof() and searched == m.key
+				for m.i = 2 to m.tigs
+					m.perc = m.from+m.step*(m.i-2)
+					do case
+						case equal > 8
+							m.base = 9
+						case equal > 0
+							m.base = 1
+						otherwise
+							m.base = 0
+					endcase
+					m.equal = m.base
+					do case
+						case m.type == 1
+							if identity >= m.perc
+								m.equal = 1
+							else
+								m.equal = 9
+							endif
+						case m.type == 2
+							if identity >= m.perc
+								m.equal = 1
+							endif
+						otherwise
+							if identity < m.perc
+								m.equal = 9
+							endif
+					endcase
+					if m.act[1,3] == 0
+						if m.base != m.equal
+							m.act[m.i,4] = m.act[m.i,4]+1
+						endif
+						if not m.ignore
+							m.equal = m.base
+						endif
+					endif
+					do case
+						case m.equal == 9
+							m.act[m.i,2] = m.act[m.i,2]+1
+						case m.equal > 0
+							m.act[m.i,1] = m.act[m.i,1]+1
+						otherwise
+							m.act[m.i,3] = m.act[m.i,3]+1
+					endcase
+				endfor
+				skip
+			enddo
+			this.messenger.incProgress(m.act[1,1]+m.act[1,2]+m.act[1,3])
+			for m.i = 1 to m.tigs
+				m.stat[m.i,1] = m.stat[m.i,1]+m.act[m.i,1]
+				m.stat[m.i,2] = m.stat[m.i,2]+m.act[m.i,2]
+				m.stat[m.i,3] = m.stat[m.i,3]+m.act[m.i,3]
+				m.stat[m.i,4] = m.stat[m.i,4]+m.act[m.i,4]
+				if m.act[m.i,3] == 0
+					m.stat[m.i,5] = m.stat[m.i,5]+1
+					if m.act[m.i,1] > 0
+						m.stat[m.i,6] = m.stat[m.i,6]+1
+					endif
+				else
+					m.stat[m.i,7] = m.stat[m.i,7]+1
+				endif
+			endfor
+			this.messenger.postProgress()
+		enddo
+		this.messenger.sneakMessage("Closing...")
+		for m.i = 1 to m.tigs
+			if m.i == 1
+				m.perc = -1
+			else
+				m.perc = m.from+m.step*(m.i-2)
+			endif
+			m.err = m.stat[m.i,4]/m.complete*100
+			insert into (m.table.alias) values (m.perc,m.stat[m.i,5],m.stat[m.i,6],m.stat[m.i,5]-m.stat[m.i,6],m.stat[m.i,7],m.stat[m.i,1],m.stat[m.i,2],m.stat[m.i,3],m.err,m.err*m.stat[m.i,5]/(m.stat[m.i,5]+m.stat[m.i,7]))
+		endfor
+		m.table.synchronize()
+		m.table.goTop()
+		return m.table
+	endfunc
+enddefine
+
 define class ExportTable as BaseTable
 	hidden searchKey, foundKey, export
 	searchKey = ""
@@ -2951,48 +3141,53 @@ define class ExportTable as BaseTable
 	endfunc
 
 	function create(engine, searchKey, foundKey, low, high, exclusive, runFilter, text)
-		local pa, ps1, ps2, ps3, ps4, pk, lm, t, msg
+		local pa, ps1, ps2, ps3, ps4, pk, lm
 		local f, result, search, found, identity, equal, score
 		local stxt, ftxt, skey, fkey, srec, oldsrec, struc, err
-		local run, cancel, pos, buffer, skip, max
+		local run, buffer, skip, max
 		local txt, line, exp, converter, con, handle, i, f1
 		local array data[1]
+		local searchRec, foundRec, idc
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
 		m.ps4 = createobject("PreservedSetting","decimals","6")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Exporting...")
 		if not vartype(m.engine) == "O"
 			this.messenger.errormessage("Engine object is invalid.")
 			return .f.
 		endif
-		if m.engine.idontcare()
-			this.erase()
-		endif
-		if not this.isCreatable()
-			this.messenger.errormessage("ExportTable is not creatable.")
-			return .f.
-		endif
+		m.idc = m.engine.idontcare()
 		if not m.engine.isSearchedSynchronized()
 			this.messenger.errormessage("Engine is not synchronized with SearchTable.")
 			return .f.
 		endif
+		m.searchRec = not vartype(m.searchKey) == "C" or empty(m.searchKey)
+		m.foundRec = not vartype(m.foundKey) == "C" or empty(m.foundKey)
 		m.search = m.engine.getSearchTable()
-		m.f = m.search.getFieldStructure(m.searchKey)
-		if not m.f.isValid()
-			this.messenger.errormessage("SearchKey does not exist in SearchTable.")
-			return .f.
+		if m.searchRec == .f.
+			m.f = m.search.getFieldStructure(m.searchKey)
+			if not m.f.isValid()
+				this.messenger.errormessage("SearchKey does not exist in SearchTable.")
+				return .f.
+			endif
+			m.searchKey = m.f.getName()
+		else
+			m.searchKey = "searched"
 		endif
-		m.searchKey = m.f.getName()
 		m.found = m.engine.getBaseTable()
-		m.f = m.found.getFieldStructure(m.foundKey)
-		if not m.f.isValid()
-			this.messenger.errormessage("FoundKey does not exist in BaseTable.")
-			return .f.
+		if m.foundRec == .f.
+			m.f = m.found.getFieldStructure(m.foundKey)
+			if not m.f.isValid()
+				this.messenger.errormessage("FoundKey does not exist in BaseTable.")
+				return .f.
+			endif
+			m.foundKey = m.f.getName()
+		else
+			m.foundKey = "found"
 		endif
-		m.foundKey = m.f.getName()
 		if not inlist(vartype(m.low),"N","L")
 			this.messenger.errormessage("Invalid low range.")
 			return .f.
@@ -3003,6 +3198,9 @@ define class ExportTable as BaseTable
 		endif
 		m.low = iif(vartype(m.low) == "N", max(m.low,0), 0)
 		m.high = iif(vartype(m.high) == "N", max(m.high,0), 999)
+		if m.high <= m.low
+			m.high = m.low+1
+		endif
 		if not vartype(m.exclusive) == "L"
 			this.messenger.errormessage("Invalid exclusive setting.")
 			return .f.
@@ -3014,9 +3212,6 @@ define class ExportTable as BaseTable
 		if not vartype(m.text) == "L"
 			this.messenger.errormessage("Invalid text setting.")
 			return .f.
-		endif
-		if m.high <= m.low
-			m.high = m.low+1
 		endif
 		if not vartype(m.runFilter) == "O"
 			m.runFilter = createobject("RunFilter",m.runFilter)
@@ -3033,10 +3228,26 @@ define class ExportTable as BaseTable
 			this.messenger.errormessage("BaseTable is not synchronized.")
 			return .f.
 		endif
+		if m.idc
+			this.erase()
+		endif
+		if not this.isCreatable()
+			this.messenger.errormessage("ExportTable is not creatable.")
+			return .f.
+		endif
+		m.result = m.engine.getResultTable()
 		m.struc = ""
-		m.f = m.search.getFieldStructure(m.searchKey)
+		if m.searchRec
+			m.f = m.result.getFieldStructure(m.searchKey)
+		else
+			m.f = m.search.getFieldStructure(m.searchKey)
+		endif
 		m.struc = "searched "+m.f.getDefinition()
-		m.f = m.found.getFieldStructure(m.foundKey)
+		if m.foundRec
+			m.f = m.result.getFieldStructure(m.foundKey)
+		else
+			m.f = m.found.getFieldStructure(m.foundKey)
+		endif
 		m.struc = m.struc + ",found "+m.f.getDefinition()
 		m.struc = m.struc + ",identity b(6), equal n(1), score b(6), run n(3)"
 		this.setRequiredTableStructure(m.struc)
@@ -3081,43 +3292,33 @@ define class ExportTable as BaseTable
 			endif
 			select * from (this.alias) where .f. into cursor (m.buffer.alias) readwrite
 		endif
-		m.result = m.engine.getResultTable()
 		m.pk = createobject("PreservedKey",m.result)
-		this.searchKey = m.searchKey
-		this.foundKey = m.foundKey
+		this.searchKey = iif(m.searchRec,"",m.searchKey)
+		this.foundKey = iif(m.foundRec,"",m.foundKey)
 		this.engine = m.engine
 		this.deleteKey()
 		m.search = this.engine.getSearchCluster()
 		m.found = this.engine.getBaseCluster()
-		m.t = createobject("Timing")
-		this.messenger.start()
 		m.result.forceKey("searched")
 		m.result.setKey("searched")
 		m.result.select()
 		go top
-		skip
-		m.msg = "/"+ltrim(str(reccount()))
 		m.oldsrec = -1
 		m.skip = .f.
 		m.err = .f.
-		m.cancel = .f.
-		m.pos = 1
+		this.messenger.setDefault("Exported")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Exporting","Canceled.")
 		try
-			do while not eof()
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Create ExportTable") == 6
-							m.cancel = .t.
-							exit
-						endif
-					endif
+			scan
+				this.messenger.incProgress()
+				if this.messenger.queryCancel()
+					exit
 				endif
 				m.run = asc(run)
-				if not m.runFilter.isFiltered(m.run)
-					this.messenger.postMessage("Exported "+ltrim(str(m.pos))+m.msg)
-					skip
-					m.pos = m.pos+1
+				if searched == 0 or not m.runFilter.isFiltered(m.run)
+					this.messenger.incProgress()
+					this.messenger.postProgress()
 					loop
 				endif
 				m.srec = searched
@@ -3140,9 +3341,15 @@ define class ExportTable as BaseTable
 					m.oldsrec = m.srec
 					m.max = m.identity
 					m.skip = .f.
-					m.search.goRecord(m.srec)
-					m.search.selectActiveTable()
-					m.skey = evaluate(m.searchKey)
+					if m.text or m.searchRec == .f.
+						m.search.goRecord(m.srec)
+						m.search.selectActiveTable()
+					endif
+					if m.searchRec
+						m.skey = m.srec
+					else
+						m.skey = evaluate(m.searchKey)
+					endif
 					if m.text
 						m.stxt = m.engine.extractSearchedText()
 					endif
@@ -3155,9 +3362,13 @@ define class ExportTable as BaseTable
 					m.skip = .t.
 				endif
 				if m.skip == .f. and m.identity >= m.low and m.identity < m.high
-					m.found.goRecord(m.fkey)
-					m.found.selectActiveTable()
-					m.fkey = evaluate(m.foundKey)
+					if m.text or m.foundRec == .f.		
+						m.found.goRecord(m.fkey)
+						m.found.selectActiveTable()
+					endif
+					if m.foundRec == .f.
+						m.fkey = evaluate(m.foundKey)
+					endif
 					if m.text
 						m.ftxt = m.engine.extractFoundText()
 						insert into (m.buffer.alias) (searched, found, identity, equal, score, run, searchtxt, foundtxt) values (m.skey, m.fkey, m.identity, m.equal, m.score, m.run, m.stxt, m.ftxt)
@@ -3165,11 +3376,8 @@ define class ExportTable as BaseTable
 						insert into (m.buffer.alias) (searched, found, identity, equal, score, run) values (m.skey, m.fkey, m.identity, m.equal, m.score, m.run)
 					endif
 				endif
-				this.messenger.postMessage("Exported "+ltrim(str(m.pos))+m.msg)
-				select (m.result.alias)
-				skip
-				m.pos = m.pos+1
-			enddo
+				this.messenger.postProgress()
+			endscan
 			if m.skip == .f. and reccount(m.buffer.alias) > 0 
 				if m.txt
 					this.write(m.handle, m.converter, m.buffer.alias)
@@ -3185,14 +3393,13 @@ define class ExportTable as BaseTable
 			this.messenger.errormessage("ResultTable is not synchronized.")
 			return .f.
 		endif
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		if m.txt
 			FileClose(m.handle)
 		else
 			this.forceRequiredKeys()
 		endif
-		if m.cancel
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isCanceled()
 			return .f.
 		endif
 		return .t.
@@ -3210,7 +3417,6 @@ define class ExportTable as BaseTable
 		endscan
 	endfunc
 enddefine
-
 
 define class ExtendedExportTable as BaseTable
 	protected function init(table)
@@ -3238,21 +3444,22 @@ define class ExtendedExportTable as BaseTable
 	endfunc
 
 	function create(export, searchedGroupKey, foundGroupKey)
-		local pa, ps1, ps2, ps3, ps4, ps5, lm, pk1, t
-		local searchKey, foundKey, search, found, msg, sql, engine
+		local pa, ps1, ps2, ps3, ps4, ps5, lm, pk1
+		local searchKey, foundKey, search, found, sql, engine
 		local i, j, struc, list, ins, f1, f2, name, join
 		local joinCount, val, str
 		local sort, searchedGrouping, foundGrouping, filter
-		local temp, oldGroup, err, exportAlias, cancel
+		local temp, oldGroup, err, exportAlias
 		local txt, blank, handle, converter, con, idontcare
 		local array data[1]
+		local searchRec, foundRec, runasc
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
 		m.ps4 = createobject("PreservedSetting","null","on")
 		m.ps5 = createobject("PreservedSetting","optimize","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Extending...")
 		if not vartype(m.export) == "O" or not m.export.isValid()
 			this.messenger.errormessage("ExportTable is invalid.")
@@ -3267,9 +3474,13 @@ define class ExtendedExportTable as BaseTable
 		m.searchKey = m.export.getSearchKey()
 		m.foundKey = m.export.getFoundKey()
 		m.engine = m.export.getEngine()
-		if empty(m.searchKey) or empty(m.foundKey)
-			this.messenger.errormessage("ExportTable is invalid.")
-			return .f.
+		if not vartype(m.searchKey) == "C" or empty(m.searchKey)
+			m.searchKey = "searched"
+			m.searchRec = .t.
+		endif
+		if not vartype(m.foundKey) == "C" or empty(m.foundKey)
+			m.foundKey = "found"
+			m.foundRec = .t.
 		endif
 		if not m.engine.isFoundSynchronized()
 			this.messenger.errormessage("Engine is not synchronized with BaseTable.")
@@ -3280,16 +3491,20 @@ define class ExtendedExportTable as BaseTable
 			return .f.
 		endif
 		m.search = m.engine.getSearchTable()
-		m.f1 = m.search.getFieldStructure(m.searchKey)
-		if not m.f1.isValid()
-			this.messenger.errormessage("SearchKey does not exist in SearchTable.")
-			return .f.
+		if m.searchRec == .f.
+			m.f1 = m.search.getFieldStructure(m.searchKey)
+			if not m.f1.isValid()
+				this.messenger.errormessage("SearchKey does not exist in SearchTable.")
+				return .f.
+			endif
 		endif
 		m.found = m.engine.getBaseTable()
-		m.f1 = m.found.getFieldStructure(m.foundKey)
-		if not m.f1.isValid()
-			this.messenger.errormessage("FoundKey does not exist in BaseTable.")
-			return .f.
+		if m.foundRec == .f.
+			m.f1 = m.found.getFieldStructure(m.foundKey)
+			if not m.f1.isValid()
+				this.messenger.errormessage("FoundKey does not exist in BaseTable.")
+				return .f.
+			endif
 		endif
 		m.searchedGrouping = .f.
 		if vartype(m.searchedGroupKey) == "C" and not empty(m.searchedGroupKey)
@@ -3317,6 +3532,10 @@ define class ExtendedExportTable as BaseTable
 		if not this.isCreatable()
 			this.messenger.errormessage("ExtendedExportTable is not creatable.")
 			return .f.
+		endif
+		m.f1 = m.export.getFieldStructure("run")
+		if m.f1.getType() == "C" and m.f1.getLength() == 1
+			m.runasc = .t.
 		endif
 		m.struc = ""
 		if m.searchedGrouping
@@ -3387,14 +3606,14 @@ define class ExtendedExportTable as BaseTable
 		endfor
 		m.ins = m.ins+", m.data["+ltrim(str(m.joinCount+6))+"], m.data["+ltrim(str(m.joinCount+7))+"], m.data["+ltrim(str(m.joinCount+8))+"]"
 		m.struc = m.struc+", score n(10,2), cnt n(10), run n(3)"
-		m.ins = "INSERT INTO (this.alias) VALUES("+m.ins+")"
+		m.ins = "INSERT INTO (this.alias) VALUES ("+m.ins+")"
 		dimension data[8+m.joinCount]
 		this.setRequiredTableStructure(m.struc)
-		if not m.engine.setKey(m.search, m.searchKey)
+		if m.searchRec == .f. and not m.engine.setKey(m.search, m.searchKey)
 			this.messenger.errormessage("Unable to index SearchTable.")
 			return .f.
 		endif
-		if not m.engine.setKey(m.found, m.foundKey)
+		if m.foundRec == .f. and not m.engine.setKey(m.found, m.foundKey)
 			this.messenger.errormessage("Unable to index BaseTable.")
 			return .f.
 		endif
@@ -3456,7 +3675,22 @@ define class ExtendedExportTable as BaseTable
 		try
 			if m.foundGrouping
 				this.messenger.forceMessage("Filtering...")
-				m.found.select("SELECT cast(0 as i) as rec, b."+m.foundGroupKey+" as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a, [CLUSTERALIAS] b WHERE a.found == b."+m.foundKey+" order by 2, 3, 5, 6, 4", m.sort.alias)
+				if m.foundrec
+					m.struc = m.found.getTableStructure()
+					m.f1 = m.struc.getFieldStructure(m.foundGroupKey)
+					m.f1.null = .t.
+					m.sql = "SELECT cast(0 as i) as rec, cast(.NULL. as "+m.f1.getDefinition()+") as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a into cursor "+m.sort.alias+" readwrite"
+					&sql
+					m.f1 = m.f1.getName()
+					scan
+						if m.found.goRecord(found)
+							replace group with evaluate(m.found.table.alias+"."+m.f1)
+						endif
+					endscan
+					select * from (m.sort.alias) where not isnull(group) order by 2, 3, 5, 6, 4 into cursor (m.sort.alias) readwrite
+				else
+					m.found.select("SELECT cast(0 as i) as rec, b."+m.foundGroupKey+" as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a, [CLUSTERALIAS] b WHERE a.found == b."+m.foundKey+" order by 2, 3, 5, 6, 4", m.sort.alias)
+				endif
 				update (m.sort.alias) set rec = recno()
 				index on group tag group
 				m.sql = "select a.searched, a.found, a.identity, a.score, a.equal, a.run from (m.sort.alias) a where not exists (select b.group from (m.sort.alias) b where a.group == b.group and a.searched == b.searched and b.rec > a.rec) into cursor (m.filter.alias) readwrite"
@@ -3468,7 +3702,22 @@ define class ExtendedExportTable as BaseTable
 			endif
 			if m.searchedGrouping
 				this.messenger.forceMessage("Filtering...")
-				m.search.select("SELECT cast(0 as i) as rec, b."+m.searchedGroupKey+" as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a, [CLUSTERALIAS] b WHERE a.searched == b."+m.searchKey+" order by 2, 4, 5, 6, 3", m.sort.alias)
+				if m.searchrec
+					m.struc = m.search.getTableStructure()
+					m.f1 = m.struc.getFieldStructure(m.searchedGroupKey)
+					m.f1.null = .t.
+					m.sql = "SELECT cast(0 as i) as rec, cast(.NULL. as "+m.f1.getDefinition()+") as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a into cursor "+m.sort.alias+" readwrite"
+					&sql
+					m.f1 = m.f1.getName()
+					scan
+						if m.search.goRecord(searched)
+							replace group with evaluate(m.search.table.alias+"."+m.f1)
+						endif
+					endscan
+					select * from (m.sort.alias) where not isnull(group) order by 2, 4, 5, 6, 3 into cursor (m.sort.alias) readwrite
+				else
+					m.search.select("SELECT cast(0 as i) as rec, b."+m.searchedGroupKey+" as group, a.searched, a.found, a.identity, a.score, a.equal, a.run FROM "+m.exportAlias+" a, [CLUSTERALIAS] b WHERE a.searched == b."+m.searchKey+" order by 2, 4, 5, 6, 3", m.sort.alias)
+				endif
 				update (m.sort.alias) set rec = recno()
 				index on group tag group
 				m.sql = "select a.group, a.searched, a.found, a.identity, a.score, a.equal, a.run from (m.sort.alias) a where not exists (select b.group from (m.sort.alias) b where a.group == b.group and a.found == b.found and b.rec > a.rec) into cursor (m.filter.alias) readwrite"
@@ -3484,7 +3733,11 @@ define class ExtendedExportTable as BaseTable
 				this.messenger.forceMessage("Sorting...")
 				select searched, count(*) as cnt, max(score) as score from (m.exportAlias) group by 1 order by 2 desc, 3, 1 into cursor (m.sort.alias)
 			endif
-			m.sql = "select searched, found, identity, score, equal, run from (m.exportAlias) order by 1, 3 desc, 4 desc, 2 into cursor (m.temp.alias) readwrite"
+			if m.runasc
+				m.sql = "select searched, found, identity, score, equal, cast(asc(run) as n(3)) as run from (m.exportAlias) order by 1, 3 desc, 4 desc, 2 into cursor (m.temp.alias) readwrite"
+			else
+				m.sql = "select searched, found, identity, score, equal, run from (m.exportAlias) order by 1, 3 desc, 4 desc, 2 into cursor (m.temp.alias) readwrite"
+			endif
 			&sql
 			m.exportAlias = m.temp.alias
 			index on searched tag searched
@@ -3497,28 +3750,22 @@ define class ExtendedExportTable as BaseTable
 		endif
 		release m.filter
 		m.str = createobject("String")
-		m.t = createobject("Timing")
-		this.messenger.start()
 		select (m.sort.alias)
-		m.msg = "/"+ltrim(str(reccount()))
 		m.oldGroup = .null.
-		m.cancel = .f.
+		this.messenger.setDefault("Extended")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Extending","Canceled.")
 		scan
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Create ExtendedExportTable") == 6
-						m.cancel = .t.
-						exit
-					endif
-				endif
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				exit
 			endif
 			m.data[2] = searched
 			m.data[3] = .null.
 			m.data[4] = .null.
 			m.data[5] = .null.
 			m.data[m.joinCount+8] = .null.
-			if m.search.seek(searched)
+			if this.navigate(m.search, searched, m.searchRec)
 				m.search.selectActiveTable()
 				for m.i = 1 to m.joinCount
 					m.f1 = m.join.getA(m.i)
@@ -3543,10 +3790,10 @@ define class ExtendedExportTable as BaseTable
 					m.oldGroup = group
 				endif
 				&ins
-				if seek(data[2], m.exportAlias)
+				if seek(m.data[2], m.exportAlias)
 					select (m.exportAlias)
-					do while not eof() and searched == data[2]
-						if m.found.seek(found)
+					do while not eof() and searched == m.data[2]
+						if this.navigate(m.found, found, m.foundRec)
 							m.found.selectActiveTable()
 							for m.i = 1 to m.joinCount
 								m.f1 = m.join.getb(m.i)
@@ -3580,9 +3827,9 @@ define class ExtendedExportTable as BaseTable
 					append blank in (this.alias)
 				endif
 			endif
-			this.messenger.postMessage("Extended "+ltrim(str(recno()))+m.msg)
+			this.messenger.postProgress()
 		endscan
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		if m.txt
 			FileClose(m.handle)
 		else
@@ -3591,13 +3838,19 @@ define class ExtendedExportTable as BaseTable
 			m.sql = "blank fields found, identity, run for isnull(found)"
 			&sql
 		endif
-		if m.cancel
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isCanceled()
 			return .f.
 		endif
 		return .t.
 	endfunc
 	
+	hidden function navigate(cluster, keyrec, isrec)
+		if m.isrec
+			return m.cluster.goRecord(m.keyrec)
+		endif
+		return m.cluster.seek(m.keyrec)
+	endfunc
+
 	hidden function write(handle as Integer, converter as Collection, data)
 	local line, i
 		m.line = evaluate(m.converter.item(1))
@@ -3629,13 +3882,14 @@ define class GroupedExportTable as BaseTable
 		this.resizeRequirements()
 	endfunc
 
-	function create(export, cascade, text, single)
-		local pa, ps1, ps2, ps3, ps4, ps5, lm, t
-		local searchKey, foundKey, found, msg, engine
+	function create(export, cascade, notext, nosingle)
+		local pa, ps1, ps2, ps3, ps4, ps5, lm
+		local searchKey, foundKey, searchRec, found, engine
 		local i, j, struc, ins, f1, name, join, joinCount, val, str
-		local err, group, oldGroup, sort, temp, cancel
+		local err, group, oldGroup, sort, temp
 		local txt, converter, con, handle, line, blank, rc
 		local score, perc, prev, percent, rcnt, idontcare
+		local text, single
 		local array data(1)
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
@@ -3643,7 +3897,7 @@ define class GroupedExportTable as BaseTable
 		m.ps4 = createobject("PreservedSetting","null","on")
 		m.ps5 = createobject("PreservedSetting","optimize","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Grouping...")
 		if not vartype(m.export) == "O" or not m.export.isValid()
 			this.messenger.errormessage("ExportTable is invalid.")
@@ -3655,24 +3909,16 @@ define class GroupedExportTable as BaseTable
 			return .f.
 		endif
 		m.idontcare = m.engine.idontcare()
-		if vartype(m.cascade) == "L"
-			m.single = m.text
-			m.text = m.cascade
-			m.cascade = createobject("NestedCascade")
-		else			
-			if vartype(m.cascade) == "C"
-				m.cascade = createobject("NestedCascade",m.cascade)
-			endif
-		endif
 		m.searchKey = m.export.getSearchKey()
 		m.foundKey = m.export.getFoundKey()
-		if empty(m.searchKey) or empty(m.foundKey)
-			this.messenger.errormessage("ExportTable is invalid.")
-			return .f.
-		endif
+		m.text = not m.notext
+		m.single = not m.nosingle
 		if not m.searchKey == m.foundKey
 			this.messenger.errormessage("SearchKey and FoundKey are not identical.")
 			return .f.
+		endif
+		if empty(m.searchKey)
+			m.searchRec = .t.
 		endif
 		if not vartype(m.engine) == "O" or not m.engine.isValid()
 			this.messenger.errormessage("Engine Object is invalid.")
@@ -3705,10 +3951,12 @@ define class GroupedExportTable as BaseTable
 			endif
 		endif
 		m.found = m.engine.getBaseTable()
-		m.f1 = m.found.getFieldStructure(m.searchKey)
-		if not m.f1.isValid()
-			this.messenger.errormessage("SearchKey does not exist in BaseTable.")
-			return .f.
+		if m.searchRec == .f.
+			m.f1 = m.found.getFieldStructure(m.searchKey)
+			if not m.f1.isValid()
+				this.messenger.errormessage("SearchKey does not exist in BaseTable.")
+				return .f.
+			endif
 		endif
 		m.f1 = m.export.getFieldStructure("Searched")
 		if m.f1.getType() == "I"
@@ -3753,7 +4001,7 @@ define class GroupedExportTable as BaseTable
 		m.struc = m.struc+", CNT N(10)"
 		m.ins = "INSERT INTO (this.alias) VALUES ("+m.ins+")"
 		this.setRequiredTableStructure(m.struc)
-		if m.text and not m.engine.setKey(m.found, m.searchKey)
+		if m.text and m.searchRec == .f. and not m.engine.setKey(m.found, m.searchKey)
 			this.messenger.errormessage("Unable to index BaseTable.")
 			return .f.
 		endif
@@ -3833,9 +4081,6 @@ define class GroupedExportTable as BaseTable
 			return .f.
 		endif
 		if m.rc == .f.
-			if empty(this.messenger.getErrorMessage())
-				this.messenger.errormessage("Unable to group ExportTable.")
-			endif
 			return .f.
 		endif
 		if not m.group.forceKey("from")
@@ -3904,27 +4149,22 @@ define class GroupedExportTable as BaseTable
 			endif
 		endif
 		m.str = createobject("String")
-		m.t = createobject("Timing")
 		select (m.sort.alias)
-		m.msg = "/"+ltrim(str(reccount()))
 		go top
 		m.oldGroup = group
-		m.cancel = .f.
+		this.messenger.setDefault("Extended")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Extending","Canceled.")
 		scan
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Create GroupExportTable") == 6
-						m.cancel = .t.
-						exit
-					endif
-				endif
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				exit
 			endif
 			m.data[1] = group
 			m.data[2] = member
 			m.data[3] = .null.
 			if m.text
-				if m.found.seek(member)
+				if this.navigate(m.found, member, m.searchRec)
 					m.found.selectActiveTable()
 					for m.i = 1 to m.joinCount
 						m.f1 = m.join.getA(m.i)
@@ -3952,9 +4192,9 @@ define class GroupedExportTable as BaseTable
 				m.data[3] = cnt
 				&ins
 			endif
-			this.messenger.postMessage("Extended "+ltrim(str(recno()))+m.msg)
+			this.messenger.postProgress()
 		endscan
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		if m.txt
 			if m.text and reccount(m.sort.alias) > 0
 				FileWriteCRLF(m.handle, m.blank)
@@ -3967,11 +4207,17 @@ define class GroupedExportTable as BaseTable
 				blank fields subgroup for .t.
 			endif
 		endif
-		if m.cancel
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isCanceled()
 			return .f.
 		endif
 		return .t.
+	endfunc
+	
+	hidden function navigate(cluster, keyrec, isrec)
+		if m.isrec
+			return m.cluster.goRecord(m.keyrec)
+		endif
+		return m.cluster.seek(m.keyrec)
 	endfunc
 
 	hidden function write(handle as Integer, converter as Collection, data)
@@ -3982,6 +4228,380 @@ define class GroupedExportTable as BaseTable
 		endfor
 		FileWriteCRLF(m.handle, m.line)
 	endfunc
+enddefine
+
+define class MetaExportTable as BaseTable
+	protected function init(table)
+	local struc, substruc, s
+		BaseTable::init(m.table)
+		m.struc = this.getTableStructure()
+		m.substruc = m.struc.getStructureWith("searched, found")
+		if m.substruc.getFieldCount() == 2
+			m.s = m.substruc.toString()
+		else
+			m.s = "searched n(10), found n(10)"
+		endif
+		if m.struc.checkCompatibility("identity n(6,2), score n(10,2)", .t.)
+			m.substruc = m.struc.getStructureWith("identity, score")
+			m.s = m.s+", "+m.substruc.toString()
+		else
+			m.s = m.s+", identity n(6,2), score n(10,2)"
+		endif
+		this.setRequiredTableStructure(m.s)
+		this.resizeRequirements()
+	endfunc
+		
+	function create(engine, meta, low, high, runFilter)
+		local pa, ps1, ps2, ps3, ps4, lm
+		local result, foundtypes, searchedtypes, handle, line
+		local foundreg, searchedreg, stype, ftype, type, typeindex
+		local searched, found, identity, score, run, join, runmax
+		local entrylen, base2reg, target, searchcluster
+		local cluster, index, start, end, table
+		local sx, fx, mx, sxcnt, fxcnt, mxcnt
+		local lex, lexarray, already, idc, count, cnt
+		local i, j, k, f, s, m, fa, fb, txt, chr9
+		m.ps1 = createobject("PreservedSetting","escape","off")
+		m.ps2 = createobject("PreservedSetting","talk","off")
+		m.ps3 = createobject("PreservedSetting","exact","on")
+		m.ps4 = createobject("PreservedSetting","decimals","6")
+		m.pa = createobject("PreservedAlias")
+		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Exporting Meta...")
+		if not vartype(m.engine) == "O"
+			this.messenger.errormessage("Engine object is invalid.")
+			return .f.
+		endif
+		m.idc = m.engine.idontcare()
+		if not m.engine.isValid()
+			this.messenger.errormessage("Engine is invalid.")
+			return .f.
+		endif
+		if not m.engine.isSearchReady()
+			this.messenger.errormessage("Engine is not synchronized.")
+			return .f.
+		endif
+		if not m.engine.isResultTableReady()
+			this.messenger.errormessage("ResultTable is invalid.")
+			return .f.
+		endif
+		if m.idc
+			this.erase()
+		endif
+		if not this.isCreatable()
+			this.messenger.errormessage("MetaExportTable is not creatable.")
+			return .f.
+		endif
+		m.result = m.engine.getResultTable()
+		m.foundtypes = m.engine.getSearchTypes()
+		if not m.foundtypes.isValid()
+			this.messenger.errormessage("SearchTypes are invalid.")
+			return .f.
+		endif
+		if not m.engine.isSearchedSynchronized()
+			this.messenger.errormessage("SearchTable is not synchronized.")
+			return .f.
+		endif
+		if not m.engine.isFoundSynchronized()
+			this.messenger.errormessage("BaseTable is not synchronized.")
+			return .f.
+		endif
+		if not inlist(vartype(m.meta),"C","L")
+			this.messenger.errormessage("Invalid meta filter.")
+			return .f.
+		endif
+		m.meta = createobject("MetaFilter",m.meta,m.foundtypes)
+		if not m.meta.isValid()
+			this.messenger.errormessage("Invalid meta filter.")
+			return .f.
+		endif
+		if not inlist(vartype(m.low),"N","L")
+			this.messenger.errormessage("Invalid low range.")
+			return .f.
+		endif
+		if not inlist(vartype(m.high),"N","L") 
+			this.messenger.errormessage("Invalid high range.")
+			return .f.
+		endif
+		m.low = iif(vartype(m.low) == "N", max(m.low,0), 0)
+		m.high = iif(vartype(m.high) == "N", max(m.high,0), 999)
+		if m.high <= m.low
+			m.high = m.low+1
+		endif
+		if not inlist(vartype(m.runFilter),"O","C","L")
+			this.messenger.errormessage("Invalid runFilter setting.")
+			return .f.
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+		endif
+		if not m.runFilter.isValid()
+			this.messenger.errormessage("Run filter expression is invalid.")
+			return .f.
+		endif
+		m.runmax = m.result.getRun()
+		if like("*.txt",lower(this.getDBF()))
+			m.txt = .t.
+			m.handle = FileOpenWrite(EXPORTHANDLE,this.getDBF())
+			if m.handle <= 0
+				this.messenger.errormessage("Invalid MetaExportTable path name.")
+				return .f.
+			endif
+			m.line = "SEARCHED"+chr(9)+"FOUND"+chr(9)+"IDENTITY"+chr(9)+"SCORE"+chr(9)+"CNT"
+			for m.i = 1 to m.runmax
+				if m.runFilter.isFiltered(m.i)
+					m.line = m.line+chr(9)+"RUN"+ltrim(str(m.i))
+				endif
+			endfor
+			for m.i = 1 to m.foundtypes.getSearchTypeCount()
+				for m.j = 1 to 3
+					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
+					for m.k = 1 to m.meta.meta[m.i]
+						m.line = m.line+chr(9)+m.f+ltrim(str(m.k))
+					endfor
+				endfor
+			endfor
+			FileWriteCRLF(m.handle,m.line)
+		else
+			m.s = 4
+			m.line = "searched i, found i, identity b(6), score  b(6), cnt b(6)"
+			for m.i = 1 to m.runmax
+				if m.runFilter.isFiltered(m.i)
+					m.line = m.line+", RUN"+ltrim(str(m.i))+" n(1)"
+					m.s = m.s+1
+				endif
+			endfor
+			for m.i = 1 to m.foundtypes.getSearchTypeCount()
+				for m.j = 1 to 3
+					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
+					for m.k = 1 to m.meta.meta[m.i]
+						m.line = m.line+", "+m.f+ltrim(str(m.k))+" b(6)"
+						m.s = m.s+1
+					endfor
+				endfor
+			endfor
+			if m.s > 254
+				this.messenger.errormessage('Too many fields for MetaExportTable. Try ".txt" export.')
+				return .f.
+			endif
+			this.setRequiredTableStructure(m.line)
+			if not BaseTable::create()
+				this.messenger.errormessage('Unable to create MetaExportTable')
+				return .f.
+			endif
+		endif
+		m.foundreg = m.engine.getRegistryTable()
+		m.searchedreg = createobject("BaseCursor",m.engine.getEnginePath())
+		m.searchedreg = m.searchedreg.getDBF() && handle released and deleted immediately by GC
+		m.searchedreg = m.engine.expand(m.searchedreg) && searchedreg converts to RegistryTable object
+		if not vartype(m.searchedreg) == "O"
+			this.messenger.errormessage("Unable to create SearchTable Registry.")
+			if m.txt
+				FileClose(m.handle)
+			endif
+			this.erase()
+			return .f.
+		endif
+		m.searchedreg.setCursor(.t.)
+		m.searchedtypes = createobject("SearchTypes",m.foundtypes.toString())
+		m.count = createobject("UniqueAlias",.t.)
+		select type, cast(max(occurs) as i) as max from (m.searchedreg.alias) where occurs > 0 group by 1 into cursor (m.count.alias) readwrite
+		scan
+			m.stype = m.searchedtypes.getSearchTypeByIndex(type)
+			m.stype.setMaxOcc(max)
+		endscan
+		select searched, cast(count(*) as i) as cnt from (m.result.alias) group by 1 into cursor (m.count.alias) readwrite
+		index on searched tag searched
+		m.join = m.engine.getSearchFieldJoin()
+		dimension m.sx[MAXWORDCOUNT,3]
+		dimension m.fx[MAXWORDCOUNT,3]	
+		dimension m.mx[MAXWORDCOUNT*2,4]	
+		m.entrylen = m.searchedreg.getTableStructure()
+		m.entrylen = m.entrylen.getFieldStructure("entry")
+		m.entrylen = m.entrylen.getSize()
+		m.searchedreg.forceRegistryKey()
+		m.base2reg = m.engine.getBase2RegistryCluster()
+		m.searchcluster = m.engine.getSearchCluster()
+		dimension m.lexarray[1]
+		m.result.select()
+		m.searched = -1
+		m.found = -1
+		m.cnt = 1
+		this.messenger.setDefault("Exported")
+		this.messenger.startProgress(m.result.reccount())
+		this.messenger.startCancel("Cancel Operation?","Exporting Meta","Canceled.")
+		scan
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				exit
+			endif
+			m.run = asc(run)
+			m.identity = identity
+			if searched <= 0 or not m.runFilter.isFiltered(m.run) or m.identity < m.low or m.identity >= m.high
+				this.messenger.postProgress()
+				loop
+			endif
+			m.found = found
+			m.score = score
+			if searched != m.searched
+				m.searched = searched
+				if seek(m.searched, m.count.alias)
+					m.cnt = evaluate(m.count.alias+".cnt")
+				endif
+				m.sxcnt = 0
+				m.searchCluster.goRecord(m.searched)
+				m.table = m.searchCluster.getActiveTable()
+				for m.i = 1 to m.join.getJoinCount()
+					m.fa = m.join.getA(m.i)
+					m.fb = m.join.getB(m.i)
+					m.fa = m.fa.getName()
+					m.fb = m.fb.getName()
+					for m.j = 1 to m.foundtypes.getSearchTypeCount(m.fb)
+						m.ftype = m.foundtypes.getSearchTypeByField(m.fb,m.j)
+						m.typeindex = m.ftype.getTypeIndex()
+						m.stype = m.searchedtypes.getSearchTypeByIndex(m.typeindex)
+						if alines(m.lexArray,m.ftype.prepare(m.table.getValueAsString(m.fa)),5," ") == 0
+							loop
+						endif
+						m.already = " "
+						for m.k = 1 to alen(m.lexarray)
+							m.lex = left(m.lexarray[m.k], m.entrylen)
+							if not (" "+m.lex+" " $ m.already)
+								m.already = m.already+m.lex+" "
+								select (m.searchedreg.alias)
+								if seek(m.searchedreg.buildRegistryKey(m.typeindex, m.lex))
+									m.sxcnt = m.sxcnt+1
+									m.sx[m.sxcnt,1] = recno()
+									m.sx[m.sxcnt,2] = m.typeindex
+									m.sx[m.sxcnt,3] = 1-(occurs-1)/m.stype.getMaxOcc()
+									if recno() <= reccount(m.foundreg.alias)
+										select (m.foundreg.alias)
+										go recno(m.searchedreg.alias)
+										m.f = 1-(occurs-1)/m.ftype.getMaxOcc()
+										if m.f < m.sx[m.sxcnt,3]
+											m.sx[m.sxcnt,3] = m.f
+										endif
+									endif
+								endif
+								if m.sxcnt == MAXWORDCOUNT
+									exit
+								endif
+							endif
+						endfor
+					endfor
+				endfor
+				asort(m.sx,1,m.sxcnt)
+			endif
+			m.fxcnt = 0
+			m.cluster = 1
+			m.index = m.base2reg.index.item(m.cluster)
+			m.start = 0
+			m.end = reccount(m.index.alias)-1
+			do while m.found > m.end
+				m.cluster = m.cluster+1
+				m.index = m.base2reg.index.item(m.cluster)
+				m.start = m.end
+				m.end = m.end+reccount(m.index.alias)-1
+			enddo
+			select (m.index.alias)
+			go m.found-m.start
+			m.start = index
+			skip
+			m.end = min(index-1, m.start+MAXWORDCOUNT-1)
+			m.target = m.base2reg.target.item(m.cluster)
+			for m.i = m.start to m.end
+				select (m.target.alias)
+				go m.i
+				m.fxcnt = m.fxcnt+1
+				m.fx[m.fxcnt,1] = target
+				select (m.foundreg.alias)
+				go m.fx[m.fxcnt,1]
+				m.fx[m.fxcnt,2] = type
+				m.ftype = m.foundtypes.getSearchTypeByIndex(type)
+				m.fx[m.fxcnt,3] = 1-(occurs-1)/m.ftype.getMaxOcc()
+			endfor
+			m.f = 1
+			m.s = 1
+			m.mxcnt = 0
+			do while m.s <= m.sxcnt or m.f <= m.fxcnt
+				m.mxcnt = m.mxcnt+1
+				if m.f <= m.fxcnt and (m.s > m.sxcnt or m.fx[m.f,1] < m.sx[m.s,1])
+					m.mx[m.mxcnt,1] = "F"
+					m.mx[m.mxcnt,2] = m.fx[m.f,2]
+					m.mx[m.mxcnt,3] = m.fx[m.f,3]
+					m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"F"+str(2-m.fx[m.f,3],11,9)
+					m.f = m.f+1
+					loop
+				endif
+				if m.s <= m.sxcnt and (m.f > m.fxcnt or m.sx[m.s,1] < m.fx[m.f,1])
+					m.mx[m.mxcnt,1] = "S"
+					m.mx[m.mxcnt,2] = m.sx[m.s,2]
+					m.mx[m.mxcnt,3] = m.sx[m.s,3]
+					m.mx[m.mxcnt,4] = str(m.sx[m.s,2],10,0)+"S"+str(2-m.sx[m.s,3],11,9)
+					m.s = m.s+1
+					loop
+				endif
+				m.mx[m.mxcnt,1] = "M"
+				m.mx[m.mxcnt,2] = m.fx[m.f,2]
+				m.mx[m.mxcnt,3] = m.fx[m.f,3]
+				m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"B"+str(2-m.fx[m.f,3],11,9)
+				m.s = m.s+1
+				m.f = m.f+1
+			enddo
+			asort(m.mx,4,m.mxcnt)
+			if m.txt
+				m.chr9 = chr(9)
+			else
+				m.chr9 = ","
+			endif
+			m.line = ltrim(str(m.searched))+chr9+ltrim(str(m.found))+chr9+ltrim(str(m.identity,18,9))+chr9+ltrim(str(m.score,18,9))+chr9+ltrim(str(m.cnt,18,9))
+			for m.i = 1 to m.runmax
+				if m.i = m.run
+					m.line = m.line+chr9+"1"
+				else
+					if m.runFilter.isFiltered(m.i)
+						m.line = m.line+chr9+"0"
+					endif
+				endif
+			endfor
+			m.m = 1
+			for m.i = 1 to m.foundtypes.getSearchTypeCount()
+				for m.j = 1 to 3
+					m.f = substr("MFS",m.j,1)
+					if not m.f == "S"
+						m.type = m.foundtypes.getSearchTypeByIndex(m.i)
+					else
+						m.type = m.searchedtypes.getSearchTypeByIndex(m.i)
+					endif
+					m.type = m.type.getMaxOcc()
+					for m.k = 1 to m.meta.meta[m.i]
+						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+							m.line = m.line+chr9+ltrim(str(m.mx[m.m,3],18,9))
+							m.m = m.m+1
+						else
+							m.line = m.line+chr9+"0"
+						endif
+					endfor
+					do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+						m.m = m.m+1
+					enddo
+				endfor
+			endfor
+			if m.txt
+				FileWriteCRLF(m.handle,m.line)
+			else
+				m.line = "insert into "+this.alias+" values ("+m.line+")"
+				&line
+			endif
+			this.messenger.postProgress()
+		endscan
+		if m.txt
+			FileClose(m.handle)
+		endif
+		if this.messenger.isCanceled()
+			return .f.
+		endif
+		return .t.
 enddefine
 
 define class SearchEngine as custom
@@ -3999,7 +4619,7 @@ define class SearchEngine as custom
 	hidden searchTable, baseTable
 	hidden logfile, notcaring
 	hidden version
-	version = "18.20"
+	version = "19.00"
 	tag = ""
 	notcaring = .f.
 
@@ -4164,6 +4784,14 @@ define class SearchEngine as custom
 	function getLimit()
 		return this.limit
 	endfunc
+	
+	function setThreshold(threshold)
+		this.setLimit(m.threshold)
+	endfunc
+	
+	function getThreshold()
+		return this.getLimit()
+	endfunc	
 
 	function setDepth(depth)
 		this.depth = min(max(m.depth,0),MAXSEARCHDEPTH)
@@ -4299,7 +4927,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	function mergeSearchTypes(searchtypes)
-		if vartype(m.searchTypes) != "O"
+		if not vartype(m.searchTypes) == "O"
 			m.searchTypes = createobject("SearchTypes",m.searchTypes)
 		endif
 		this.searchTypes.mergeSearchTypeData(m.searchtypes)
@@ -5143,9 +5771,28 @@ define class SearchEngine as custom
 	endfunc
 
 	function export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
-		local oldmes, rc
+		local oldmes, rc, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExportTable",m.table)
+		endif
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("OCCNNLCL")
+		m.dp.dyna("O")
+		m.dp.dyna("OCC")
+		m.dp.dyna("OCCNN")
+		m.dp.dyna("ONN","1,4,5,6,7,8")
+		m.dp.dyna("ONNCL","1,4,5,7,8")
+		m.dp.dyna("ONNLCL","1,4,5,6,7,8")
+		m.dp.dyna("OC","1,7,8")
+		m.dp.dyna("OCCNNCL","1,2,3,4,5,7,8")
+		m.dp.dyna("OCCCL","1,2,3,7,8")
+		m.dp.dyna("OT","1,8")
+		m.dp.dyna("OCCT","1,2,3,8")
+		m.dp.dyna("ONNLT","1,4,5,6,8")
+		m.dp.dyna("OCCNNLT","1,2,3,4,5,6,8")
+		if not m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.text)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
@@ -5158,8 +5805,8 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
-	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
-		local oldmes, exp, rc, idc
+ 	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
+		local oldmes, exp, rc, idc, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExtendedExportTable",m.table)
 		endif
@@ -5176,6 +5823,26 @@ define class SearchEngine as custom
 		endif
 		m.exp = createobject("BaseCursor")
 		if not m.exp.isValid()
+			return .f.
+		endif
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("OCCCCNNLC")
+		m.dp.dyna("O")
+		m.dp.dyna("OCC")
+		m.dp.dyna("OCCCC")
+		m.dp.dyna("ONNLC","1,6,7,8,9")
+		m.dp.dyna("ONNC","1,6,7,9,8")
+		m.dp.dyna("ONNL","1,6,7,8,9")
+		m.dp.dyna("OC","1,9")
+		m.dp.dyna("OCCNNLC","1,2,3,6,7,8,9")
+		m.dp.dyna("OCCNNC","1,2,3,6,7,9,8")
+		m.dp.dyna("OCCNNL","1,2,3,6,7,8,9")
+		m.dp.dyna("OCCC","1,2,3,9")
+		m.dp.dyna("OCCCCNNL","1,2,3,4,5,6,7,8,9")
+		m.dp.dyna("OCCCCNNC","1,2,3,4,5,6,7,9,8")
+		m.dp.dyna("OCCCCC","1,2,3,4,5,9")
+		if not m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.searchedGroupKey, @m.foundGroupKey, @m.low, @m.high, @m.exclusive, @m.runFilter)
+			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
 		m.idc = this.idontcare()
@@ -5206,23 +5873,10 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
-	function groupedExport(table, baseKey, low, high, exclusive, runFilter, cascade, text, single)
-		local ps1		 
+	function groupedExport(table, cascade, baseKey, low, high, exclusive, runFilter, notext, nosingle)
+		local ps1, swap, dp
 		local oldmes, exp, rc, i, sql, clutable, offset, idc, f
 		m.ps1 = createobject("PreservedSetting","deleted", "off")
-		if vartype(m.cascade) == "L"
-			m.single = m.text
-			m.text = m.cascade
-			m.cascade = createobject("NestedCascade")
-		else			
-			if vartype(m.cascade) == "C"
-				m.cascade = createobject("NestedCascade",m.cascade)
-			endif
-		endif
-		if not vartype(m.cascade) == "O" or not m.cascade.isValid("min b, max b, s b, p b")
-			this.messenger.errorMessage("Invalid cascade definition.")
-			return .f.
-		endif
 		if vartype(m.table) == "C"
 			m.table = createobject("GroupedExportTable",m.table)
 		endif
@@ -5237,27 +5891,82 @@ define class SearchEngine as custom
 				return .f.
 			endif
 		endif
-		m.idc = this.idontcare()
-		m.f = this.baseCluster.getTableStructure()
-		m.f = m.f.getFieldStructure(m.basekey)
-		if this.result.reccount()/this.baseCluster.reccount() > 0.1 and inlist(m.f.getType(),"N","I","B") and (vartype(m.runFilter) != "C" or empty(m.runFilter)) and (vartype(m.low) != "N" or m.low <= 0) and (vartype(m.high) != "N" or m.high > 100)
-			this.messenger.forceMessage("Verifying sequential key...")
-			m.offset = 0
-			m.sql = "locate for "+m.basekey+" != recno()+m.offset"
-			for m.i = 1 to this.baseCluster.getTableCount()
-				m.clutable = this.baseCluster.getTable(m.i)
-				m.clutable.select()
-				&sql
-				if not eof()
-					exit
-				endif
-				m.offset = m.offset+m.clutable.reccount()
-			endfor
-			if m.i > this.baseCluster.getTableCount()
-				m.exp = this.result
-				m.exp.mimicExportTable(m.basekey, m.basekey, this)
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("OCCNNLCLL")
+		m.dp.dyna("O")
+		m.dp.dyna("ONNLLL","1,4,5,6,8,9")
+		m.dp.dyna("ONNCLL","1,4,5,7,8,9")
+		m.dp.dyna("ONNLCLL","1,4,5,6,7,8,9")
+		m.dp.dyna("OCNNLLL","1,2,4,5,6,8,9")
+		m.dp.dyna("OCNNCLL","1,2,4,5,7,8,9")
+		m.dp.dyna("OCNNLCLL","1,2,4,5,6,7,8,9")
+		m.dp.dyna("OCCNNLLL","1,2,3,4,5,6,8,9")
+		m.dp.dyna("OCCNNCLL","1,2,3,4,5,7,8,9")
+		m.dp.dyna("OCCLL","1,2,3,8,9")
+		m.dp.dyna("OCCCLL","1,2,3,7,8,9")
+		m.dp.dyna("OCCCNN","1,2,3,7,4,5,6,8,9")
+		m.dp.dyna("OCCCNNLLL","1,2,3,7,4,5,6,8,9")
+		m.dp.dyna("OCLL","1,2,8,9")
+		m.dp.dyna("OLL","1,8,9")
+		if not m.dp.para(@m.table, @m.cascade, @m.baseKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.notext, @m.nosingle)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
+		if vartype(m.cascade) == "C" and not vartype(m.basekey) == "O" and not "@" $ m.cascade and not ltrim(str(val(m.cascade))) == alltrim(m.cascade)
+			m.swap = m.cascade
+			m.cascade = m.basekey
+			m.basekey = m.swap
+		endif
+		if vartype(m.basekey) == "C" and isdigit(ltrim(m.basekey)) and not vartype(m.runFilter) == "O"
+			m.swap = m.basekey
+			m.basekey = m.runFilter
+			m.runFilter = m.swap
+		endif
+		if vartype(m.cascade) == "L"
+			m.cascade = createobject("NestedCascade")
+		else
+			if vartype(m.cascade) == "C"
+				m.cascade = createobject("NestedCascade",m.cascade)
 			endif
-			this.messenger.forceMessage("")
+		endif
+		if not vartype(m.cascade) == "O" or not m.cascade.isValid("min b, max b, s b, p b")
+			this.messenger.errorMessage("Invalid cascade definition.")
+			return .f.
+		endif
+		if vartype(m.runFilter) == "C"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter")
+		endif
+		m.idc = this.idontcare()
+		if not ((vartype(m.low) == "N" and m.low > 0 or vartype(m.high) == "N" and m.high <= 100) or m.runFilter.isFiltering())
+			if not vartype(m.baseKey) == "C" or empty(m.basekey)
+				m.exp = this.result
+				m.exp.mimicExportTable("", "", this)
+			else
+				m.f = this.baseCluster.getTableStructure()
+				m.f = m.f.getFieldStructure(m.basekey)
+				if this.result.reccount()/this.baseCluster.reccount() > 0.1 and inlist(m.f.getType(),"N","I","B") and (vartype(m.runFilter) != "C" or empty(m.runFilter)) and (vartype(m.low) != "N" or m.low <= 0) and (vartype(m.high) != "N" or m.high > 100)
+					this.messenger.forceMessage("Verifying sequential key...")
+					m.offset = 0
+					m.sql = "locate for "+m.basekey+" != recno()+m.offset"
+					for m.i = 1 to this.baseCluster.getTableCount()
+						m.clutable = this.baseCluster.getTable(m.i)
+						m.clutable.select()
+						&sql
+						if not eof()
+							exit
+						endif
+						m.offset = m.offset+m.clutable.reccount()
+					endfor
+					if m.i > this.baseCluster.getTableCount()
+						m.exp = this.result
+						m.exp.mimicExportTable(m.basekey, m.basekey, this)
+					endif
+					this.messenger.forceMessage("")
+				endif
+			endif
 		endif
 		if not vartype(m.exp) == "O"		
 			m.exp = createobject("BaseCursor")
@@ -5284,7 +5993,70 @@ define class SearchEngine as custom
 			this.dontcare()
 		endif
 		try
-			m.rc = m.table.create(m.exp, m.cascade, m.text, m.single)
+			m.rc = m.table.create(m.exp, m.cascade, m.notext, m.nosingle)
+		catch
+			m.rc = .f.
+		endtry
+		m.table.setMessenger(m.oldmes)
+		return m.rc
+	endfunc
+
+	function metaExport(table, meta, low, high, runFilter)
+		local oldmes, rc, dp, swap
+		if vartype(m.table) == "C"
+			m.table = createobject("MetaExportTable",m.table)
+		endif
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("OCNNC")
+		m.dp.dyna("O")
+		m.dp.dyna("ONN","1,3,4,5")
+		m.dp.dyna("ONNC","1,3,4,5")
+		m.dp.dyna("OC","1,2")
+		m.dp.dyna("OCNN","1,2,3,4")
+		m.dp.dyna("OCC","1,2,5")
+		if not m.dp.para(@m.table, @m.meta, @m.low, @m.high, @m.runFilter)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
+		if vartype(m.meta) == "C" and not vartype(m.runFilter) == "O" and not "=" $ m.meta
+			m.swap = m.meta
+			m.meta = m.runFilter
+			m.runFilter = m.swap
+		endif
+		m.oldmes = m.table.getMessenger()
+		m.table.setMessenger(this.getMessenger())
+		try
+			m.rc = m.table.create(this, m.meta, m.low, m.high, m.runFilter)
+		catch
+			m.rc = .f.
+		endtry
+		m.table.setMessenger(m.oldmes)
+		return m.rc
+	endfunc
+
+	function resultExport(table, shuffle, low, high, runFilter, newrun)
+	local dp, rc, oldmes
+		if vartype(m.table) == "C"
+			m.table = createobject("ResultTable",m.table)
+		endif
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("ONNNCL")
+		m.dp.dyna("O")
+		m.dp.dyna("ONNNL","1,2,3,4,6")
+		m.dp.dyna("ONNL","1,3,4,6")
+		m.dp.dyna("ONNCL","1,3,4,5,6")
+		m.dp.dyna("ONCL","1,2,5,6")
+		m.dp.dyna("ONL","1,2,6")
+		m.dp.dyna("OCL","1,5,6")
+		m.dp.dyna("OL","1,6")
+		if not m.dp.para(@m.table, @m.shuffle, @m.low, @m.high, @m.runfilter, @m.newrun)
+			this.messenger.errorMessage("Invalid cascade definition.")
+			return .f.
+		endif
+		m.oldmes = m.table.getMessenger()
+		m.table.setMessenger(this.getMessenger())
+		try
+			m.rc = m.table.create(this, m.shuffle, m.low, m.high, m.runFilter, m.newrun)
 		catch
 			m.rc = .f.
 		endtry
@@ -5295,8 +6067,8 @@ define class SearchEngine as custom
 	function create(searchTypesDefinition as String)
 		local ps1, ps2, ps3, lm, rg
 		local collection, collector, invalid, searchtype
-		local entrylen, t, i, j, base, field, already, lex
-		local msg1, msg2, lexArray, tmp, limit, basecnt, alen
+		local entrylen, i, j, base, field, already, lex
+		local lexArray, tmp, limit, basecnt, alen
 		local newreg, fromArray, toArray, rec, err, cnt, baseTable
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
@@ -5340,26 +6112,19 @@ define class SearchEngine as custom
 		m.entrylen = this.registry.getTableStructure()
 		m.entrylen = m.entrylen.getFieldStructure("entry")
 		m.entrylen = m.entrylen.getSize()
-		this.messenger.start()
-		m.t = createobject("Timing")
 		m.rg = createobject("ReindexGuard",this.registry)
 		dimension m.lexArray[1]
 		this.baseCluster.call("setKey()")
 		m.limit = 100000000
 		m.base = 1
 		m.basecnt = this.baseCluster.callSum("reccount()")
-		m.msg1 = "/"+ltrim(str(m.basecnt,18,0))
+		this.messenger.setDefault("Created")
+		this.messenger.startProgress(m.basecnt)
+		this.messenger.startCancel("Cancel Operation?","Creating","Canceled.")
 		do while this.baseCluster.goRecord(m.base)
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					m.rg.stop()
-					if messagebox("Cancel Operation?",292,"Create") == 6
-						this.registry.erase()
-						return .f.
-					endif
-					m.rg.go()
-				endif
+			if this.messenger.queryCancel()
+				this.registry.erase()
+				return .f.
 			endif
 			if reccount(m.collector.alias) > m.limit
 				m.collector = createobject("CollectorCursor",this.getEnginePath())
@@ -5400,7 +6165,8 @@ define class SearchEngine as custom
 			if base != m.base
 				insert into (m.collector.alias) (base,reg) values (m.base,0)
 			endif
-			this.messenger.postMessage("Collected "+ltrim(str(m.base))+m.msg1)
+			this.messenger.setProgress(m.base)
+			this.messenger.postProgress()
 			m.base = m.base+1
 		enddo
 		this.messenger.forceMessage("Optimizing...")
@@ -5423,19 +6189,14 @@ define class SearchEngine as custom
 		dimension m.toArray[1]
 		dimension m.fromArray[1]
 		select (m.tmp.alias)
-		m.msg1 = "/"+ltrim(str(reccount()))
 		m.rec = 1
 		m.cnt = 0
+		this.messenger.setDefault("Optimized")
+		this.messenger.startProgress(reccount())
 		do while not eof()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Create") == 6
-						this.registry.erase()
-						this.messenger.errorMessage("Canceled.")
-						return .f.
-					endif
-				endif
+			if this.messenger.queryCancel()
+				this.registry.erase()
+				return .f.
 			endif
 			if ok == 1
 				skip
@@ -5447,7 +6208,8 @@ define class SearchEngine as custom
 			scatter to m.fromArray
 			do while .t.
 				m.cnt = m.cnt+1
-				this.messenger.postMessage("Optimized (Registry) "+ltrim(str(m.cnt))+m.msg1)
+				this.messenger.setProgress(m.cnt)
+				this.messenger.postProgress()
 				select (m.tmp.alias)
 				replace ok with 1
 				m.newreg = newreg
@@ -5474,21 +6236,15 @@ define class SearchEngine as custom
 			m.collector = m.collection.item(m.i)
 			select (m.collector.alias)
 			if m.collection.count > 1
-				m.msg1 = "Optimized (Collector"+ltrim(str(m.i,18))+") "
+				this.messenger.setDefault("Optimized (Collector"+ltrim(str(m.i,18))+")")
 			else
-				m.msg1 = "Optimized (Collector) "
+				this.messenger.setDefault("Optimized (Collector)")
 			endif
-			m.msg2 = "/"+ltrim(str(reccount()))
+			this.messenger.startProgress(reccount())
 			scan
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Create") == 6
-							this.registry.erase()
-							this.messenger.errorMessage("Canceled.")
-							return .f.
-						endif
-					endif
+				if this.messenger.queryCancel()
+					this.registry.erase()
+					return .f.
 				endif
 				m.newreg = reg
 				if m.newreg > 0
@@ -5498,24 +6254,19 @@ define class SearchEngine as custom
 					select (m.collector.alias)
 					replace reg with m.newreg
 				endif
-				this.messenger.postMessage(m.msg1+ltrim(str(recno()))+m.msg2)
+				this.messenger.setProgress(recno())
+				this.messenger.postProgress()
 			endscan
 		endfor
 		this.messenger.forceMessage("Optimizing...")
 		this.registry.forceRegistryKey()
 		if not this.base2reg.create(m.collection,"base","reg",.t.)
 			this.registry.erase()
-			if this.messenger.isError() == .f.
-				this.messenger.errorMessage("Canceled.")
-			endif
 			return .f.
 		endif
 		if not this.reg2base.create(m.collection,"reg","base")
 			this.base2reg.erase()
 			this.registry.erase()
-			if this.messenger.isError() == .f.
-				this.messenger.errorMessage("Canceled.")
-			endif
 			return .f.
 		endif
 		this.messenger.forceMessage("Closing...")
@@ -5530,38 +6281,64 @@ define class SearchEngine as custom
 		this.reg2base.switchTargetToFile()
 		this.save(.t.)
 		if not this.isValid()
-			this.messenger.errorMessage("Canceled.")
+			this.messenger.errorMessage("SearchEngine not valid.")
 			return .f.
 		endif
 		return .t.
 	endfunc
 
-	function expand(expandMode as Integer)
-		local pa, ps1, ps2, ps3, lm
-		local entrylen, t, i, j, base, fa, fb, lex
-		local msg, lexArray, table
+	function expand(expandMode as Integer, new as Object)
+		local pa, ps1, ps2, ps3, lm, rg
+		local entrylen, i, j, base, fa, fb, lex
+		local lexArray, table, already
 		local searchType, typeIndex, type, cnt
 		local occ, occurs, rec, index, start, end
-		local cancel
+		local copy, registry, dp
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Expanding...")
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("NO")
+		m.dp.dyna("NC")
+		m.dp.dyna("")
+		m.dp.dyna("N")
+		m.dp.dyna("O","2")
+		m.dp.dyna("C","2")
+		if not m.dp.para(@m.expandMode, @m.new)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
 		if not vartype(m.expandMode) == "N"
-			m.expandMode = 0
+			m.expandMode = 0 && reset Registry or create external Registry
 		endif
 		if m.expandMode < 0 or m.expandMode > 6
 			this.messenger.errormessage("Invalid expand mode.")
 			return .f.
+		endif
+		if vartype(m.new) == "C" 
+			if empty(m.new)
+				this.messenger.errormessage("Invalid Registry specification.")
+				return .f.
+			endif
+			m.new = createobject("RegistryTable", m.new)
+		endif
+		m.copy = .f.
+		if vartype(m.new) == "O"
+			m.copy = .t.
+			if not m.new.isCreatable()
+				this.messenger.errormessage("Unable to create external Registry.")
+				return .f.
+			endif
 		endif
 		this.confirmChanges()
 		if m.expandMode > 0 and not this.isExpandable()
 			this.messenger.errormessage("SearchEngine is not expandable.")
 			return .f.
 		endif
-		if m.expandMode == 0 and not this.isValid()
+		if m.copy == .f. and m.expandMode == 0 and not this.isValid()
 			this.messenger.errormessage("Registry cannot be rebuild.")
 			return .f.
 		endif
@@ -5569,24 +6346,29 @@ define class SearchEngine as custom
 			this.messenger.errormessage("Registry is in use.")
 			return .f.
 		endif
-		m.occ = createobject("UniqueAlias",.t.)
 		this.registry.setKey()
-		select cast(0 as i) as occurs from (this.registry.alias) into cursor (m.occ.alias) readwrite
-		this.messenger.start()
-		m.t = createobject("Timing")
-		m.cancel = .f.
-		if m.expandMode == 0
+		this.registry.select()
+		if m.copy
+			copy to (m.new.getDBF()) with cdx
+			m.new.open()
+			m.registry = m.new
+			m.occ = m.new
+			update (m.occ.alias) set occurs = 0
+		else
+			m.occ = createobject("UniqueAlias",.t.)
+			select cast(0 as i) as occurs from (this.registry.alias) into cursor (m.occ.alias) readwrite
+			m.registry = this.registry
+		endif
+		this.messenger.setDefault("Collected")
+		this.messenger.startCancel("Cancel Operation?","Expanding","Canceled.")
+		if m.expandMode == 0 and m.copy == .f.
 			select (m.occ.alias)
-			m.msg = "/"+ltrim(str(reccount()))
+			this.messenger.startProgress(reccount())
+			this.messenger.setDefault("Collected")
 			scan
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Expand") == 6
-							m.cancel = .t.
-							exit
-						endif
-					endif
+				this.messenger.incProgress()
+				if this.messenger.queryCancel()
+					exit
 				endif
 				m.rec = recno()
 				m.occurs = 0
@@ -5601,26 +6383,24 @@ define class SearchEngine as custom
 				endfor
 				select (m.occ.alias)
 				replace occurs with m.occurs
-				this.messenger.postMessage("Collected "+ltrim(str(recno()))+m.msg)
+				this.messenger.postProgress()
 			endscan
 		else
 			m.entrylen = this.registry.getTableStructure()
 			m.entrylen = m.entrylen.getFieldStructure("entry")
 			m.entrylen = m.entrylen.getSize()
-			this.registry.forceRegistryKey()
+			m.registry.forceRegistryKey()
 			dimension m.lexArray[1]
 			this.searchCluster.call("setKey()")
 			m.base = 1
-			m.msg = "/"+ltrim(str(this.searchCluster.reccount()))
+			this.messenger.startProgress(this.searchCluster.reccount())
+			if m.copy
+				m.rg = createobject("ReindexGuard",m.registry)
+			endif
 			do while this.searchCluster.goRecord(m.base)
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Expand") == 6
-							m.cancel = .t.
-							exit
-						endif
-					endif
+				this.messenger.incProgress()
+				if this.messenger.queryCancel()
+					exit
 				endif
 				m.table = this.searchCluster.getActiveTable()
 				for m.i = 1 to this.searchFieldJoin.getJoinCount()
@@ -5635,31 +6415,53 @@ define class SearchEngine as custom
 						if alines(m.lexArray,m.searchType.prepare(m.table.getValueAsString(m.fa)),5," ") == 0
 							loop
 						endif
+						m.already = " "
 						for m.j = 1 to alen(m.lexArray)
 							m.lex = left(m.lexArray[m.j], m.entrylen)
-							select (this.registry.alias)
-							if seek(this.registry.buildRegistryKey(m.typeIndex, m.lex))
-								m.rec = this.registry.recno()
-								select (m.occ.alias)
-								go m.rec
-								replace occurs with occurs+1
+							if not (" "+m.lex+" " $ m.already)
+								m.already = m.already+m.lex+" "
+								select (m.registry.alias)
+								if m.copy
+									if seek(m.registry.buildRegistryKey(m.typeIndex, m.lex))
+										replace occurs with occurs+1
+									else
+										insert into (m.registry.alias) (entry,type,occurs) values (m.lex,m.typeIndex,1)
+										m.rg.tryReindex()
+									endif
+								else
+									if seek(m.registry.buildRegistryKey(m.typeIndex, m.lex))
+										m.rec = this.registry.recno()
+										select (m.occ.alias)
+										go m.rec
+										replace occurs with occurs+1
+									endif
+								endif
 							endif
 						endfor
 					endfor
 				endfor
-				this.messenger.postMessage("Collected "+ltrim(str(m.base))+m.msg)
+				this.messenger.postProgress()
 				m.base = m.base+1
 			enddo
 		endif
-		if m.cancel
+		if this.messenger.isCanceled()
 			this.registry.useShared()
-			this.messenger.errorMessage("Canceled.")
+			if m.copy
+				m.new.erase()
+			endif
 			return .f.
 		endif
+		if m.expandMode == 0 and m.copy
+			this.registry.useShared()
+			return m.new
+		endif			
 		select (m.occ.alias)
-		m.msg = "/"+ltrim(str(reccount()))
+		this.messenger.stopCancel()
+		this.messenger.startProgress(reccount())
 		if m.expandMode == 0
+			this.messenger.setDefault("Rebuilt")
 			scan
+				this.messenger.incProgress()
 				m.occurs = occurs
 				m.rec = recno()
 				select (this.registry.alias)
@@ -5667,39 +6469,77 @@ define class SearchEngine as custom
 				if occurs != m.occurs
 					replace occurs with m.occurs
 				endif
-				this.messenger.postMessage("Rebuilt "+ltrim(str(m.rec))+m.msg)
+				this.messenger.postProgress()
 			endscan
 		else
-			scan
-				m.occurs = occurs
-				m.rec = recno()
-				if m.occurs == 0
-					this.messenger.postMessage("Transferred "+ltrim(str(m.rec))+m.msg)
-					loop
-				endif
-				select (this.registry.alias)
-				go m.rec
-				do case
-					case m.expandMode == 1 
+			this.messenger.setDefault("Transferred")
+			if m.copy
+				this.registry.select()
+				this.messenger.startProgress(reccount())
+				scan
+					this.messenger.incProgress()
+					m.occurs = occurs
+					m.rec = recno()
+					select (m.registry.alias)
+					go m.rec
+					if occurs == 0
 						replace occurs with m.occurs
-					case m.expandMode == 2 
-						if m.occurs > occurs
+						this.messenger.postProgress()
+						loop
+					endif
+					do case && occurs -> new registry; m.occurs -> original registry
+						case m.expandMode == 1 && always replace
+						case m.expandMode == 2 && maximize
+							if occurs < m.occurs
+								replace occurs with m.occurs
+							endif
+						case m.expandMode == 3 && minimize
+							if occurs > m.occurs
+								replace occurs with m.occurs
+							endif
+						case m.expandMode == 4 && additive
+							replace occurs with occurs+m.occurs
+						case m.expandMode == 5 && mean
+							replace occurs with int((occurs+m.occurs)/2 + 0.51)
+					endcase
+					this.messenger.postProgress()
+				endscan
+			else
+				scan
+					this.messenger.incProgress()
+					m.occurs = occurs
+					m.rec = recno()
+					if m.occurs == 0
+						this.messenger.postProgress()
+						loop
+					endif
+					select (this.registry.alias)
+					go m.rec
+					do case
+						case m.expandMode == 1  && always replace
 							replace occurs with m.occurs
-						endif
-					case m.expandMode == 3 
-						if m.occurs < occurs
-							replace occurs with m.occurs
-						endif
-					case m.expandMode == 4 
-						replace occurs with occurs+m.occurs
-					case m.expandMode == 5 
-						replace occurs with int((occurs+m.occurs)/2 + 0.51)
-				endcase
-				this.messenger.postMessage("Transferred "+ltrim(str(m.rec))+m.msg)
-			endscan
+						case m.expandMode == 2 && maximize
+							if m.occurs > occurs
+								replace occurs with m.occurs
+							endif
+						case m.expandMode == 3 && minimize
+							if m.occurs < occurs
+								replace occurs with m.occurs
+							endif
+						case m.expandMode == 4 && additive
+							replace occurs with occurs+m.occurs
+						case m.expandMode == 5 && mean
+							replace occurs with int((occurs+m.occurs)/2 + 0.51)
+					endcase
+					this.messenger.postProgress()
+				endscan
+			endif
 		endif
 		this.messenger.forceMessage("Closing...")
 		this.registry.useShared()
+		if m.copy
+			return m.new
+		endif
 		this.expanded = m.expandMode > 0
 		this.ControlTable.refresh(this.registry)
 		this.controlTable.refreshOccurrences(this.searchTypes)
@@ -5711,16 +6551,16 @@ define class SearchEngine as custom
 		local pa, ps1, ps2, ps3, ps4, ps5, ps6, ps7, lm,  pk1
 		local limit, invlimit, depth, fa, fb
 		local i, j, k, lexArray, type, fback, fbackinv, start, end
-		local t, sum, old, sharesum, lorange, hirange
+		local sum, old, sharesum, lorange, hirange
 		local searchrec, score, offset, occurs, found, share
 		local searchTable, reccount, dynamicDepth
 		local tmp1, tmp2, tmp1rows, tmp2rows
 		local typx, typxrows, log, logs, softmax, max
 		local searchType, typeIndex, cnt
 		local index, target, cluster, tar, run, runchr
-		local activeJoin, joinCount, cancel
+		local activeJoin, joinCount
 		local sizerec, sizelimit, resultsize, resultstart
-		local cleaning, research, rc
+		local cleaning, research, dp
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","talk","off")
@@ -5729,8 +6569,19 @@ define class SearchEngine as custom
 		m.ps6 = createobject("PreservedSetting","optimize","on")
 		m.ps7 = createobject("PreservedSetting","decimals","6")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Searching...")
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("NNLN")
+		m.dp.dyna("")
+		m.dp.dyna("N")
+		m.dp.dyna("NN","1,2")
+		m.dp.dyna("NNL","1,2,3")
+		m.dp.dyna("NNN","1,2,4")
+		if not m.dp.para(@m.increment, @m.refineMode, @m.refineForce, @m.refineLimit)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
 		this.confirmChanges()
 		if not this.isSearchReady()
 			this.messenger.errormessage("Search is not Ready.")
@@ -5841,7 +6692,7 @@ define class SearchEngine as custom
 		else
 			m.depth = min(this.depth,MAXSEARCHDEPTH)
 		endif
-		OpenArray(1,m.depth,6)
+		OpenArray(1,MAXWORDCOUNT,6)
 		OpenArray(2,m.depth,2)
 		OpenArray(3,m.depth,3)
 		dimension m.tmp1[MAXWORDCOUNT,7]
@@ -5856,23 +6707,16 @@ define class SearchEngine as custom
 		m.sizelimit = 2*1024*1024*1024 - 50*1024*1024
 		m.resultsize = this.result.reccount() * m.sizerec
 		m.resultstart = this.result.reccount()+1
-		this.messenger.start()
-		m.t = createobject("Timing")
 		this.searchCluster.call("setKey()")
-		m.reccount = ltrim(str(m.reccount,18,0))
-		m.cancel = .f.
+		m.reccount = "/"+ltrim(str(m.reccount,18,0))
+		this.messenger.startCancel("Cancel Operation?","Searching","Canceled.")
 		do while this.searchCluster.goRecord(m.searchrec)
-			if m.t.elapsed() > 1
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Search") == 6
-						m.cancel = .t.
-						exit
-					endif
-				endif
+			if this.messenger.queryCancel()
+				exit
 			endif
 			if m.increment == 1 and seek(m.searchrec, this.result.alias)
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postProgress()
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -5889,7 +6733,7 @@ define class SearchEngine as custom
 					if m.searchType.getShare() > 0
 						m.typeIndex = m.searchType.getTypeIndex()
 						if alines(m.lexArray,m.searchType.prepare(m.searchTable.getValueAsString(m.fa)),5," ") > 0
-							m.end = min(alen(m.lexArray),MAXWORDCOUNT) 				
+							m.end = min(alen(m.lexArray),MAXWORDCOUNT-m.tmp2rows) 				
 							for m.j = 1 to m.end
 								m.tmp2rows = m.tmp2rows+1
 								m.tmp2[m.tmp2rows,1] = m.typeIndex
@@ -5900,7 +6744,7 @@ define class SearchEngine as custom
 				endfor
 			endfor
 			if m.tmp2rows <= 0
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6028,7 +6872,7 @@ define class SearchEngine as custom
 			endfor
 			m.tmp1rows = m.i
 			if m.tmp1rows <= 0
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6043,7 +6887,7 @@ define class SearchEngine as custom
 			endfor
 			m.tmp1rows = m.i-1
 			if m.tmp1rows <= 0 or m.shareSum <= 0 or not this.zealous and m.shareSum < this.limit
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6104,7 +6948,7 @@ define class SearchEngine as custom
 				endfor
 			endfor
 			if m.tmp2rows <= 0
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6142,7 +6986,7 @@ define class SearchEngine as custom
 				endif
 			endif
 			if m.tmp2rows <= 0
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6165,7 +7009,7 @@ define class SearchEngine as custom
 			endfor
 			m.tmp2rows = this.limitResultArray(2, m.tmp2rows)
 			if m.tmp2rows <= 0
-				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
@@ -6252,60 +7096,61 @@ define class SearchEngine as custom
 				m.resultsize = m.resultsize+m.sizerec
 				m.found = m.found+1
 			endfor
-			this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+"/"+m.reccount+" ("+ltrim(str(m.found))+")")
+			this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 			m.searchrec = m.searchrec+1
 			if m.resultsize >= m.sizelimit
 				if m.cleaning
 					CloseArray(1)
 					CloseArray(2)
-					m.rc = this.cleanResult(m.refineMode, "start "+ltrim(str(m.resultstart,18)), m.research, m.refineLimit)
-					OpenArray(1,MAXWORDCOUNT,6)
-					OpenArray(2,MAXSEARCHDEPTH,2)
-					if not m.rc
-						this.messenger.errorMessage("Unable to clean ResultTable.")
-						m.cancel = .t.
+					CloseArray(3)
+					if not this.cleanResult(m.refineMode, "start "+ltrim(str(m.resultstart,18)), m.research, m.refineLimit)
+						if this.messenger.isCanceled()
+							this.messenger.errorMessage("Unable to clean ResultTable.")
+						endif
 						exit
 					endif
+					OpenArray(1,MAXWORDCOUNT,6)
+					OpenArray(2,m.depth,2)
+					OpenArray(3,m.depth,3)
 					m.resultstart = this.result.reccount() + 1
 					m.resultsize = this.result.reccount() * m.sizerec
 				endif
 				if m.resultsize >= m.sizelimit
 					this.messenger.errorMessage("ResultTable is too large.")
-					m.cancel = .t.
 					exit
 				endif
 			endif
 		enddo
-		this.messenger.forceMessage("Closing...")
 		CloseArray(1)
 		CloseArray(2)
-		if m.cleaning and m.resultstart <= this.result.reccount()
-			if not this.cleanResult(m.refineMode, "start "+ltrim(str(m.resultstart,18)), m.research, m.refineLimit)
-				this.messenger.errorMessage("Unable to clean ResultTable.")
-				m.cancel = .t.
+		CloseArray(3)
+		if not this.messenger.isError()
+			if m.cleaning and m.resultstart <= this.result.reccount()
+				if not this.cleanResult(m.refineMode, "start "+ltrim(str(m.resultstart,18)), m.research, m.refineLimit) and empty(this.messenger.getErrorMessage())
+					this.messenger.errorMessage("Unable to finalize ResultTable.")
+				endif
 			endif
 		endif
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		this.result.deleteKey()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
-		if m.cancel
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isInterrupted()
 			return .f.
 		endif
-		return .t.		
+		return .t.
 	endfunc
 	
 	function research(identityMode as Number, scoreMode as Number, runFilter as String, nonDestructiveOnly as Boolean)
 		local lm, pa, ps1, ps2, ps3, ps4, ps5, ps6
 		local pk1, pk2
 		local i, j, k, fa, fb, lexArray, start, end 
-		local sum, old, fback, fbackinv, t
+		local sum, old, fback, fbackinv
 		local offset, occurs, searchTable, score
 		local tmp1, tmp2, tmp1rows, tmp2rows, typx, typxrows
 		local searchType, typeIndex, type, cnt, log, logs, softmax, max
 		local index, target, cluster, tar, found, searched, continuum
-		local activeJoin, joinCount, searchTypes
+		local activeJoin, joinCount, searchTypes, dp
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","talk","off")
@@ -6313,8 +7158,19 @@ define class SearchEngine as custom
 		m.ps5 = createobject("PreservedSetting","near","off")
 		m.ps6 = createobject("PreservedSetting","optimize","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Researching...")
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("NNCL")
+		m.dp.dyna("")
+		m.dp.dyna("NN")
+		m.dp.dyna("NNL","1,2,4")
+		m.dp.dyna("CL","3,4")
+		m.dp.dyna("L","4")
+		if not m.dp.para(@m.identityMode, @m.scoreMode, @m.runFilter, @m.nonDestructiveOnly)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
 		this.confirmChanges()
 		if not this.isValid()
 			this.messenger.errormessage("SearchEngine is not valid.")
@@ -6328,10 +7184,10 @@ define class SearchEngine as custom
 			this.messenger.errormessage("SearchTable is not synchronized.")
 			return .f.
 		endif
-		if vartype(m.identityMode) != "N"
+		if not vartype(m.identityMode) == "N"
 			m.identityMode = 1
 		endif
-		if vartype(m.scoreMode) != "N"
+		if not vartype(m.scoreMode) == "N"
 			m.scoreMode = 1
 		endif
 		if m.identityMode < 0 or m.identityMode > 5
@@ -6372,13 +7228,12 @@ define class SearchEngine as custom
 		m.typxrows = this.SearchTypes.getSearchTypeCount()
 		dimension m.tmp1[MAXSEARCHDEPTH,6]
 		dimension m.tmp2[MAXSEARCHDEPTH,3]
-		dimension m.typx[m.typxrows,3]
+		dimension m.typx[m.typxrows,4]
 		dimension m.lexArray[1]
 		dimension m.continuum[1]
 		acopy(this.base2reg.continuum, m.continuum)
 		m.searched = 0
 		this.messenger.start()
-		m.t = createobject("Timing")
 		select (this.result.alias)
 		if between(m.runFilter.getStart(),1,reccount())
 			go m.runFilter.getStart()
@@ -6388,25 +7243,23 @@ define class SearchEngine as custom
 		if recno() == 1 and searched <= 0
 			skip
 		endif
+		this.messenger.setDefault("Researched")
+		this.messenger.startProgress(reccount()-recno()+1)
+		this.messenger.startCancel("Cancel Operation?","Researching","Canceled.")
 		do while not eof()
-			if m.t.elapsed() > 1
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Research") == 6
-						this.messenger.errorMessage("Canceled.")
-						return .f.
-					endif
-				endif
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				return .f.
 			endif
 			if not m.runFilter.inRange(asc(run), recno())
-				this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+				this.messenger.postProgress()
 				skip
 				loop
 			endif
 			m.found = found
 			m.cluster = abs(InternalBinarySearchAscArray(@m.continuum,m.found,1,this.base2reg.index.count,1))
 			if m.cluster > this.base2reg.index.count
-				this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+				this.messenger.postProgress()
 				skip
 				loop
 			endif
@@ -6420,7 +7273,7 @@ define class SearchEngine as custom
 				m.tmp1rows = 0
 				m.searched = searched
 				if not this.searchCluster.goRecord(searched)
-					this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+					this.messenger.postProgress()
 					skip
 					loop
 				endif
@@ -6447,7 +7300,7 @@ define class SearchEngine as custom
 					endfor
 				endfor
 				if m.tmp2rows <= 0
-					this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+					this.messenger.postProgress()
 					skip
 					loop
 				endif
@@ -6574,7 +7427,7 @@ define class SearchEngine as custom
 				endfor
 				m.tmp1rows = m.i
 				if m.tmp1rows <= 0
-					this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+					this.messenger.postProgress()
 					select (this.result.alias)
 					skip
 					loop
@@ -6669,19 +7522,18 @@ define class SearchEngine as custom
 						replace score with m.score
 					endif
 			endcase
-			this.messenger.postMessage("Researched "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+			this.messenger.postProgress()
 			skip
 		enddo
-		this.messenger.forceMessage("Closing...")
 		return .t.
 	endfunc
 
 	function refine(identityMode as Number, compareMode as Number, runFilter as String, destructiveOnly as Boolean)
-		local lm, pa, ps1, ps2, ps3, ps4, ps5, ps6, pk1, i, t, obj
+		local lm, pa, ps1, ps2, ps3, ps4, ps5, ps6, pk1, i, obj
 		local searchTypes, joincount
 		local searched, found, rcpd, searchField, foundType
 		local foundtable, searchtable, identity, str
-		local activeJoin, prioritySum
+		local activeJoin, prioritySum, dp
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","talk","off")
@@ -6691,6 +7543,18 @@ define class SearchEngine as custom
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger,"")
 		this.messenger.forceMessage("Refining...")
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("NNCL")
+		m.dp.dyna("")
+		m.dp.dyna("NN")
+		m.dp.dyna("NNL","1,2,4")
+		m.dp.dyna("CL","3,4")
+		m.dp.dyna("L","4")
+		if not m.dp.para(@m.identityMode, @m.compareMode, @m.runFilter, @m.destructiveOnly)
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
+		
 		this.confirmChanges()
 		if not this.isValid()
 			this.messenger.errormessage("SearchEngine is not valid.")
@@ -6708,10 +7572,10 @@ define class SearchEngine as custom
 			this.messenger.errormessage("BaseTable is not synchronized.")
 			return .f.
 		endif
-		if vartype(m.identityMode) != "N"
+		if not vartype(m.identityMode) == "N"
 			m.identityMode = 1
 		endif
-		if vartype(m.compareMode) != "N"
+		if not vartype(m.compareMode) == "N"
 			m.compareMode = 1
 		endif
 		if m.identityMode < 1 or m.identityMode > 5
@@ -6761,8 +7625,6 @@ define class SearchEngine as custom
 			m.obj.setScope(this.LrcpdScope)
 			m.rcpd[m.i] = m.obj
 		endfor
-		this.messenger.start()
-		m.t = createobject("Timing")
 		select (this.result.alias)
 		if between(m.runFilter.getStart(),1,reccount())
 			go m.runFilter.getStart()
@@ -6772,18 +7634,16 @@ define class SearchEngine as custom
 		if recno() == 1 and searched <= 0
 			skip
 		endif
+		this.messenger.setDefault("Refined")
+		this.messenger.startProgress(reccount()-recno()+1)
+		this.messenger.startCancel("Cancel Operation?","Refining","Canceled.")
 		do while not eof()
-			if m.t.elapsed() > 1
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Refine") == 6
-						this.messenger.errorMessage("Canceled.")
-						return .f.
-					endif
-				endif
+			this.messenger.incProgress()
+			if this.messenger.queryCancel()
+				return .f.
 			endif
 			if not m.runFilter.inRange(asc(run), recno())
-				this.messenger.postMessage("Refined "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+				this.messenger.postProgress()
 				skip
 				loop
 			endif
@@ -6838,10 +7698,9 @@ define class SearchEngine as custom
 				case m.identityMode == 5 && average
 					replace identity with round(min((identity+m.identity)/2,100),6)
 			endcase
-			this.messenger.postMessage("Refined "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+			this.messenger.postProgress()
 			skip
 		enddo
-		this.messenger.forceMessage("Closing...")
 		return .t.
 	endfunc
 	
@@ -6854,7 +7713,7 @@ define class SearchEngine as custom
 		m.ps4 = createobject("PreservedSetting","exact","on")
 		m.ps5 = createobject("PreservedSetting","optimize","on")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Mirroring...")
 		this.confirmChanges()
 		m.idontcare = this.idontcare()
@@ -6892,15 +7751,10 @@ define class SearchEngine as custom
 			m.pos = 2
 		endif
 		m.mirror = 0
+		this.messenger.startCancel("Cancel Operation?","Mirroring","Canceled.")
 		do while m.pos <= m.stop
-			if m.t.elapsed() > 1
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Mirror") == 6
-						m.cancel = .t.
-						exit
-					endif
-				endif
+			if this.messenger.queryCancel()
+				exit
 			endif
 			go m.pos
 			if not m.runFilter.inRange(asc(run), m.pos)
@@ -6917,15 +7771,14 @@ define class SearchEngine as custom
 			this.messenger.postMessage("Mirrored "+ltrim(str(m.pos,12))+m.msg+" ("+ltrim(str(m.mirror,12))+")")
 			m.pos = m.pos+1
 		enddo
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		this.result.deleteKey()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
 		if m.mirror > 0 or m.idontcare
 			this.result.setRun(m.run)
 		endif
-		if m.cancel
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isCanceled()
 			return .f.
 		endif
 		return .t.
@@ -7112,6 +7965,13 @@ define class SearchEngine as custom
 				m.rc = .f.
 			endtry
 			this.idontcare()
+			if this.messenger.isCanceled()
+				this.messenger.errorMessage("Canceled in line "+ltrim(str(m.rec,18))+".")
+				this.shout(this.messenger.getErrorMessage())
+				FileClose(RUNHANDLE)
+				FileClose(OUTHANDLE)
+				return .f.
+			endif
 			if m.catch == .f. and (m.rc == .f. or this.messenger.isError())
 				this.messenger.errorMessage(ltrim(this.messenger.getErrorMessage()+chr(13)+chr(10)+"Error in line "+ltrim(str(m.rec,18))+".",chr(13)+chr(10)))
 				this.shout(this.messenger.getErrorMessage())
@@ -7589,14 +8449,22 @@ define class SearchEngine as custom
 		return this.setResultTable(m.result)
 	endfunc
 
-	hidden function _exportGrouped(table, baseKey, cascade, low, high, exclusive, runFilter, notext, nosingle)
-		return this.groupedExport(m.table, m.baseKey, m.low, m.high, m.exclusive, m.runFilter, m.cascade, not m.notext, not m.nosingle)
+	hidden function _exportGrouped(table, cascade, basekey, low, high, exclusive, runFilter, notext, nosingle)
+		return this.groupedExport(m.table, m.cascade, m.basekey, m.low, m.high, m.exclusive, m.runFilter, m.notext, m.nosingle)
 	endfunc
 	
 	hidden function _exportExtended(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
 		return this.extendedExport(m.table, m.searchKey, m.foundKey, m.searchedGroupKey, m.foundGroupKey, m.low, m.high, m.exclusive, m.runFilter)
 	endfunc
 	
+	hidden function _exportMeta(table, meta, low, high, runFilter)
+		return this.metaExport(m.table, m.meta, m.low, m.high, m.runFilter)
+	endfunc
+
+	hidden function _exportResult(table, shuffle, low, high, runFilter, newrun)
+		return this.resultExport(m.table, m.shuffle, m.low, m.high, m.runFilter, m.newrun)
+	endfunc
+
 	hidden function _export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
 		return this.export(m.table, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, m.text)
 	endfunc
@@ -7619,6 +8487,10 @@ define class SearchEngine as custom
 	
 	hidden function _limit(limit)
 		this.setLimit(m.limit)
+	endfunc
+
+	hidden function _threshold(threshold)
+		this.setThreshold(m.threshold)
 	endfunc
 
 	hidden function _cutoff(cutoff)

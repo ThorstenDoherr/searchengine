@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      path.prg
-*   Date:       2018.05.17
+*   Date:       2019.10.14
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   Analyses networks and posts information about distances
@@ -373,7 +373,7 @@ define class CascadeTable as BaseTable
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","safety","off")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Cascading...")
 		if not this.isCreatable()
 			this.messenger.errorMessage("ClusterTable is not creatable.")
@@ -591,7 +591,7 @@ define class PathTable as BaseTable
 	function create(table, fromField, toField, distField, cutoff)
 	local ps1, ps2, ps3, ps4, ps5, ps6, pa, lm, pk
 	local f1, f2, pos, origin, rec, from, to, init
-	local t, nodeRequired, pathDepth, depth, byebye, pe, startpe
+	local nodeRequired, pathDepth, depth, pe, startpe
 	local ck, ckfromto, cktarget, ckto, target
 	local use, key, ind, dontusemaxdepth, maxdepth
 	local result, useSelector, selectorField
@@ -729,9 +729,6 @@ define class PathTable as BaseTable
 			m.dontusemaxdepth = .T.
 		endif
 		m.fifo = this.optimizing == .t. and this.maximizing == .f.
-		m.byebye = .F.
-		m.t = createobject("timing")
-		this.messenger.start()
 		if m.useSelector and not this.inverseSelection
 			select (this.selectorTable.alias)
 			go top
@@ -740,15 +737,12 @@ define class PathTable as BaseTable
 			go top
 		endif
 		m.rec = 0
+		this.messenger.setDefault("Pathed")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Pathing","Canceled.")
 		do while not eof()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Pathing") == 6
-						m.byebye = .T.
-						exit
-					endif
-				endif
+			if this.messenger.queryCancel()
+				exit
 			endif
 	   		m.pos = recno()
 			if m.useSelector
@@ -817,14 +811,8 @@ define class PathTable as BaseTable
 						m.init = .t.
 						loop
 					endif
-					if m.t.elapsed() > 2
-						m.t.start()
-						if inkey("H") == 27
-							if messagebox("Cancel Operation?",292,"Pathing") == 6
-								m.byebye = .T.
-								exit
-							endif
-						endif
+					if this.messenger.queryCancel()
+						exit
 					endif
 					if m.branch.count <= 0
 						exit
@@ -965,7 +953,7 @@ define class PathTable as BaseTable
 						m.nodeRequired = .T.
 					endif
 				enddo
-				if m.byebye
+				if this.messenger.isCanceled()
 					exit
 				endif
 				if this.counting
@@ -992,15 +980,18 @@ define class PathTable as BaseTable
 					m.rec = m.rec+1
 				enddo
 			endif
-			this.messenger.postMessage("Pathed "+ltrim(str(m.rec))+"/"+ltrim(str(reccount())))
+			this.messener.setProgress(m.rec)
+			this.messenger.postProgress()
 		enddo
-		this.messenger.forceMessage("Pathed "+ltrim(str(m.rec))+"/"+ltrim(str(reccount())))
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		release m.branch
 		release m.branchMonitor
 		release m.result
 		this.forceRequiredKeys()
-		return m.byebye == .F.
+		if this.messenger.isCanceled()
+			return .f.
+		endif
+		return .t.
 	endfunc	
 
 	protected function init(table)
@@ -1272,7 +1263,7 @@ define class ClusterPathTable as PathTable
 	function create(table, fromField, toField)
 	local ps1, ps2, ps3, ps4, ps5, ps6, pa, lm, pk
 	local f1, f2, origin, init, sel, hole, tmp1, tmp2, tmp3
-	local t, depth, byebye, node, sql
+	local depth, node, sql
 	local cktarget, target, useSelector, selectorField, ind
 	local key, usemaxdepth, result, branch, filter, trueFilter
 	local filterActivation, filterCountDown, filterIndex, nextFilter
@@ -1283,7 +1274,7 @@ define class ClusterPathTable as PathTable
 		m.ps5 = createobject("PreservedSetting","optimize","on")
 		m.ps6 = createobject("PreservedSetting","safety","off")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Pathing...")
 		m.branch = createobject("Collection")
 		m.result = createobject("Collection")
@@ -1428,21 +1419,14 @@ define class ClusterPathTable as PathTable
 		m.cktarget = m.cktarget.getExp("m.target")
 		m.pk = createobject("PreservedKey", m.table)
 		m.usemaxdepth = (vartype(this.maxdepth) == "N" and this.maxdepth > 0)
-		m.byebye = .f.
-		m.t = createobject("timing")
-		this.messenger.start()
 		select (m.sel.alias)
 		go top
-		this.messenger.forceMessage("Pathed "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+		this.messenger.setDefault("Pathed")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Pathing","Canceled.")
 		do while not eof()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Pathing") == 6
-						m.byebye = .T.
-						exit
-					endif
-				endif
+			if this.messenger.queryCancel()
+				exit
 			endif
 			m.origin = origin
 			if this.grouping and seek(m.origin, this.alias)
@@ -1496,14 +1480,8 @@ define class ClusterPathTable as PathTable
 					m.init = .t.
 					loop
 				endif
-				if m.t.elapsed() > 2
-					m.t.start()
-					if inkey("H") == 27
-						if messagebox("Cancel Operation?",292,"Pathing") == 6
-							m.byebye = .T.
-							exit
-						endif
-					endif
+				if this.messenger.queryCancel()
+					exit
 				endif
 				if m.branch.count <= 0
 					exit
@@ -1551,7 +1529,7 @@ define class ClusterPathTable as PathTable
 					m.table.setKey(m.fromfield)
 				endif
 			enddo
-			if m.byebye
+			if this.messenger.isCanceled()
 				exit
 			endif
 			for m.ind = 1 to m.result.count
@@ -1560,15 +1538,14 @@ define class ClusterPathTable as PathTable
 			endfor
 			select (m.sel.alias)
 			skip
-			this.messenger.postMessage("Pathed "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
+			this.messenger.setProgress(recno())
+			this.messenger.postProgress()
 		enddo
-		this.messenger.forceMessage("Pathed "+ltrim(str(recno()))+"/"+ltrim(str(reccount())))
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		release m.branch
 		release m.result
 		this.forceRequiredKeys()
-		if m.byebye
-			this.messenger.errorMessage("Canceled.")
+		if this.messenger.isCanceled()
 			return .f.
 		endif
 		return .t.
@@ -1773,9 +1750,9 @@ define class UeberSetTable as BaseTable
 	
 	function create(table, fromField, toField)
 	local ps1, ps2, ps3, ps4, ps5, ps6, pa, lm, pk, err
-	local f1, f2, from, use, sql1, sql2, set, ueberSet, t
+	local f1, f2, from, use, sql1, sql2, set, ueberSet
 	local tableAlias, useAlias, setAlias, dbf, rec
-	local byebye, subfrom
+	local subfrom
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
@@ -1783,7 +1760,7 @@ define class UeberSetTable as BaseTable
 		m.ps5 = createobject("PreservedSetting","optimize","on")
 		m.ps6 = createobject("PreservedSetting","safety","off")
 		m.pa = createobject("PreservedAlias")
-		m.lm = createobject("LastMessage",this.messenger,"")
+		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Collecting...")
 		if not this.isCreatable()
 			this.messenger.errorMessage("UeberSetTable is not creatable.")
@@ -1842,19 +1819,13 @@ define class UeberSetTable as BaseTable
 		select (m.useAlias)
 		index on from tag from
 		go top
-		m.byebye = .F.
 		m.rec = 1
-		m.t = createobject("timing")
-		this.messenger.start()
+		this.messenger.setDefault("Collected")
+		this.messenger.startProgress(reccount())
+		this.messenger.startCancel("Cancel Operation?","Collecting","Canceled.")
 		do while m.rec <= reccount()
-			if m.t.elapsed() > 2
-				m.t.start()
-				if inkey("H") == 27
-					if messagebox("Cancel Operation?",292,"Collecting UeberSet") == 6
-						m.byebye = .T.
-						exit
-					endif
-				endif
+			if this.messenger.queryCancel()
+				exit
 			endif
 			go record m.rec
 			if use == 0
@@ -1869,7 +1840,6 @@ define class UeberSetTable as BaseTable
 			endtry
 			if m.err
 				this.messenger.errorMessage("Unable to create temporary Table.")
-				m.byebye = .T.
 				exit
 			endif
 			m.set = reccount()
@@ -1881,7 +1851,6 @@ define class UeberSetTable as BaseTable
 			endtry
 			if m.err
 				this.messenger.errorMessage("Unable to create temporary Table.")
-				m.byebye = .T.
 				exit
 			endif
 			m.ueberSet = .F.
@@ -1901,18 +1870,20 @@ define class UeberSetTable as BaseTable
 			if not m.ueberSet
 				update (m.useAlias) set use = 1 where from = m.from
 			endif
+			this.messenger.setProgress(m.rec)
+			this.messenger.postProgress()
 			select (m.useAlias)
-			this.messenger.postMessage("Collected "+ltrim(str(m.rec))+"/"+ltrim(str(reccount())))
 			m.rec = m.rec+1
 		enddo
-		m.rec = min(m.rec, reccount())
-		this.messenger.forceMessage("Collected "+ltrim(str(m.rec))+"/"+ltrim(str(reccount())))
-		this.messenger.forceMessage("Closing...")
+		this.messenger.sneakMessage("Closing...")
 		select (m.setAlias)
 		use
 		select a.from as set from (m.useAlias) a where use == 1 order by a.from into table (m.dbf)
 		this.synchronizeDBF()
 		this.forceRequiredKeys()
+		if this.messenger.isInterrupted()
+			return .f.
+		endif
 		return .T.
 	endfunc
 enddefine
