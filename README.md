@@ -17,9 +17,16 @@ Windows
 
 ## Version history
 
+2019.10.17 SearchEngine 19.00 (beta)
+- removed the requirement for unique keys by allowing record numbers for all exports
+- new function Result Export allows to create filtered subsets and/or samples of the result table that can replace the Result table
+- the new Meta Export format can be used for machine learning approaches
+- complete overhaul of the more complex commands of the script language to reduce the number of required parameters
+- fix of a potential memory leak while searching
+
 2019.06.19 SearchEngine 18.20
 - score is now independent of smoothing
-- new smoothing/accentuating method using softmax funtion
+- new smoothing/accentuating method using softmax function
 - improved expand option by adding more ways to merge the occurrences of the search table and a rebuild function
 		
 2019.04.25 SearchEngine 18.12
