@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2019.10.14
+*   Date:       2019.11.13
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -504,7 +504,7 @@ define class TableCluster as Custom
 			endif
 		endfor
 		if not m.type == "select"
-			return not this.messenger.isInterrrupted()
+			return not this.messenger.isInterrupted()
 		endif
 		this.messenger.sneakMessage("Cleaning...")
 		m.table = createobject("TableCluster",this.createTableName(m.first+m.i))

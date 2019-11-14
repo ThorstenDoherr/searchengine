@@ -1,19 +1,19 @@
 *=========================================================================*
-*	Modul: 		searchengine.prg
-*	Date:		2019.10.17
-*	Author:		Thorsten Doherr
-*	Procedure: 	custom.prg
-*               cluster.prg
-*               path.prg (only for SearchEngine.groupedExport())
-*				sheet.prg (only for SearchEngine.import())
-*   Library:	foxpro.fll
-*	Handles:	11, 12, 13, 14
-*	Function:	The SearchEngine executes a heuristic search using special
-*				tables containing all the words of the base table, their
-*				occurencies, references to the original base table and a
-*				control table with heuristical parameters. The result table
-*				includes the key of the searched record, the key of the
-*				found record and an identity percentage.
+*    Modul:      searchengine.prg
+*    Date:       2019.11.14
+*    Author:     Thorsten Doherr
+*    Procedure:  custom.prg
+*                cluster.prg
+*                path.prg (only for SearchEngine.groupedExport())
+*                sheet.prg (only for SearchEngine.import())
+*   Library:     foxpro.fll
+*   Handles:     11, 12, 13, 14
+*   Function:    The SearchEngine executes a heuristic search using special
+*                tables containing all the words of the base table, their
+*                occurencies, references to the original base table and a
+*                control table with heuristical parameters. The result table
+*                includes the key of the searched record, the key of the
+*                found record and an identity percentage.
 *=========================================================================*
 #define DEFSEARCHDEPTH  262144
 #define MAXSEARCHDEPTH 1048576
@@ -231,6 +231,7 @@ enddefine
 
 define class MetaFilter as Custom
 	count = 0
+	size = 0
 	dimension meta[1]
 	
 	function init(filter as String, types as SearchTypes)
@@ -293,6 +294,7 @@ define class MetaFilter as Custom
 			if not vartype(this.meta[m.i]) == "N"
 				this.meta[m.i] = m.default
 			endif
+			this.size = this.size+this.meta[m.i]
 		endfor
 		this.count = m.count
 	endfunc
@@ -4251,9 +4253,9 @@ define class MetaExportTable as BaseTable
 		this.resizeRequirements()
 	endfunc
 		
-	function create(engine, meta, low, high, runFilter)
-		local pa, ps1, ps2, ps3, ps4, lm
-		local result, foundtypes, searchedtypes, handle, line
+	function create(engine, meta, raw, low, high, runFilter)
+		local pa, ps1, ps2, ps3, ps4, ps5, ps6, ps7, lm
+		local result, foundtypes, searchedtypes, handle1, handle2, line
 		local foundreg, searchedreg, stype, ftype, type, typeindex
 		local searched, found, identity, score, run, join, runmax
 		local entrylen, base2reg, target, searchcluster
@@ -4261,10 +4263,15 @@ define class MetaExportTable as BaseTable
 		local sx, fx, mx, sxcnt, fxcnt, mxcnt
 		local lex, lexarray, already, idc, count, cnt
 		local i, j, k, f, s, m, fa, fb, txt, chr9
+		local norm, header, ind, val, sql, struc, temp
+		local normalize
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
 		m.ps3 = createobject("PreservedSetting","exact","on")
 		m.ps4 = createobject("PreservedSetting","decimals","6")
+		m.ps5 = createobject("PreservedSetting","century","on")
+		m.ps6 = createobject("PreservedSetting","date","ansi")
+		m.ps7 = createobject("PreservedSetting","hours","24")
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Exporting Meta...")
@@ -4310,6 +4317,11 @@ define class MetaExportTable as BaseTable
 			this.messenger.errormessage("Invalid meta filter.")
 			return .f.
 		endif
+		if vartype(m.raw) == "N"
+			m.runfilter = m.high
+			m.high = m.low
+			m.low = m.raw
+		endif
 		m.meta = createobject("MetaFilter",m.meta,m.foundtypes)
 		if not m.meta.isValid()
 			this.messenger.errormessage("Invalid meta filter.")
@@ -4339,32 +4351,53 @@ define class MetaExportTable as BaseTable
 			this.messenger.errormessage("Run filter expression is invalid.")
 			return .f.
 		endif
+		if not vartype(m.raw) == "L"
+			this.messenger.errormessage("Raw setting invalid.")
+			return .f.
+		endif
+		m.normalize = m.raw == .f.
 		m.runmax = m.result.getRun()
+		m.s = 5
 		if like("*.txt",lower(this.getDBF()))
 			m.txt = .t.
-			m.handle = FileOpenWrite(EXPORTHANDLE,this.getDBF())
-			if m.handle <= 0
-				this.messenger.errormessage("Invalid MetaExportTable path name.")
-				return .f.
+			m.chr9 = chr(9)
+			if m.normalize
+				m.temp = createobject("BaseTable",this.getPath()+this.getPureName()+".tmp")
+				m.temp.erase()
+				m.temp.setCursor(.t.)
+				m.handle1 = FileOpenWrite(OUTHANDLE,m.temp.getDBF())
+				if m.handle1 <= 0
+					this.messenger.errormessage("Unable to create temporary file: "+m.temp.getDBF())
+					return .f.
+				endif
+			else
+				m.handle1 = FileOpenWrite(OUTHANDLE,this.getDBF())
+				if m.handle1 <= 0
+					this.messenger.errormessage("Unable to create MetaExportTable.")
+					return .f.
+				endif
 			endif
-			m.line = "SEARCHED"+chr(9)+"FOUND"+chr(9)+"IDENTITY"+chr(9)+"SCORE"+chr(9)+"CNT"
+			m.line = "SEARCHED"+m.chr9+"FOUND"+m.chr9+"IDENTITY"+m.chr9+"SCORE"+m.chr9+"CNT"
 			for m.i = 1 to m.runmax
 				if m.runFilter.isFiltered(m.i)
-					m.line = m.line+chr(9)+"RUN"+ltrim(str(m.i))
+					m.line = m.line+m.chr9+"RUN"+ltrim(str(m.i))
+					m.s = m.s+1
 				endif
 			endfor
 			for m.i = 1 to m.foundtypes.getSearchTypeCount()
 				for m.j = 1 to 3
 					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
 					for m.k = 1 to m.meta.meta[m.i]
-						m.line = m.line+chr(9)+m.f+ltrim(str(m.k))
+						m.line = m.line+m.chr9+m.f+ltrim(str(m.k))
+						m.s = m.s+1
 					endfor
 				endfor
 			endfor
-			FileWriteCRLF(m.handle,m.line)
+			FileWriteCRLF(m.handle1,m.line)
+			m.header = m.line
 		else
-			m.s = 4
-			m.line = "searched i, found i, identity b(6), score  b(6), cnt b(6)"
+			m.chr9 = ","
+			m.line = "searched i, found i, identity b(6), score b(6), cnt b(6)"
 			for m.i = 1 to m.runmax
 				if m.runFilter.isFiltered(m.i)
 					m.line = m.line+", RUN"+ltrim(str(m.i))+" n(1)"
@@ -4386,23 +4419,37 @@ define class MetaExportTable as BaseTable
 			endif
 			this.setRequiredTableStructure(m.line)
 			if not BaseTable::create()
-				this.messenger.errormessage('Unable to create MetaExportTable')
+				this.messenger.errormessage('Unable to create MetaExportTable.')
 				return .f.
 			endif
 		endif
+		if m.normalize
+			dimension m.norm[m.s,2]
+			for m.i = 1 to m.s
+				m.norm[m.i,1] = 9999999999
+				m.norm[m.i,2] = -1
+			endfor
+		endif
+		m.searchcluster = m.engine.getSearchCluster()
 		m.foundreg = m.engine.getRegistryTable()
-		m.searchedreg = createobject("BaseCursor",m.engine.getEnginePath())
-		m.searchedreg = m.searchedreg.getDBF() && handle released and deleted immediately by GC
-		m.searchedreg = m.engine.expand(m.searchedreg) && searchedreg converts to RegistryTable object
-		if not vartype(m.searchedreg) == "O"
+		m.table = m.searchCluster.getTable(1)
+		m.searchedreg = createobject("RegistryTable", m.table.getPath()+m.table.getPureName()+"_registry.dbf")
+		if m.searchedreg.isCreatable() or fdate(m.searchedreg.getDBF(),1) < fdate(m.table.getDBF(),1)
+			m.searchedreg.close()
+			m.searchedreg.erase()
+			m.searchedreg = m.engine.expand(m.searchedreg, m.meta) && meta[type] == 0 will be excluded
+		endif
+		if not (vartype(m.searchedreg) == "O" and m.searchedreg.isValid())
 			this.messenger.errormessage("Unable to create SearchTable Registry.")
 			if m.txt
-				FileClose(m.handle)
+				FileClose(m.handle1)
 			endif
 			this.erase()
+			if vartype(m.searchedreg) == "O"
+				m.searchedreg.erase()
+			endif
 			return .f.
 		endif
-		m.searchedreg.setCursor(.t.)
 		m.searchedtypes = createobject("SearchTypes",m.foundtypes.toString())
 		m.count = createobject("UniqueAlias",.t.)
 		select type, cast(max(occurs) as i) as max from (m.searchedreg.alias) where occurs > 0 group by 1 into cursor (m.count.alias) readwrite
@@ -4421,7 +4468,6 @@ define class MetaExportTable as BaseTable
 		m.entrylen = m.entrylen.getSize()
 		m.searchedreg.forceRegistryKey()
 		m.base2reg = m.engine.getBase2RegistryCluster()
-		m.searchcluster = m.engine.getSearchCluster()
 		dimension m.lexarray[1]
 		m.result.select()
 		m.searched = -1
@@ -4459,6 +4505,9 @@ define class MetaExportTable as BaseTable
 					for m.j = 1 to m.foundtypes.getSearchTypeCount(m.fb)
 						m.ftype = m.foundtypes.getSearchTypeByField(m.fb,m.j)
 						m.typeindex = m.ftype.getTypeIndex()
+						if m.meta.meta[m.typeindex] == 0
+							loop
+						endif
 						m.stype = m.searchedtypes.getSearchTypeByIndex(m.typeindex)
 						if alines(m.lexArray,m.ftype.prepare(m.table.getValueAsString(m.fa)),5," ") == 0
 							loop
@@ -4549,12 +4598,30 @@ define class MetaExportTable as BaseTable
 				m.f = m.f+1
 			enddo
 			asort(m.mx,4,m.mxcnt)
-			if m.txt
-				m.chr9 = chr(9)
-			else
-				m.chr9 = ","
+			m.line = ltrim(str(m.searched))+chr9+ltrim(str(m.found))+chr9+ltrim(str(m.identity,18,9))+chr9+ltrim(str(m.score,18,9))+chr9+ltrim(str(m.cnt,10))
+			if m.normalize
+				if m.identity < m.norm[3,1]
+					m.norm[3,1] = m.identity
+				else
+					if m.identity > m.norm[3,2]
+						m.norm[3,2] = m.identity
+					endif
+				endif
+				if m.score < m.norm[4,1]
+					m.norm[4,1] = m.score
+				else
+					if m.score > m.norm[4,2]
+						m.norm[4,2] = m.score
+					endif
+				endif
+				if m.cnt < m.norm[5,1]
+					m.norm[5,1] = m.cnt
+				else
+					if m.cnt > m.norm[5,2]
+						m.norm[5,2] = m.cnt
+					endif
+				endif
 			endif
-			m.line = ltrim(str(m.searched))+chr9+ltrim(str(m.found))+chr9+ltrim(str(m.identity,18,9))+chr9+ltrim(str(m.score,18,9))+chr9+ltrim(str(m.cnt,18,9))
 			for m.i = 1 to m.runmax
 				if m.i = m.run
 					m.line = m.line+chr9+"1"
@@ -4564,31 +4631,69 @@ define class MetaExportTable as BaseTable
 					endif
 				endif
 			endfor
-			m.m = 1
-			for m.i = 1 to m.foundtypes.getSearchTypeCount()
-				for m.j = 1 to 3
-					m.f = substr("MFS",m.j,1)
-					if not m.f == "S"
-						m.type = m.foundtypes.getSearchTypeByIndex(m.i)
-					else
-						m.type = m.searchedtypes.getSearchTypeByIndex(m.i)
-					endif
-					m.type = m.type.getMaxOcc()
-					for m.k = 1 to m.meta.meta[m.i]
-						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-							m.line = m.line+chr9+ltrim(str(m.mx[m.m,3],18,9))
-							m.m = m.m+1
+			if m.normalize
+				m.ind = 5+m.runmax+1
+				m.m = 1
+				for m.i = 1 to m.foundtypes.getSearchTypeCount()
+					for m.j = 1 to 3
+						m.f = substr("MFS",m.j,1)
+						if not m.f == "S"
+							m.type = m.foundtypes.getSearchTypeByIndex(m.i)
 						else
-							m.line = m.line+chr9+"0"
+							m.type = m.searchedtypes.getSearchTypeByIndex(m.i)
 						endif
+						m.type = m.type.getMaxOcc()
+						for m.k = 1 to m.meta.meta[m.i]
+							if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+								m.val = m.mx[m.m,3]
+								m.line = m.line+chr9+ltrim(str(m.val,18,9))
+								m.m = m.m+1
+							else
+								m.val = 0
+								m.line = m.line+chr9+"0"
+							endif
+							if m.val < m.norm[m.ind,1]
+								m.norm[m.ind,1] = m.val
+							else
+								if m.val > m.norm[m.ind,2]
+									m.norm[m.ind,2] = m.val
+								endif
+							endif
+							m.ind = m.ind+1
+						endfor
+						do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+							m.m = m.m+1
+						enddo
 					endfor
-					do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-						m.m = m.m+1
-					enddo
 				endfor
-			endfor
+			else
+				m.m = 1
+				for m.i = 1 to m.foundtypes.getSearchTypeCount()
+					for m.j = 1 to 3
+						m.f = substr("MFS",m.j,1)
+						if not m.f == "S"
+							m.type = m.foundtypes.getSearchTypeByIndex(m.i)
+						else
+							m.type = m.searchedtypes.getSearchTypeByIndex(m.i)
+						endif
+						m.type = m.type.getMaxOcc()
+						for m.k = 1 to m.meta.meta[m.i]
+							if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+								m.val = m.mx[m.m,3]
+								m.line = m.line+chr9+ltrim(str(m.val,18,9))
+								m.m = m.m+1
+							else
+								m.line = m.line+chr9+"0"
+							endif
+						endfor
+						do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
+							m.m = m.m+1
+						enddo
+					endfor
+				endfor
+			endif
 			if m.txt
-				FileWriteCRLF(m.handle,m.line)
+				FileWriteCRLF(m.handle1,m.line)
 			else
 				m.line = "insert into "+this.alias+" values ("+m.line+")"
 				&line
@@ -4596,12 +4701,80 @@ define class MetaExportTable as BaseTable
 			this.messenger.postProgress()
 		endscan
 		if m.txt
-			FileClose(m.handle)
+			FileClose(m.handle1)
 		endif
 		if this.messenger.isCanceled()
 			return .f.
 		endif
+		if m.normalize == .f.
+			return .t.
+		endif
+		for m.i = 1 to alen(m.norm,1)
+			if m.norm[m.i,1] == 9999999999
+				m.norm[m.i,2] = -1
+				loop
+			endif
+			if m.norm[m.i,2] == 0 or (m.norm[m.i,1] == 0 and m.norm[m.i,2] == 1)
+				m.norm[m.i,2] = -1
+				loop
+			endif
+			if m.norm[m.i,2] == -1 or m.norm[m.i,1] == m.norm[m.i,2]
+				if m.norm[m.i,1] > 0
+					m.norm[m.i,1] = m.norm[m.i,1]-1
+					m.norm[m.i,2] = 1
+				else
+					m.norm[m.i,2] = 1
+				endif
+				loop
+			endif
+			m.norm[m.i,2] = m.norm[m.i,2]-m.norm[m.i,1]
+		endfor
+		dimension m.lex[1]
+		this.messenger.forceMessage("Normalizing...")
+		if m.txt
+			m.handle1 = FileOpenRead(OUTHANDLE,m.temp.getDBF())
+			m.handle2 = FileOpenWrite(EXPORTHANDLE,this.getDBF())
+			m.line = FileReadCRLF(m.handle1)
+			FileWriteCRLF(m.handle2,m.line)
+			m.line = FileReadCRLF(m.handle1)
+			do while not (FileEOF(m.handle1) and empty(m.line))
+				m.cnt = alines(m.lex,m.line,m.chr9)
+				m.line = ""
+				for m.i = 1 to m.cnt
+					if m.norm[m.i,2] <= 0
+						m.val = m.lex[m.i]
+					else
+						m.val = ltrim(str((val(m.lex[m.i])-m.norm[m.i,1])/m.norm[m.i,2],18,9))
+					endif
+					if m.val == "0.000000000"
+						m.val = "0"
+					else
+						if m.val == "1.000000000"
+							m.val = "1"
+						endif
+					endif
+					m.line = m.line+m.chr9+m.val
+				endfor
+				FileWriteCRLF(m.handle2,ltrim(m.line,m.chr9))
+				m.line = FileReadCRLF(m.handle1)
+			enddo
+			FileClose(m.handle1)
+			FileClose(m.handle2)
+		else
+			m.struc = this.getTableStructure()
+			m.sql = "update "+this.alias+" set "
+			for m.i = 1 to alen(m.norm,1)
+				if m.norm[m.i,2] <= 0
+					loop
+				endif
+				m.f = m.struc.getFieldStructure(m.i)
+				m.sql = m.sql + m.f.getName() + " = (" + m.f.getName() + "-m.norm["+ltrim(str(m.i))+",1])/m.norm["+ltrim(str(m.i))+",2], "
+			endfor
+			m.sql = rtrim(rtrim(m.sql),",")
+			&sql
+		endif
 		return .t.
+	endfunc
 enddefine
 
 define class SearchEngine as custom
@@ -5790,7 +5963,7 @@ define class SearchEngine as custom
 		m.dp.dyna("OCCT","1,2,3,8")
 		m.dp.dyna("ONNLT","1,4,5,6,8")
 		m.dp.dyna("OCCNNLT","1,2,3,4,5,6,8")
-		if not m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.text)
+		if m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.text) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -5841,7 +6014,7 @@ define class SearchEngine as custom
 		m.dp.dyna("OCCCCNNL","1,2,3,4,5,6,7,8,9")
 		m.dp.dyna("OCCCCNNC","1,2,3,4,5,6,7,9,8")
 		m.dp.dyna("OCCCCC","1,2,3,4,5,9")
-		if not m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.searchedGroupKey, @m.foundGroupKey, @m.low, @m.high, @m.exclusive, @m.runFilter)
+		if m.dp.para(@m.table, @m.searchKey, @m.foundKey, @m.searchedGroupKey, @m.foundGroupKey, @m.low, @m.high, @m.exclusive, @m.runFilter) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -5908,7 +6081,7 @@ define class SearchEngine as custom
 		m.dp.dyna("OCCCNNLLL","1,2,3,7,4,5,6,8,9")
 		m.dp.dyna("OCLL","1,2,8,9")
 		m.dp.dyna("OLL","1,8,9")
-		if not m.dp.para(@m.table, @m.cascade, @m.baseKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.notext, @m.nosingle)
+		if m.dp.para(@m.table, @m.cascade, @m.baseKey, @m.low, @m.high, @m.exclusive, @m.runFilter, @m.notext, @m.nosingle) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -6001,20 +6174,27 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
-	function metaExport(table, meta, low, high, runFilter)
+	function metaExport(table, meta, raw, low, high, runFilter)
 		local oldmes, rc, dp, swap
 		if vartype(m.table) == "C"
 			m.table = createobject("MetaExportTable",m.table)
 		endif
 		m.dp = createobject("DynaPara")
-		m.dp.dyna("OCNNC")
+		m.dp.dyna("OCLNNC")
 		m.dp.dyna("O")
-		m.dp.dyna("ONN","1,3,4,5")
-		m.dp.dyna("ONNC","1,3,4,5")
-		m.dp.dyna("OC","1,2")
-		m.dp.dyna("OCNN","1,2,3,4")
-		m.dp.dyna("OCC","1,2,5")
-		if not m.dp.para(@m.table, @m.meta, @m.low, @m.high, @m.runFilter)
+		m.dp.dyna("OC")
+		m.dp.dyna("OCL")
+		m.dp.dyna("OCLNN")
+		m.dp.dyna("OCNN","1,2,4,5")
+		m.dp.dyna("OCNNC","1,2,4,5,6")
+		m.dp.dyna("OCC","1,2,6")
+		m.dp.dyna("OL","1,3")
+		m.dp.dyna("OLNN","1,3,4,5")
+		m.dp.dyna("OLNNC","1,3,4,5,6")
+		m.dp.dyna("OLC","1,3,6")
+		m.dp.dyna("ONN","1,4,5")
+		m.dp.dyna("ONNC","1,4,5,6")
+		if m.dp.para(@m.table, @m.meta, @m.raw, @m.low, @m.high, @m.runFilter) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -6026,7 +6206,7 @@ define class SearchEngine as custom
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
 		try
-			m.rc = m.table.create(this, m.meta, m.low, m.high, m.runFilter)
+			m.rc = m.table.create(this, m.meta, m.raw, m.low, m.high, m.runFilter)
 		catch
 			m.rc = .f.
 		endtry
@@ -6049,7 +6229,7 @@ define class SearchEngine as custom
 		m.dp.dyna("ONL","1,2,6")
 		m.dp.dyna("OCL","1,5,6")
 		m.dp.dyna("OL","1,6")
-		if not m.dp.para(@m.table, @m.shuffle, @m.low, @m.high, @m.runfilter, @m.newrun)
+		if m.dp.para(@m.table, @m.shuffle, @m.low, @m.high, @m.runfilter, @m.newrun) == 0
 			this.messenger.errorMessage("Invalid cascade definition.")
 			return .f.
 		endif
@@ -6150,12 +6330,12 @@ define class SearchEngine as custom
 					if seek(this.registry.buildRegistryKey(m.i, m.lex))
 						if occurs > 0 and not (" "+m.lex+" " $ m.already)
 							replace occurs with occurs+1
-							insert into (m.collector.alias) (base,reg) values (m.base,recno(this.registry.alias))
+							insert into (m.collector.alias) values (m.base,recno(this.registry.alias))
 							m.already = m.already+m.lex+" "
 						endif
 					else
-						insert into (this.registry.alias) (entry,type,occurs) values (m.lex,m.i,1)
-						insert into (m.collector.alias) (base,reg) values (m.base,reccount(this.registry.alias))
+						insert into (this.registry.alias) values (m.i,m.lex,1)
+						insert into (m.collector.alias) values (m.base,reccount(this.registry.alias))
 						m.rg.tryReindex()
 						m.already = m.already+m.lex+" "
 					endif
@@ -6163,7 +6343,7 @@ define class SearchEngine as custom
 			endfor
 			select (m.collector.alias)
 			if base != m.base
-				insert into (m.collector.alias) (base,reg) values (m.base,0)
+				insert into (m.collector.alias) values (m.base,0)
 			endif
 			this.messenger.setProgress(m.base)
 			this.messenger.postProgress()
@@ -6287,7 +6467,7 @@ define class SearchEngine as custom
 		return .t.
 	endfunc
 
-	function expand(expandMode as Integer, new as Object)
+	function expand(expandMode as Integer, new as Object, meta as Object)
 		local pa, ps1, ps2, ps3, lm, rg
 		local entrylen, i, j, base, fa, fb, lex
 		local lexArray, table, already
@@ -6301,13 +6481,19 @@ define class SearchEngine as custom
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Expanding...")
 		m.dp = createobject("DynaPara")
-		m.dp.dyna("NO")
-		m.dp.dyna("NC")
+		m.dp.dyna("NOO")
+		m.dp.dyna("NCC")
+		m.dp.dyna("NOC")
+		m.dp.dyna("NCO")
 		m.dp.dyna("")
 		m.dp.dyna("N")
 		m.dp.dyna("O","2")
 		m.dp.dyna("C","2")
-		if not m.dp.para(@m.expandMode, @m.new)
+		m.dp.dyna("OO","2,3")
+		m.dp.dyna("CC","2,3")
+		m.dp.dyna("OC","2,3")
+		m.dp.dyna("CO","2,3")
+		if m.dp.para(@m.expandMode, @m.new, @m.meta) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -6333,7 +6519,25 @@ define class SearchEngine as custom
 				return .f.
 			endif
 		endif
+		if vartype(m.meta) == "C"
+			m.meta = createobject("MetaFilter",m.meta,this.searchTypes)
+		endif
+		if vartype(m.meta) == "O"
+			if not m.meta.isValid()
+				this.messenger.errormessage("MetaFilter is invalid.")
+				return .f.
+			endif
+		else
+			m.meta = createobject("MetaFilter","",this.searchTypes)
+		endif
 		this.confirmChanges()
+		if m.copy and m.meta.size == 0
+			this.registry.setKey()
+			this.registry.select()
+			copy structure to (m.new.getDBF()) with cdx
+			m.new.open()
+			return m.new
+		endif			
 		if m.expandMode > 0 and not this.isExpandable()
 			this.messenger.errormessage("SearchEngine is not expandable.")
 			return .f.
@@ -6412,6 +6616,9 @@ define class SearchEngine as custom
 					for m.type = 1 to m.cnt
 						m.searchType = this.searchTypes.getSearchTypeByField(m.fb,m.type)
 						m.typeIndex = m.searchType.getTypeIndex()
+						if m.meta.meta[m.typeIndex] == 0
+							loop
+						endif
 						if alines(m.lexArray,m.searchType.prepare(m.table.getValueAsString(m.fa)),5," ") == 0
 							loop
 						endif
@@ -6425,7 +6632,7 @@ define class SearchEngine as custom
 									if seek(m.registry.buildRegistryKey(m.typeIndex, m.lex))
 										replace occurs with occurs+1
 									else
-										insert into (m.registry.alias) (entry,type,occurs) values (m.lex,m.typeIndex,1)
+										insert into (m.registry.alias) values (m.typeIndex,m.lex,1)
 										m.rg.tryReindex()
 									endif
 								else
@@ -6578,7 +6785,7 @@ define class SearchEngine as custom
 		m.dp.dyna("NN","1,2")
 		m.dp.dyna("NNL","1,2,3")
 		m.dp.dyna("NNN","1,2,4")
-		if not m.dp.para(@m.increment, @m.refineMode, @m.refineForce, @m.refineLimit)
+		if m.dp.para(@m.increment, @m.refineMode, @m.refineForce, @m.refineLimit) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -7167,7 +7374,7 @@ define class SearchEngine as custom
 		m.dp.dyna("NNL","1,2,4")
 		m.dp.dyna("CL","3,4")
 		m.dp.dyna("L","4")
-		if not m.dp.para(@m.identityMode, @m.scoreMode, @m.runFilter, @m.nonDestructiveOnly)
+		if m.dp.para(@m.identityMode, @m.scoreMode, @m.runFilter, @m.nonDestructiveOnly) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -7550,7 +7757,7 @@ define class SearchEngine as custom
 		m.dp.dyna("NNL","1,2,4")
 		m.dp.dyna("CL","3,4")
 		m.dp.dyna("L","4")
-		if not m.dp.para(@m.identityMode, @m.compareMode, @m.runFilter, @m.destructiveOnly)
+		if m.dp.para(@m.identityMode, @m.compareMode, @m.runFilter, @m.destructiveOnly) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
@@ -8383,7 +8590,7 @@ define class SearchEngine as custom
 		return LimitDescArray(m.ra,m.limit,1,this.cutoff,2,-1)
 	endfunc
 
-	hidden function ExportArray(ar, rows, cols, dbf) && Debug-Funktion für externe/interne Arrays
+	hidden function ExportArray(ar, rows, cols, dbf) && Debug-Funktion f?r externe/interne Arrays
 	local sql, ins, i, j, pa, ps, alen
 		m.pa = createobject("PreservedAlias")
 		m.ps = createobject("PreservedSetting", "safety", "off")
@@ -8457,8 +8664,8 @@ define class SearchEngine as custom
 		return this.extendedExport(m.table, m.searchKey, m.foundKey, m.searchedGroupKey, m.foundGroupKey, m.low, m.high, m.exclusive, m.runFilter)
 	endfunc
 	
-	hidden function _exportMeta(table, meta, low, high, runFilter)
-		return this.metaExport(m.table, m.meta, m.low, m.high, m.runFilter)
+	hidden function _exportMeta(table, meta, m.raw, low, high, runFilter)
+		return this.metaExport(m.table, m.meta, m.raw, m.low, m.high, m.runFilter)
 	endfunc
 
 	hidden function _exportResult(table, shuffle, low, high, runFilter, newrun)

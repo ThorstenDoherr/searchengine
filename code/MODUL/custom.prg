@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2019.10.14
+*   Date:       2019.11.05
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -217,7 +217,7 @@ define class DynaPara as Custom
 	endfunc
 	
 	function para(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24) && @m.p1, @m.p2, ...
-	local i, j, tlist, plist, type, from, to, f, t, cnt, cmd, key, exp, chr
+	local i, j, tlist, plist, item, type, from, to, f, t, cnt, cmd, key, exp, chr
 		m.tlist = ""
 		for m.i = 1 to pcount()
 			m.f = "m.p"+ltrim(str(m.i))
@@ -227,7 +227,7 @@ define class DynaPara as Custom
 			endif
 			m.tlist = m.tlist+m.type
 		endfor
-		m.plist = 0
+		m.item = 0
 		for m.i = 1 to this.list.count
 			m.key = padr(alltrim(this.list.getKey(m.i)),len(m.tlist),"F")
 			m.tlist = padr(m.tlist,len(m.key),"F")
@@ -244,17 +244,17 @@ define class DynaPara as Custom
 					endif
 				endfor
 				if m.j > len(m.key)
-					m.plist = m.i
+					m.item = m.i
 					exit
 				endif
 			endif
 		endfor
-		if m.plist == 0
-			return .f.
+		if m.item == 0
+			return 0
 		endif
-		m.plist = this.list.item(m.plist)
+		m.plist = this.list.item(m.item)
 		if empty(m.plist)
-			return .t.
+			return m.item
 		endif
 		dimension m.to[1]
 		m.cnt = aline(m.to,m.plist,5,",")
@@ -276,7 +276,7 @@ define class DynaPara as Custom
 				endfor
 			endif
 		endfor
-		return .t.
+		return m.item
 	endfunc
 	
 	function toString()
