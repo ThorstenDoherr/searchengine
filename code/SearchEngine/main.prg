@@ -18,7 +18,7 @@ endtry
 m.path = sys(16,0)
 m.path = substr(m.path, rat(" ",left(m.path,at("\",m.path)))+1)
 m.path = left(m.path, rat("\",m.path))
-set procedure to custom, cluster, searchengine, path, special, sheet
+set procedure to custom, cluster, searchengine, path, sheet
 set library to (m.path+"foxpro.fll")
 set escape off
 set resource off

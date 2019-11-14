@@ -1,6 +1,6 @@
 *       *********************************************************
 *       *                                                         
-*       * 10/17/19             SEMENU.MPR               19:39:50  
+*       * 11/14/19             SEMENU.MPR               18:06:15  
 *       *                                                         
 *       *********************************************************
 *       *                                                         
@@ -126,22 +126,22 @@ ENDIF
 
 DEFINE MENU (m.cMenuName) IN (m.oFormRef.Name) BAR
 
-DEFINE PAD _5lr165ag0 OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
+DEFINE PAD _5mj12sxk9 OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
 	KEY ALT+F, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5lr165ag1 OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
+DEFINE PAD _5mj12sxka OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
 	KEY ALT+C, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5lr165ag2 OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
+DEFINE PAD _5mj12sxkb OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
 	KEY ALT+A, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5lr165ag3 OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
+DEFINE PAD _5mj12sxkc OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
 	KEY ALT+T, "" ;
 	SKIP FOR empty(m.engine.tag) 
-ON PAD _5lr165ag0 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
-ON PAD _5lr165ag1 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
-ON PAD _5lr165ag2 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
-ON PAD _5lr165ag3 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
+ON PAD _5mj12sxk9 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
+ON PAD _5mj12sxka OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
+ON PAD _5mj12sxkb OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
+ON PAD _5mj12sxkc OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
 
 DEFINE POPUP (a_menupops[1]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
 DEFINE BAR 1 OF (a_menupops[1]) PROMPT "\<Save Settings"
@@ -152,14 +152,14 @@ DEFINE BAR 4 OF (a_menupops[1]) PROMPT "\<Export" ;
 DEFINE BAR 5 OF (a_menupops[1]) PROMPT "\-"
 DEFINE BAR 6 OF (a_menupops[1]) PROMPT "E\<xit"
 ON SELECTION BAR 1 OF (a_menupops[1]) ;
-	DO _5lr165ag4 ;
+	DO _5mj12sxkd ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[1]) ;
-	DO _5lr165ag5 ;
+	DO _5mj12sxke ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON BAR 4 OF (a_menupops[1]) ACTIVATE POPUP (a_menupops[2])
 ON SELECTION BAR 6 OF (a_menupops[1]) ;
-	DO _5lr165ag6 ;
+	DO _5mj12sxkp ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[2]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -171,45 +171,45 @@ DEFINE BAR 4 OF (a_menupops[2]) PROMPT "\-"
 DEFINE BAR 5 OF (a_menupops[2]) PROMPT "\<Result Export"
 DEFINE BAR 6 OF (a_menupops[2]) PROMPT "\<Meta Export"
 ON SELECTION BAR 1 OF (a_menupops[2]) ;
-	DO _5lr165aga ;
+	DO _5mj12sxkq ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[2]) ;
-	DO _5lr165agb ;
+	DO _5mj12sxkr ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[2]) ;
-	DO _5lr165agc ;
+	DO _5mj12sxks ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[2]) ;
-	DO _5lr165agd ;
+	DO _5mj12sxkt ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[2]) ;
-	DO _5lr165age ;
+	DO _5mj12sxku ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[3]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
 DEFINE BAR 1 OF (a_menupops[3]) PROMPT "\<File Locations"
-DEFINE BAR 2 OF (a_menupops[3]) PROMPT "\<Join SearchFields" ;
+DEFINE BAR 2 OF (a_menupops[3]) PROMPT "\<Join Search Fields" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isSearchTableReady()
 DEFINE BAR 3 OF (a_menupops[3]) PROMPT "\-"
-DEFINE BAR 4 OF (a_menupops[3]) PROMPT "Search\<Types" ;
+DEFINE BAR 4 OF (a_menupops[3]) PROMPT "Search \<Types" ;
 	SKIP FOR not m.engine.isValid()
 DEFINE BAR 5 OF (a_menupops[3]) PROMPT "\<Settings"
 DEFINE BAR 6 OF (a_menupops[3]) PROMPT "\-"
 DEFINE BAR 7 OF (a_menupops[3]) PROMPT "\<Preferences"
 ON SELECTION BAR 1 OF (a_menupops[3]) ;
-	DO _5lr165agf ;
+	DO _5mj12sxkv ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[3]) ;
-	DO _5lr165agg ;
+	DO _5mj12sxkw ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 4 OF (a_menupops[3]) ;
-	DO _5lr165agh ;
+	DO _5mj12sxkx ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[3]) ;
-	DO _5lr165agi ;
+	DO _5mj12sxky ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[3]) ;
-	DO _5lr165agj ;
+	DO _5mj12sxkz ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[4]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -229,47 +229,47 @@ DEFINE BAR 7 OF (a_menupops[4]) PROMPT "E\<xpand" ;
 DEFINE BAR 8 OF (a_menupops[4]) PROMPT "\<Mirror" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isResultTableValid() or not m.engine.isMono()
 ON SELECTION BAR 1 OF (a_menupops[4]) ;
-	DO _5lr165agk ;
+	DO _5mj12sxl0 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[4]) ;
-	DO _5lr165agl ;
+	DO _5mj12sxl1 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[4]) ;
-	DO _5lr165agm ;
+	DO _5mj12sxl2 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[4]) ;
-	DO _5lr165agn ;
+	DO _5mj12sxl3 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[4]) ;
-	DO _5lr165ago ;
+	DO _5mj12sxl5 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[4]) ;
-	DO _5lr165agp ;
+	DO _5mj12sxl6 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 8 OF (a_menupops[4]) ;
-	DO _5lr165agq ;
+	DO _5mj12sxl7 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[5]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
-DEFINE BAR 1 OF (a_menupops[5]) PROMPT "\<QuickSearch" ;
+DEFINE BAR 1 OF (a_menupops[5]) PROMPT "\<Quick Search" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isBaseTableReady()  
-DEFINE BAR 2 OF (a_menupops[5]) PROMPT "\<ResultChecker" ;
+DEFINE BAR 2 OF (a_menupops[5]) PROMPT "\<Result Checker" ;
 	SKIP FOR not m.engine.isValid()  or not  m.engine.isSearchedSynchronized() or not  m.engine.isFoundSynchronized()
 DEFINE BAR 3 OF (a_menupops[5]) PROMPT "\-"
 DEFINE BAR 4 OF (a_menupops[5]) PROMPT "\<Notes"
 DEFINE BAR 5 OF (a_menupops[5]) PROMPT "\-"
 DEFINE BAR 6 OF (a_menupops[5]) PROMPT "\<Browser"
 ON SELECTION BAR 1 OF (a_menupops[5]) ;
-	DO _5lr165agr ;
+	DO _5mj12sxl8 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[5]) ;
-	DO _5lr165ags ;
+	DO _5mj12sxl9 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 4 OF (a_menupops[5]) ;
-	DO _5lr165agt ;
+	DO _5mj12sxla ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[5]) ;
-	DO _5lr165agu ;
+	DO _5mj12sxlb ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 ACTIVATE MENU (m.cMenuName) NOWAIT
@@ -282,7 +282,7 @@ ENDIF
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AG4  ON SELECTION BAR 1 OF POPUP file            
+*       * _5MJ12SXKD  ON SELECTION BAR 1 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -293,7 +293,7 @@ ENDIF
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165ag4
+PROCEDURE _5mj12sxkd
 do form sesave
 m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine.")
 
@@ -301,7 +301,7 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AG5  ON SELECTION BAR 2 OF POPUP file            
+*       * _5MJ12SXKE  ON SELECTION BAR 2 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -312,14 +312,14 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165ag5
+PROCEDURE _5mj12sxke
 do form seload
 m.mainForm.statusBar.setMessage("Load new settings for the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AG6  ON SELECTION BAR 6 OF POPUP file            
+*       * _5MJ12SXKP  ON SELECTION BAR 6 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -330,13 +330,13 @@ m.mainForm.statusBar.setMessage("Load new settings for the SearchEngine.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165ag6
+PROCEDURE _5mj12sxkp
 clear events
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGA  ON SELECTION BAR 1 OF POPUP export          
+*       * _5MJ12SXKQ  ON SELECTION BAR 1 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -347,14 +347,14 @@ clear events
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165aga
+PROCEDURE _5mj12sxkq
 do form seexpo with m.engine
 m.mainForm.statusBar.setMessage("Exports result data (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGB  ON SELECTION BAR 2 OF POPUP export          
+*       * _5MJ12SXKR  ON SELECTION BAR 2 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -365,14 +365,14 @@ m.mainForm.statusBar.setMessage("Exports result data (ESC cancels export).")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agb
+PROCEDURE _5mj12sxkr
 do form seexte with m.engine
 m.mainForm.statusBar.setMessage("Exports result data into a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGC  ON SELECTION BAR 3 OF POPUP export          
+*       * _5MJ12SXKS  ON SELECTION BAR 3 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -383,14 +383,14 @@ m.mainForm.statusBar.setMessage("Exports result data into a browsable ExportTabl
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agc
+PROCEDURE _5mj12sxks
 do form segrou with m.engine
 m.mainForm.statusBar.setMessage("Groups and exports self referenced result data (mono) to a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGD  ON SELECTION BAR 5 OF POPUP export          
+*       * _5MJ12SXKT  ON SELECTION BAR 5 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -401,14 +401,14 @@ m.mainForm.statusBar.setMessage("Groups and exports self referenced result data 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agd
+PROCEDURE _5mj12sxkt
 do form seresu with m.engine
 m.mainForm.statusBar.setMessage("Creates a subset and/or random sample of the ResultTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGE  ON SELECTION BAR 6 OF POPUP export          
+*       * _5MJ12SXKU  ON SELECTION BAR 6 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -419,14 +419,14 @@ m.mainForm.statusBar.setMessage("Creates a subset and/or random sample of the Re
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165age
+PROCEDURE _5mj12sxku
 do form semeta with m.engine
 m.mainForm.statusBar.setMessage("Exports heuristic meta information for machine learning etc. (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGF  ON SELECTION BAR 1 OF POPUP config          
+*       * _5MJ12SXKV  ON SELECTION BAR 1 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -437,50 +437,50 @@ m.mainForm.statusBar.setMessage("Exports heuristic meta information for machine 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agf
+PROCEDURE _5mj12sxkv
 do form sefile with m.engine
 m.mainform.statusBar.setMessage("These file locations are used by the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGG  ON SELECTION BAR 2 OF POPUP config          
+*       * _5MJ12SXKW  ON SELECTION BAR 2 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   24         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP config          
-*       * Prompt:     Join SearchFields                           
+*       * Prompt:     Join Search Fields                          
 *       * Snippet:    10                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agg
+PROCEDURE _5mj12sxkw
 do form sejoin with m.engine
 m.mainform.statusBar.setMessage("Join fields of the SearchTable with the types of the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGH  ON SELECTION BAR 4 OF POPUP config          
+*       * _5MJ12SXKX  ON SELECTION BAR 4 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   27         
 *       * Called By:  ON SELECTION BAR 4 OF POPUP config          
-*       * Prompt:     SearchTypes                                 
+*       * Prompt:     Search Types                                
 *       * Snippet:    11                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agh
+PROCEDURE _5mj12sxkx
 do form setype with m.engine
 m.mainform.statusBar.setMessage("Change SearchType specific parameters.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGI  ON SELECTION BAR 5 OF POPUP config          
+*       * _5MJ12SXKY  ON SELECTION BAR 5 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -491,14 +491,14 @@ m.mainform.statusBar.setMessage("Change SearchType specific parameters.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agi
+PROCEDURE _5mj12sxky
 do form sesett with m.engine
 m.mainform.statusBar.setMessage("Search specific settings.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGJ  ON SELECTION BAR 7 OF POPUP config          
+*       * _5MJ12SXKZ  ON SELECTION BAR 7 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -509,14 +509,14 @@ m.mainform.statusBar.setMessage("Search specific settings.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agj
+PROCEDURE _5mj12sxkz
 do form sepref with m.engine
 m.mainform.statusBar.setMessage("Adjust internal engine and performance preferences.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGK  ON SELECTION BAR 1 OF POPUP action          
+*       * _5MJ12SXL0  ON SELECTION BAR 1 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -527,14 +527,14 @@ m.mainform.statusBar.setMessage("Adjust internal engine and performance preferen
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agk
+PROCEDURE _5mj12sxl0
 do form sesear with m.engine
 m.mainform.statusBar.setMessage("Starts the search on the SearchTable (ESC cancels search).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGL  ON SELECTION BAR 2 OF POPUP action          
+*       * _5MJ12SXL1  ON SELECTION BAR 2 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -545,14 +545,14 @@ m.mainform.statusBar.setMessage("Starts the search on the SearchTable (ESC cance
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agl
+PROCEDURE _5mj12sxl1
 do form serese with m.engine
 m.mainform.statusBar.setMessage("Researches the identities by applying other settings (ESC cancels research).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGM  ON SELECTION BAR 3 OF POPUP action          
+*       * _5MJ12SXL2  ON SELECTION BAR 3 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -563,14 +563,14 @@ m.mainform.statusBar.setMessage("Researches the identities by applying other set
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agm
+PROCEDURE _5mj12sxl2
 do form serefi with m.engine
 m.mainform.statusBar.setMessage("Refines the identities by applying fuzzy string comparisons (ESC cancels refine).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGN  ON SELECTION BAR 5 OF POPUP action          
+*       * _5MJ12SXL3  ON SELECTION BAR 5 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -581,14 +581,14 @@ m.mainform.statusBar.setMessage("Refines the identities by applying fuzzy string
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agn
+PROCEDURE _5mj12sxl3
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Creates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGO  ON SELECTION BAR 6 OF POPUP action          
+*       * _5MJ12SXL5  ON SELECTION BAR 6 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -599,14 +599,14 @@ m.mainform.statusBar.setMessage("Creates the SearchEngine using the BaseTable (E
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165ago
+PROCEDURE _5mj12sxl5
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Recreates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGP  ON SELECTION BAR 7 OF POPUP action          
+*       * _5MJ12SXL6  ON SELECTION BAR 7 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -617,14 +617,14 @@ m.mainform.statusBar.setMessage("Recreates the SearchEngine using the BaseTable 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agp
+PROCEDURE _5mj12sxl6
 do form seexpa with m.engine
 m.mainform.statusBar.setMessage("Expands the registry using the SearchTable (ESC cancels expansion).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGQ  ON SELECTION BAR 8 OF POPUP action          
+*       * _5MJ12SXL7  ON SELECTION BAR 8 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -635,50 +635,50 @@ m.mainform.statusBar.setMessage("Expands the registry using the SearchTable (ESC
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agq
+PROCEDURE _5mj12sxl7
 do form semirr with m.engine
 m.mainform.statusBar.setMessage("Mirrors ResultTable by reflecting matches (ESC cancels mirror).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGR  ON SELECTION BAR 1 OF POPUP tools           
+*       * _5MJ12SXL8  ON SELECTION BAR 1 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   44         
 *       * Called By:  ON SELECTION BAR 1 OF POPUP tools           
-*       * Prompt:     QuickSearch                                 
+*       * Prompt:     Quick Search                                
 *       * Snippet:    21                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agr
+PROCEDURE _5mj12sxl8
 do form seqsea with m.engine
 m.mainform.statusBar.setMessage("Right click on an entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGS  ON SELECTION BAR 2 OF POPUP tools           
+*       * _5MJ12SXL9  ON SELECTION BAR 2 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   45         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP tools           
-*       * Prompt:     ResultChecker                               
+*       * Prompt:     Result Checker                              
 *       * Snippet:    22                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165ags
+PROCEDURE _5mj12sxl9
 do form sechec with m.engine
 m.mainform.statusBar.setMessage("Right click on a searched/found entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGT  ON SELECTION BAR 4 OF POPUP tools           
+*       * _5MJ12SXLA  ON SELECTION BAR 4 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -689,14 +689,14 @@ m.mainform.statusBar.setMessage("Right click on a searched/found entry for heuri
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agt
+PROCEDURE _5mj12sxla
 do form seNote with m.engine
 m.mainform.statusBar.setMessage("Take notes to this SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5LR165AGU  ON SELECTION BAR 6 OF POPUP tools           
+*       * _5MJ12SXLB  ON SELECTION BAR 6 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -707,6 +707,6 @@ m.mainform.statusBar.setMessage("Take notes to this SearchEngine.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5lr165agu
+PROCEDURE _5mj12sxlb
 do form sebrow
 m.mainform.statusBar.setMessage("Browse Foxpro tables.")
