@@ -17,12 +17,12 @@ Windows
 
 ## Version history
 
-2019.10.17 SearchEngine 19.00 (beta)
+2019.11.14 SearchEngine 19.00
 - removed the requirement for unique keys by allowing record numbers for all exports
-- new function Result Export allows to create filtered subsets and/or samples of the result table that can replace the Result table
+- new function Result Export creates filtered subsets and/or samples of the result table to temporarily or permanently replace it
 - the new Meta Export format can be used for machine learning approaches
 - complete overhaul of the more complex commands of the script language to reduce the number of required parameters
-- fix of a potential memory leak while searching
+- fix of a potential memory leak affecting searches
 
 2019.06.19 SearchEngine 18.20
 - score is now independent of smoothing
