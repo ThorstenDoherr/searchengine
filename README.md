@@ -17,6 +17,14 @@ Windows
 
 ## Version history
 
+2020.01.15 SearchEngine 19.11
+- expanded Meta Export format to include information of the relative position within candidates
+- fixed a bug in Meta Export pertaining run filter selection
+- simplified field selection syntax in Meta Export format to prevent potential conflicts with the run filter specification
+- you can now specifiy the temporary file directory in Preferences (saved in config.fpw; restart required)
+- the default file extension can be switched between ".dbf" and ".txt" in Preferences (default = ".txt") with direct effect on file selection dialogs
+- implemented tolerance to slight numeric discrepancies caused by the internal representation preventing omitted candidates on the threshold
+
 2019.11.14 SearchEngine 19.00
 - removed the requirement for unique keys by allowing record numbers for all exports
 - new function Result Export creates filtered subsets and/or samples of the result table to temporarily or permanently replace it
