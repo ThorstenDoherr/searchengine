@@ -1,13 +1,13 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2019.11.14
+*    Date:       2020.01.15
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
 *                path.prg (only for SearchEngine.groupedExport())
 *                sheet.prg (only for SearchEngine.import())
 *   Library:     foxpro.fll
-*   Handles:     11, 12, 13, 14
+*   Handles:     11, 12, 13, 14, 15
 *   Function:    The SearchEngine executes a heuristic search using special
 *                tables containing all the words of the base table, their
 *                occurencies, references to the original base table and a
@@ -23,6 +23,8 @@
 #define RUNHANDLE 12
 #define EXPORTHANDLE 13
 #define OUTHANDLE 14
+#define INHANDLE 15
+#define TOLERANCE 0.000001
 
 define class LexArray as Custom
 	dimension lex[1]
@@ -237,10 +239,7 @@ define class MetaFilter as Custom
 	function init(filter as String, types as SearchTypes)
 	local lexArray, lexcnt, subArray, subcnt, auxArray, auxcnt
 	local count, val, i, j, start, stop, default
-		if not vartype(m.filter) == "C" or empty(m.filter)
-			m.filter = "5"
-		endif
-		if vartype(types) == "N"
+		if vartype(m.types) == "N"
 			m.count = m.types
 		else
 			m.count = m.types.getSearchTypeCount()
@@ -253,43 +252,44 @@ define class MetaFilter as Custom
 		dimension m.subArray[1]
 		dimension m.auxArray[1]
 		m.default = 5
-		m.lexcnt = alines(m.lexArray,m.filter,5,";")
-		for m.i = 1 to m.lexcnt
-			m.subcnt = alines(m.subArray,m.lexArray[m.i],5,"=")
-			if m.subcnt > 2
-				return
-			endif
-			m.val = val(m.subArray[m.subcnt])
-			if m.val < 0 or not ltrim(str(m.val)) == m.subArray[m.subcnt]
-				return
-			endif
-			if m.subcnt == 1
-				m.default = m.val
-				loop
-			endif
-			m.subcnt = alines(m.subArray,m.subArray[1],5,",")
-			for m.j = 1 to m.subcnt
-				m.auxcnt = alines(m.auxArray,m.subArray[m.j],5,"-")
-				if m.auxcnt > 2
+		if vartype(m.filter) == "C" and not empty(m.filter)
+			m.lexcnt = alines(m.lexArray,m.filter,5,";")
+			for m.i = 1 to m.lexcnt
+				m.subcnt = alines(m.subArray,m.lexArray[m.i],5,"=")
+				if m.subcnt != 2
 					return
 				endif
-				m.start = val(m.auxArray[1])
-				if m.start < 1 or m.start > m.count or not ltrim(str(m.start)) == m.auxArray[1]
+				m.val = val(m.subArray[m.subcnt])
+				if m.val < 0 or not ltrim(str(m.val)) == m.subArray[m.subcnt]
 					return
 				endif
-				if m.auxcnt == 2
-					m.stop = val(m.auxArray[2])
-					if m.stop < m.start or m.stop > m.count or not ltrim(str(m.stop)) == m.auxArray[2]
+				m.subcnt = alines(m.subArray,m.subArray[1],5,",")
+				for m.j = 1 to m.subcnt
+					m.auxcnt = alines(m.auxArray,m.subArray[m.j],5,"-")
+					if m.auxcnt > 2
 						return
 					endif
-				else
-					m.stop = m.start
-				endif
-				for m.start = m.start to m.stop
-					this.meta[m.start] = m.val
+					m.start = val(m.auxArray[1])
+					if m.start < 1 or m.start > m.count or not ltrim(str(m.start)) == m.auxArray[1]
+						return
+					endif
+					if m.auxcnt == 2
+						m.stop = val(m.auxArray[2])
+						if m.stop < m.start or not ltrim(str(m.stop)) == m.auxArray[2]
+							return
+						endif
+						if m.stop > m.count
+							m.stop = m.count
+						endif
+					else
+						m.stop = m.start
+					endif
+					for m.start = m.start to m.stop
+						this.meta[m.start] = m.val
+					endfor
 				endfor
 			endfor
-		endfor
+		endif
 		for m.i = 1 to m.count
 			if not vartype(this.meta[m.i]) == "N"
 				this.meta[m.i] = m.default
@@ -4264,6 +4264,7 @@ define class MetaExportTable as BaseTable
 		local lex, lexarray, already, idc, count, cnt
 		local i, j, k, f, s, m, fa, fb, txt, chr9
 		local norm, header, ind, val, sql, struc, temp
+		local tmp, ipos, icnt, pos
 		local normalize
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
@@ -4357,10 +4358,30 @@ define class MetaExportTable as BaseTable
 		endif
 		m.normalize = m.raw == .f.
 		m.runmax = m.result.getRun()
-		m.s = 5
+		m.s = 7
 		if like("*.txt",lower(this.getDBF()))
 			m.txt = .t.
 			m.chr9 = chr(9)
+			m.line = "SEARCHED"+m.chr9+"FOUND"+m.chr9+"IDENTITY"+m.chr9+"SCORE"+m.chr9+"CNT"+m.chr9+"ICNT"+m.chr9+"IPOS"
+			for m.i = 1 to m.runmax
+				if m.runFilter.isFiltered(m.i)
+					m.line = m.line+m.chr9+"RUN"+ltrim(str(m.i))
+					m.s = m.s+1
+				endif
+			endfor
+			if m.s == 7
+				this.messenger.errormessage("Run filter yields no results.")
+				return .f.
+			endif				
+			for m.i = 1 to m.foundtypes.getSearchTypeCount()
+				for m.j = 1 to 3
+					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
+					for m.k = 1 to m.meta.meta[m.i]
+						m.line = m.line+m.chr9+m.f+ltrim(str(m.k))
+						m.s = m.s+1
+					endfor
+				endfor
+			endfor
 			if m.normalize
 				m.temp = createobject("BaseTable",this.getPath()+this.getPureName()+".tmp")
 				m.temp.erase()
@@ -4377,33 +4398,21 @@ define class MetaExportTable as BaseTable
 					return .f.
 				endif
 			endif
-			m.line = "SEARCHED"+m.chr9+"FOUND"+m.chr9+"IDENTITY"+m.chr9+"SCORE"+m.chr9+"CNT"
-			for m.i = 1 to m.runmax
-				if m.runFilter.isFiltered(m.i)
-					m.line = m.line+m.chr9+"RUN"+ltrim(str(m.i))
-					m.s = m.s+1
-				endif
-			endfor
-			for m.i = 1 to m.foundtypes.getSearchTypeCount()
-				for m.j = 1 to 3
-					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
-					for m.k = 1 to m.meta.meta[m.i]
-						m.line = m.line+m.chr9+m.f+ltrim(str(m.k))
-						m.s = m.s+1
-					endfor
-				endfor
-			endfor
 			FileWriteCRLF(m.handle1,m.line)
 			m.header = m.line
 		else
 			m.chr9 = ","
-			m.line = "searched i, found i, identity b(6), score b(6), cnt b(6)"
+			m.line = "searched i, found i, identity b(6), score b(6), cnt b(6), icnt b(6), ipos b(6)"
 			for m.i = 1 to m.runmax
 				if m.runFilter.isFiltered(m.i)
 					m.line = m.line+", RUN"+ltrim(str(m.i))+" n(1)"
 					m.s = m.s+1
 				endif
 			endfor
+			if m.s == 7
+				this.messenger.errormessage("Run filter yields no results.")
+				return .f.
+			endif				
 			for m.i = 1 to m.foundtypes.getSearchTypeCount()
 				for m.j = 1 to 3
 					m.f = substr("MFS",m.j,1)+ltrim(str(m.i))+"_"
@@ -4459,6 +4468,19 @@ define class MetaExportTable as BaseTable
 		endscan
 		select searched, cast(count(*) as i) as cnt from (m.result.alias) group by 1 into cursor (m.count.alias) readwrite
 		index on searched tag searched
+		m.tmp = createobject("UniqueAlias",.t.)
+		m.ipos = createobject("UniqueAlias",.t.)
+		select distinct searched, identity, cast(0 as b) as pos, cast(0 as i) as cnt from (m.result.alias) into cursor (m.tmp.alias) readwrite
+		update (m.tmp.alias) set pos = recno()
+		select searched, min(pos) as pos, count(*) as cnt from (m.tmp.alias) group by 1 into cursor (m.ipos.alias) readwrite
+		index on searched tag searched
+		m.sql = "update "+m.tmp.alias+" set pos = ("+m.tmp.alias+".pos-"+m.ipos.alias+".pos+1)/"+m.ipos.alias+".cnt, cnt = "+m.ipos.alias+".cnt from "+m.ipos.alias+" where "+m.tmp.alias+".searched == "+m.ipos.alias+".searched"
+		&sql
+		select (m.tmp.alias)
+		index on searched tag searched
+		select a.searched, a.found, b.pos, b.cnt from (m.result.alias) a, (m.tmp.alias) b where a.searched == b.searched and a.identity == b.identity into cursor (m.ipos.alias) readwrite
+		index on ltrim(str(searched))+" "+ltrim(str(found)) tag key
+		m.tmp.close()
 		m.join = m.engine.getSearchFieldJoin()
 		dimension m.sx[MAXWORDCOUNT,3]
 		dimension m.fx[MAXWORDCOUNT,3]	
@@ -4473,6 +4495,7 @@ define class MetaExportTable as BaseTable
 		m.searched = -1
 		m.found = -1
 		m.cnt = 1
+		m.icnt = 1
 		this.messenger.setDefault("Exported")
 		this.messenger.startProgress(m.result.reccount())
 		this.messenger.startCancel("Cancel Operation?","Exporting Meta","Canceled.")
@@ -4489,6 +4512,11 @@ define class MetaExportTable as BaseTable
 			endif
 			m.found = found
 			m.score = score
+			m.pos = 0
+			if seek(ltrim(str(searched))+" "+ltrim(str(found)),m.ipos.alias)
+				m.pos = evaluate(m.ipos.alias+".pos")
+				m.icnt = evaluate(m.ipos.alias+".cnt")
+			endif
 			if searched != m.searched
 				m.searched = searched
 				if seek(m.searched, m.count.alias)
@@ -4598,7 +4626,7 @@ define class MetaExportTable as BaseTable
 				m.f = m.f+1
 			enddo
 			asort(m.mx,4,m.mxcnt)
-			m.line = ltrim(str(m.searched))+chr9+ltrim(str(m.found))+chr9+ltrim(str(m.identity,18,9))+chr9+ltrim(str(m.score,18,9))+chr9+ltrim(str(m.cnt,10))
+			m.line = ltrim(str(m.searched))+chr9+ltrim(str(m.found))+chr9+ltrim(str(m.identity,18,9))+chr9+ltrim(str(m.score,18,9))+chr9+ltrim(str(m.cnt,10))+chr9+ltrim(str(m.icnt,10))+chr9+ltrim(str(m.pos,18,9))
 			if m.normalize
 				if m.identity < m.norm[3,1]
 					m.norm[3,1] = m.identity
@@ -4621,18 +4649,26 @@ define class MetaExportTable as BaseTable
 						m.norm[5,2] = m.cnt
 					endif
 				endif
+				if m.cnt < m.norm[6,1]
+					m.norm[6,1] = m.icnt
+				else
+					if m.cnt > m.norm[6,2]
+						m.norm[6,2] = m.icnt
+					endif
+				endif
 			endif
+			m.ind = 9   && 7 base fields + run? == 1 + first index
 			for m.i = 1 to m.runmax
 				if m.i = m.run
 					m.line = m.line+chr9+"1"
 				else
 					if m.runFilter.isFiltered(m.i)
 						m.line = m.line+chr9+"0"
+						m.ind = m.ind+1    && run? == 1 is already considered
 					endif
 				endif
 			endfor
 			if m.normalize
-				m.ind = 5+m.runmax+1
 				m.m = 1
 				for m.i = 1 to m.foundtypes.getSearchTypeCount()
 					for m.j = 1 to 3
@@ -4721,10 +4757,8 @@ define class MetaExportTable as BaseTable
 			if m.norm[m.i,2] == -1 or m.norm[m.i,1] == m.norm[m.i,2]
 				if m.norm[m.i,1] > 0
 					m.norm[m.i,1] = m.norm[m.i,1]-1
-					m.norm[m.i,2] = 1
-				else
-					m.norm[m.i,2] = 1
 				endif
+				m.norm[m.i,2] = 1
 				loop
 			endif
 			m.norm[m.i,2] = m.norm[m.i,2]-m.norm[m.i,1]
@@ -4781,7 +4815,7 @@ define class SearchEngine as custom
 	hidden engine, baseCluster, registry, result
 	hidden reg2base, base2reg
 	hidden searchFieldJoin, searchTypes
-	hidden searchCluster, ControlTable, limit, zealous, depth, darwin
+	hidden searchCluster, ControlTable, limit, threshold, zealous, depth, darwin
 	hidden ignorant, messenger, info, relative
 	hidden activation, cutoff, lrcpdscope
 	hidden baseClusterReady, searchClusterReady, resultTableReady
@@ -4791,10 +4825,12 @@ define class SearchEngine as custom
 	hidden preparer, preparermsg
 	hidden searchTable, baseTable
 	hidden logfile, notcaring
+	hidden txt
 	hidden version
-	version = "19.00"
+	version = "19.11"
 	tag = ""
 	notcaring = .f.
+	txt = .f.
 
 	protected function init(path, slot)
 		local ps, progpath, err
@@ -4826,6 +4862,7 @@ define class SearchEngine as custom
 		m.path = this.engine.getPath()
 		m.progpath = createobject("ProgramPath")
 		m.progpath = m.progpath.toString()
+		this.txt = lower(alltrim(this.getConfig("txt"))) == "true"
 		this.ControlTable = createobject("ControlTable",m.path+"control")
 		this.registry = createobject("RegistryTable",m.path+"registry")
 		this.reg2base = createobject("IndexCluster",m.path+"regindex",m.path+"base")
@@ -4860,6 +4897,18 @@ define class SearchEngine as custom
 	
 	function getVersion()
 		return this.version
+	endfunc
+	
+	function isTxtDefault()
+		return this.txt
+	endfunc
+	
+	function setTxtDefault(txt)
+		this.txt = m.txt
+	endfunc
+
+	function getTmpPath()
+		return sys(2023)
 	endfunc
 	
 	function getMaxSearchDepth()
@@ -4952,6 +5001,7 @@ define class SearchEngine as custom
 
 	function setLimit(limit)
 		this.limit = min(max(m.limit,0),100)
+		this.threshold = this.limit-TOLERANCE
 	endfunc
 
 	function getLimit()
@@ -5946,7 +5996,7 @@ define class SearchEngine as custom
 	function export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
 		local oldmes, rc, dp
 		if vartype(m.table) == "C"
-			m.table = createobject("ExportTable",m.table)
+			m.table = createobject("ExportTable",this.properExt(m.table))
 		endif
 		m.dp = createobject("DynaPara")
 		m.dp.dyna("OCCNNLCL")
@@ -5981,7 +6031,7 @@ define class SearchEngine as custom
  	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
 		local oldmes, exp, rc, idc, dp
 		if vartype(m.table) == "C"
-			m.table = createobject("ExtendedExportTable",m.table)
+			m.table = createobject("ExtendedExportTable",this.properExt(m.table))
 		endif
 		if not m.table.isCreatable()
 			if not this.idontcare(.t.)
@@ -6051,7 +6101,7 @@ define class SearchEngine as custom
 		local oldmes, exp, rc, i, sql, clutable, offset, idc, f
 		m.ps1 = createobject("PreservedSetting","deleted", "off")
 		if vartype(m.table) == "C"
-			m.table = createobject("GroupedExportTable",m.table)
+			m.table = createobject("GroupedExportTable",this.properExt(m.table))
 		endif
 		if not m.table.isCreatable()
 			if not this.idontcare(.t.)
@@ -6177,7 +6227,7 @@ define class SearchEngine as custom
 	function metaExport(table, meta, raw, low, high, runFilter)
 		local oldmes, rc, dp, swap
 		if vartype(m.table) == "C"
-			m.table = createobject("MetaExportTable",m.table)
+			m.table = createobject("MetaExportTable",this.properExt(m.table))
 		endif
 		m.dp = createobject("DynaPara")
 		m.dp.dyna("OCLNNC")
@@ -6798,7 +6848,7 @@ define class SearchEngine as custom
 			m.refineMode = 0
 		endif
 		if not vartype(m.refineLimit) == "N"
-			m.refineLimit = this.limit
+			m.refineLimit = this.threshold
 		endif
 		m.refineLimit = min(max(m.refineLimit,0),100)
 		m.cleaning = .f.
@@ -6908,7 +6958,7 @@ define class SearchEngine as custom
 		m.fback = this.feedback/100
 		m.fbackinv = 1-m.fback
 		this.changed = .t.
-		m.invlimit = 100-this.limit
+		m.invlimit = 100-this.threshold
 		dimension m.lexArray[1]
 		m.sizerec = this.result.getRecordSize()
 		m.sizelimit = 2*1024*1024*1024 - 50*1024*1024
@@ -7093,7 +7143,7 @@ define class SearchEngine as custom
 				m.shareSum = m.shareSum+m.tmp1[m.i,4]	
 			endfor
 			m.tmp1rows = m.i-1
-			if m.tmp1rows <= 0 or m.shareSum <= 0 or not this.zealous and m.shareSum < this.limit
+			if m.tmp1rows <= 0 or m.shareSum <= 0 or not this.zealous and m.shareSum < this.threshold
 				this.messenger.postMessage("Searched (Found) "+ltrim(str(m.searchrec))+m.reccount+" ("+ltrim(str(m.found))+")")
 				m.searchrec = m.searchrec + 1
 				loop
@@ -7159,7 +7209,7 @@ define class SearchEngine as custom
 				m.searchrec = m.searchrec + 1
 				loop
 			endif
-			m.limit = max(this.limit - m.sharesum - 0.0000001,0)
+			m.limit = max(this.threshold - m.sharesum,0)
 			if m.i > 2
 				SortArrayAsc(2,1,m.tmp2rows)
 				CollectSumArray(2,m.tmp2rows,1,2,-2)
@@ -7175,7 +7225,7 @@ define class SearchEngine as custom
 				endif
 				if m.tmp2rows > 0
 					if this.darwin or this.zealous and GetArrayElement(2,1,2) < m.limit
-						m.limit = GetArrayElement(2,1,2) - m.sharesum - 0.0000001
+						m.limit = GetArrayElement(2,1,2) - m.sharesum - TOLERANCE
 						if m.limit > 0
 							m.i = BinarySearchDescArray(2,m.limit,1,m.tmp2rows,2)
 							if m.i < 0
@@ -7205,7 +7255,7 @@ define class SearchEngine as custom
 			if this.zealous
 				m.limit = 0
 			else
-				m.limit = this.limit
+				m.limit = this.threshold
 			endif
 			ImportArray(@m.tmp1,1,m.tmp1rows,7)
 			m.i = 1
@@ -7991,6 +8041,104 @@ define class SearchEngine as custom
 		return .t.
 	endfunc
 	
+	function setConfig(item as String, content as String)  && e.g. setConfig("tmpfiles","d:\temp\")
+		local lines, line, handle, i, changed, low
+		m.lines = createobject("Collection")
+		m.item = lower(strtran(m.item," ",""))
+		if empty(m.item)
+			return
+		endif
+		if not vartype(m.content) == "C"
+			m.content = ""
+		endif
+		m.content = alltrim(m.content)
+		if " " $ m.content and not (like("'*'",m.content) or like('"*"',m.content))
+			if '"' $ m.content
+				m.content = "'"+m.content+"'"
+			else
+				m.content = '"'+m.content+'"'
+			endif
+		endif
+		m.handle = FileOpenRead(INHANDLE, this.getEnginePath()+"config.fpw")
+		m.changed = .f.
+		if m.handle > 0
+			m.line = FileReadLF(m.handle)
+			do while not (empty(m.line) and FileEOF(m.handle))
+				if right(m.line,1) == chr(13)
+					m.line = left(m.line,len(m.line)-1)
+				endif
+				m.low = lower(alltrim(m.line))
+				if not (alltrim(getwordnum(m.line,1,"=")) == m.item)
+					m.lines.add(m.line)
+				else
+					if m.changed == .f.
+						if not empty(m.content)
+							m.lines.add(m.item+"="+m.content)
+						endif
+						m.changed = .t.
+					endif
+				endif
+				m.line = FileReadLF(m.handle)
+			enddo
+			FileClose(m.handle)
+		endif
+		if m.changed == .f. and not empty(m.content)
+			m.lines.add(m.item+"="+m.content)
+		endif
+		if m.lines.count == 0
+			erase (this.getEnginePath()+"config.fpw")
+			return
+		endif
+		m.handle = FileOpenWrite(OUTHANDLE, this.getEnginePath()+"config.fpw")
+		for m.i = 1 to m.lines.count
+			FileWriteCRLF(m.handle,m.lines.item(m.i))
+		endfor
+		FileClose(m.handle)
+	endfunc
+
+	function getConfig(item as String)
+		local line, handle, content
+		m.item = lower(strtran(m.item," ",""))
+		if empty(m.item)
+			return ""
+		endif
+		m.handle = FileOpenRead(INHANDLE, this.getEnginePath()+"config.fpw")
+		if m.handle <= 0
+			return ""
+		endif
+		m.content = ""
+		m.line = FileReadLF(m.handle)
+		do while not (empty(m.line) and FileEOF(m.handle))
+			if alltrim(getwordnum(m.line,1,"=")) == m.item and "=" $ m.line
+				if right(m.line,1) == chr(13)
+					m.line = left(m.line,len(m.line)-1)
+				endif
+				m.content = alltrim(substr(m.line,at("=",m.line)+1))
+				if like("'*'",m.content) or like('"*"',m.content)
+					m.content = substr(m.content,2,len(m.content)-2)
+					exit
+				endif
+			endif
+			m.line = FileReadLF(m.handle)
+		enddo
+		FileClose(m.handle)
+		return m.content
+	endfunc
+
+	function properExt(file as String)
+	local ext
+		m.file = alltrim(m.file)
+		m.ext = lower(rtrim(m.file,"."))
+		if not like("*.dbf",m.ext) and not like("*.txt",m.ext) and not like("*\",m.ext) and not like("*/",m.ext) and not like("*:",m.ext)
+			if this.isTxtDefault()
+				m.file = rtrim(m.file,".")+".txt"
+			else
+				m.file = rtrim(m.file,".")+".dbf"
+			endif
+		endif
+		return m.file
+	endfunc
+
 	function importBase(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
 		this.setBaseCluster(this.import(m.file, m.decode, m.nomemos, m.fast))
 		if this.BaseCluster.getTableCount() <= 0 and not this.messenger.isError()
@@ -8206,7 +8354,14 @@ define class SearchEngine as custom
 	local cluster, table, txt
 		this.messenger.clearMessage()
 		m.file = alltrim(m.file)
-		m.txt = like("*.txt",lower(m.file))
+		if this.isTxtDefault()
+			m.txt = not like("*.dbf",lower(m.file))
+			if not like("*.txt",lower(m.file)) and not file(m.file)
+				m.file = rtrim(m.file,".")+".txt"
+			endif
+		else
+			m.txt = like("*.txt",lower(m.file))
+		endif
 		m.file = createobject("String",m.file)
 		m.table = m.file.getFileExtensionChange("")
 		if m.txt
@@ -8261,7 +8416,6 @@ define class SearchEngine as custom
 		if not empty(m.runFilter)
 			m.sql = m.sql+" and "+m.runFilter
 		endif
-		m.refineLimit = m.refineLimit - 0.0000001
 		m.sql = "delete from "+this.result.alias+" where identity < "+ltrim(str(m.refineLimit,18,7))+m.sql
 		&sql
 		if _TALLY > 0
@@ -8571,7 +8725,7 @@ define class SearchEngine as custom
 					m.limit = this.limit
 				endif
 			endif
-			m.limit = m.limit - 0.0000001
+			m.limit = m.limit - TOLERANCE
 			m.i = BinarySearchDescArray(m.ra,m.limit,1,m.rows,2)
 			if m.i < 0
 				m.rows = (-m.i)-1
@@ -8582,9 +8736,9 @@ define class SearchEngine as custom
 		if this.cutoff <= 0 or m.rows <= this.cutoff
 			return m.rows
 		endif
-		m.limit = GetArrayElement(m.ra,this.cutoff+1,2) + 0.0000001
+		m.limit = GetArrayElement(m.ra,this.cutoff+1,2) + TOLERANCE
 		if GetArrayElement(m.ra,1,2) <= m.limit
-			m.limit = m.limit - 0.0000002 
+			m.limit = m.limit - TOLERANCE*2 
 			return LimitDescArray(m.ra,m.limit,this.cutoff,m.rows,2,1)
 		endif
 		return LimitDescArray(m.ra,m.limit,1,this.cutoff,2,-1)
@@ -8644,6 +8798,10 @@ define class SearchEngine as custom
 		return this.create(m.searchTypesDefinition)
 	endfunc
 	
+	hidden function _configtmp(path as String)
+		return this.setConfig("tmpfiles", m.path)
+	endfunc
+
 	hidden function _importBase(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
 		return this.importBase(m.file, m.decode, m.nomemos, m.fast)
 	endfunc
