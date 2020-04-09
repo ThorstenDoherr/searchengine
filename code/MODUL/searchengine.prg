@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2020.01.15
+*    Date:       2020.04.09
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -3451,6 +3451,7 @@ define class ExtendedExportTable as BaseTable
 		local i, j, struc, list, ins, f1, f2, name, join
 		local joinCount, val, str
 		local sort, searchedGrouping, foundGrouping, filter
+		local searchedGroupingOnly, foundGroupingOnly
 		local temp, oldGroup, err, exportAlias
 		local txt, blank, handle, converter, con, idontcare
 		local array data[1]
@@ -3509,7 +3510,12 @@ define class ExtendedExportTable as BaseTable
 			endif
 		endif
 		m.searchedGrouping = .f.
+		m.searchedGroupingOnly = .f.
 		if vartype(m.searchedGroupKey) == "C" and not empty(m.searchedGroupKey)
+			if like("[*]", m.searchedGroupKey)
+				m.searchedGroupingOnly = .t.
+				m.searchedGroupKey = left(substr(m.searchedGroupKey,2),len(m.searchedGroupKey)-2)
+			endif
 			m.f1 = m.search.getFieldStructure(m.searchedGroupKey)
 			if not m.f1.isValid()
 				this.messenger.errormessage("GroupKey does not exist in SearchTable.")
@@ -3519,7 +3525,12 @@ define class ExtendedExportTable as BaseTable
 			m.searchedGrouping = .t.
 		endif
 		m.foundGrouping = .f.
+		m.foundGroupingOnly = .f.
 		if vartype(m.foundGroupKey) == "C" and not empty(m.foundGroupKey)
+			if like("[*]", m.foundGroupKey)
+				m.foundGroupingOnly = .t.
+				m.foundGroupKey = left(substr(m.foundGroupKey,2),len(m.foundGroupKey)-2)
+			endif
 			m.f1 = m.found.getFieldStructure(m.foundGroupKey)
 			if not m.f1.isValid()
 				this.messenger.errormessage("GroupKey does not exist in BaseTable.")
@@ -3540,7 +3551,7 @@ define class ExtendedExportTable as BaseTable
 			m.runasc = .t.
 		endif
 		m.struc = ""
-		if m.searchedGrouping
+		if m.searchedGrouping and not m.searchedGroupingOnly
 			m.f1 = m.search.getFieldStructure(m.searchedgroupKey)
 			if m.f1.getType() == "I"
 				m.struc = "GROUP N(10)"
@@ -3564,7 +3575,7 @@ define class ExtendedExportTable as BaseTable
 			endif
 		endif
 		m.struc = m.struc+", "
-		if m.foundGrouping
+		if m.foundGrouping and not m.foundGroupingOnly
 			m.f1 = m.found.getFieldStructure(m.foundGroupKey)
 		else
 			m.f1 = m.export.getFieldStructure("Found")
@@ -3749,6 +3760,12 @@ define class ExtendedExportTable as BaseTable
 		if m.err
 			this.messenger.errormessage("Unable to create temporary Cursor.")
 			return .f.
+		endif
+		if m.foundGroupingOnly == .t.
+			m.foundGrouping = .f.  && report original found key instead of group key
+		endif
+		if m.searchedGroupingOnly == .t.
+			m.searchedGrouping = .f.  && suppress report of searched group
 		endif
 		release m.filter
 		m.str = createobject("String")
@@ -4827,7 +4844,7 @@ define class SearchEngine as custom
 	hidden logfile, notcaring
 	hidden txt
 	hidden version
-	version = "19.11"
+	version = "19.13"
 	tag = ""
 	notcaring = .f.
 	txt = .f.
@@ -6028,7 +6045,7 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
- 	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
+ 	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, foundGroupingOnly, low, high, exclusive, runFilter)
 		local oldmes, exp, rc, idc, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExtendedExportTable",this.properExt(m.table))
@@ -7483,8 +7500,8 @@ define class SearchEngine as custom
 		m.fback = this.feedback/100
 		m.fbackinv = 1 - m.fback
 		m.typxrows = this.SearchTypes.getSearchTypeCount()
-		dimension m.tmp1[MAXSEARCHDEPTH,6]
-		dimension m.tmp2[MAXSEARCHDEPTH,3]
+		dimension m.tmp1[MAXWORDCOUNT,6]
+		dimension m.tmp2[MAXWORDCOUNT,3]
 		dimension m.typx[m.typxrows,4]
 		dimension m.lexArray[1]
 		dimension m.continuum[1]
@@ -7546,7 +7563,7 @@ define class SearchEngine as custom
 						if m.searchType.getShare() > 0
 							m.typeIndex = m.searchType.getTypeIndex()
 							if alines(m.lexArray,m.searchType.prepare(m.searchTable.getValueAsString(m.fa)),5," ") > 0
-								m.end = min(alen(m.lexArray),MAXSEARCHDEPTH) 				
+								m.end = min(alen(m.lexArray),MAXWORDCOUNT) 				
 								for m.j = 1 to m.end
 									m.tmp2rows = m.tmp2rows+1
 									m.tmp2[m.tmp2rows,1] = m.typeIndex
@@ -7716,7 +7733,7 @@ define class SearchEngine as custom
 					m.typx[m.i,2] = 0
 					m.typx[m.i,3] = 0
 				endfor
-				m.end = min(m.end, m.start+MAXSEARCHDEPTH-1)
+				m.end = min(m.end, m.start+MAXWORDCOUNT-1)
 				for m.i = m.start to m.end
 					goto m.i
 					m.tar = target
@@ -8128,6 +8145,9 @@ define class SearchEngine as custom
 	function properExt(file as String)
 	local ext
 		m.file = alltrim(m.file)
+		if empty(m.file)
+			return ""
+		endif
 		m.ext = lower(rtrim(m.file,"."))
 		if not like("*.dbf",m.ext) and not like("*.txt",m.ext) and not like("*\",m.ext) and not like("*/",m.ext) and not like("*:",m.ext)
 			if this.isTxtDefault()
