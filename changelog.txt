@@ -4,13 +4,17 @@ IMPORTANT NOTICE:
 
 If you have downloaded this file from
 
-ftp://ftp.tew.de/tools/searchengine.zip, 
+ftp://ftp.tew.de/tools/searchengine.zip
 
 please use 
 
 https://github.com/ThorstenDoherr/searchengine
 
 instead to get the most recent version.
+2020.04.09
+	SearchEngine 19.13
+		greatly reduced memory consumption of the research function
+		ExtendedExport allows the specification of implicit group keys [in rectangular brackets] to support grouping in conjunction with meta exports
 
 2020.01.15
 	SearchEngine 19.11
@@ -20,6 +24,7 @@ instead to get the most recent version.
 		you can now specifiy the temporary file directory in Preferences (saved in config.fpw)
 		the default file extension can be switched between ".dbf" and ".txt" in Preferences (default = ".txt") with direct effect on file selection dialogs
 		implemented tolerance to slight numeric discrepancies caused by the internal representation preventing omitted candidates on the threshold
+		
 2019.11.14
 	SearchEngine 19.00
 		removed the requirement for unique keys by allowing record numbers for all exports

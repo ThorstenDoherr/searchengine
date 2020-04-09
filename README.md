@@ -17,6 +17,11 @@ Windows
 
 ## Version history
 
+2020.04.09 SearchEngine 19.13
+- greatly reduced memory consumption of the research function
+- ExtendedExport allows the specification of implicit group keys \[in rectangular brackets\] to support grouping in conjunction with meta exports
+
+
 2020.01.15 SearchEngine 19.11
 - expanded Meta Export format to include information of the relative position within candidates
 - fixed a bug in Meta Export pertaining run filter selection
