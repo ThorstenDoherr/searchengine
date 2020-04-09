@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2019.11.05
+*   Date:       2020.03.18
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -12,29 +12,26 @@ define class ParallelFoxWrapper as Custom
 	wc = -1
 	canceled = .f.
 	 
-	function init(parallel as Object)
-		if vartype(m.parallel) == "O"
-			this.parallel = m.parallel
-			this.setWorkerCount(1)
-			this.wc = 1
-			return
-		endif
+	function goParallel()
 		try
 			this.parallel = NewObject("Parallel", "ParallelFox.vcx")
-			this.setWorkerCount(1)
-			this.wc = 1
+			this.wc = 0
+			this.wc = this.getWorkerCount()
 		catch
 			this.parallel = .f.
 			this.wc = -1
 		endtry
+		return this.wc >= 0
 	endfunc
 	
-	function progressEvent(rc)
-		this.messenger.incProgress()
-		this.messenger.postMessage()
-		if this.messenger.queryCancel(.t.)
-			this.stopWorkers(.t.)
-		endif
+	function goSequential()
+		this.parallel = .f.
+		this.wc = -1
+		return .t.
+	endfunc
+	
+	function getParallel()
+		return this.parallel
 	endfunc
 	
 	function isParallelReady()
@@ -89,14 +86,90 @@ define class ParallelFoxWrapper as Custom
 	endfunc
 	
 	function startWorkers(proc as String, debug as boolean)
+	local try, ext
+		if pcount() == 1 and vartype(m.proc) == "L"
+			m.debug = m.proc
+		endif
+		if not vartype(m.proc) == "C" or empty(m.proc)
+			m.proc = sys(16,0)
+		endif
 		this.stopWorkers()
-		if this.isParallel()
-			this.parallel.startWorkers(m.proc,,m.debug)
+		m.proc = alltrim(m.proc)
+		if not this.isParallel()
+			set procedure to (m.proc) additive
 			return .t.
 		endif
-		set procedure to (m.proc) additive
-		return .f.
+		m.proc = lower(m.proc)
+		m.try = 0
+		m.ext = justext(m.proc)
+		if empty(m.ext)
+			m.proc = m.proc+".exe"
+			m.ext = "exe"
+		endif
+		do while .t.
+			if file(m.proc)
+				exit
+			endif
+			if m.try > 1
+				return .f.
+			endif
+			if m.ext == "exe"
+				m.proc = forceext(m.proc,"app")
+				m.ext = "app"
+				m.try = m.try+1
+				loop
+			endif
+			if m.ext == "app"
+				m.proc = forceext(m.proc,"prg")
+				m.ext = "prg"
+				m.try = m.try+1
+				loop
+			endif
+			if m.ext == "prg"
+				m.proc = forceext(m.proc,"exe")
+				m.ext = "exe"
+				m.try = m.try+1
+				loop
+			endif
+			return .f.
+		enddo
+		this.parallel.startWorkers(m.proc,,m.debug)
+		return .t.
 	endfunc
+	
+	function stopWorkers(cancel)
+		this.canceled = m.cancel
+		if this.wc >= 0
+			this.parallel.stopWorkers(.t.)
+		endif
+	endfunc
+
+	function callall(func as String, para01, para02, para03, para04, para05, para06, para07, para08, para09, para10, para11, para12)
+		this.execute(pcount()-1, m.func, .t., m.para01, m.para02, m.para03, m.para04, m.para05, m.para06, m.para07, m.para08, m.para09, m.para10, m.para11, m.para12)
+	endfunc
+			
+	function call(func as String, para01, para02, para03, para04, para05, para06, para07, para08, para09, para10, para11, para12)
+		this.execute(pcount()-1, m.func, .f., m.para01, m.para02, m.para03, m.para04, m.para05, m.para06, m.para07, m.para08, m.para09, m.para10, m.para11, m.para12)
+	endfunc
+	
+	function doall(cmd as String)
+		this.do(m.cmd, .t.)
+	endfunc
+
+	function do(cmd as String, all as Boolean)
+		this.canceled = .f.
+		if this.wc > 1
+			this.parallel.docmd(m.cmd, m.all)
+		else
+			&cmd
+		endif
+	endfunc
+
+	function wait()
+		if this.wc >= 0
+			this.parallel.wait()
+		endif
+	endfunc	
 	
 	function bindProgress(messenger as Object)
 		this.messenger = m.messenger
@@ -111,34 +184,20 @@ define class ParallelFoxWrapper as Custom
 			unbindevents(this.parallel._Events, "Complete", this, "progressEvent")
 		endif
 	endfunc
-	
-	function pepare(func as String, para01, para02, para03, para04, para05, para06, para07, para08)
-		this.execute(pcount()-1, m.func, .t., m.para01, m.para02, m.para03, m.para04, m.para05, m.para06, m.para07, m.para08)
-	endfunc
-			
-	function call(func as String, para01, para02, para03, para04, para05, para06, para07, para08)
-		this.execute(pcount()-1, m.func, .f., m.para01, m.para02, m.para03, m.para04, m.para05, m.para06, m.para07, m.para08)
-	endfunc
 
-	function wait()
-		if this.wc >= 0
-			this.parallel.wait()
-		endif
-		return
-	endfunc	
-	
-	function stopWorkers(cancel)
-		this.canceled = m.cancel
-		if this.wc >= 0
-			this.parallel.stopWorkers(.t.)
+	function progressEvent(rc)
+		this.messenger.incProgress()
+		this.messenger.postProgress()
+		if this.messenger.queryCancel(.t.)
+			this.stopWorkers(.t.)
 		endif
 	endfunc
 
-	hidden function execute(pc as Integer, func as String, all as Boolean, para01, para02, para03, para04, para05, para06, para07, para08)
+	hidden function execute(pc as Integer, func as String, all as Boolean, para01, para02, para03, para04, para05, para06, para07, para08, para09, para10, para11, para12)
 	local exe
 		this.canceled = .f.
 		if m.pc > 0
-			m.exe = left(" m.para01,m.para02,m.para03,m.para04,m.para05,m.para06,m.para07,m.para08",m.pc*9)
+			m.exe = left(" m.para01,m.para02,m.para03,m.para04,m.para05,m.para06,m.para07,m.para08,m.para09,m.para10,m.para11,m.para12)",m.pc*9)
 			if this.wc > 1
 				m.exe = "this.parallel.call(m.func, m.all,"+m.exe+")"
 			else
@@ -3459,11 +3518,11 @@ define class BaseTable as custom
 		if not this.validAlias
 			return 0
 		endif
-		m.key = upper(alltrim(m.key))
+		m.key = strtran(upper(alltrim(m.key)),"'",'"')
 		m.i = 1
 		m.k = key(m.i,this.alias)
 		do while not empty(m.k)
-			if upper(alltrim(m.k)) == m.key
+			if strtran(upper(alltrim(m.k)),"'",'"') == m.key
 				return m.i
 			endif
 			m.i = m.i+1

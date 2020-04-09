@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2019.11.13
+*   Date:       2020.03.15
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -187,6 +187,10 @@ define class TableCluster as Custom
 
 	function getActiveTable()
 		return this.table
+	endfunc
+	
+	function getIndex()
+		return this.index
 	endfunc
 	
 	function getFirst()
@@ -1431,21 +1435,21 @@ define class TableCluster as Custom
 	endfunc
 	
 	function forceKey(keyexp as String)
-		return this.callAnd('forceKey("'+m.keyexp+'")')
+		return this.callAnd("forceKey('"+m.keyexp+"')")
 	endfunc
 	
 	function setKey(keyexp as String)
 		if vartype(m.keyexp) == "L"
-			return this.callAnd('setKey()')
+			return this.callAnd("setKey()")
 		endif
-		return this.callAnd('setKey("'+m.keyexp+'")')
+		return this.callAnd("setKey('"+m.keyexp+"')")
 	endfunc
 	
 	function deleteKey(keyexp as String)
 		if vartype(m.keyexp) == "L"
-			return this.callAnd('deleteKey()')
+			return this.callAnd("deleteKey()")
 		endif
-		return this.callAnd('deleteKey("'+m.keyexp+'")')
+		return this.callAnd("deleteKey('"+m.keyexp+"')")
 	endfunc
 	
 	function erase()
