@@ -3,6 +3,8 @@
 
 If you are not interested in the source code, ignore the **code** directory.
 
+## Documentation
+The documentaion in the **doc** directory is not up-to-date. It still refers to version 19.13 but will be updated in the next months.
 
 ## Prerequisites
 Windows
@@ -17,10 +19,17 @@ Windows
 
 ## Version history
 
+2020.11.12 SearchEngine 20.20
+- MAJOR OVERHAUL of the SearchEngine introducing multiprocessing using the ParallelFox package by Joel Leach (https://github.com/VFPX/ParallelFox)
+- unleash the power of your multicore environment: all functions support multiprocessing boosting the speed manyfold
+- script language supports parameters and has new commands
+- improved MetaExport format
+- example code in the SEML directory implementing a machine learning algorithm based on "brain" Stata package and the Meta format
+- new logo and icon
+
 2020.04.09 SearchEngine 19.13
 - greatly reduced memory consumption of the research function
 - ExtendedExport allows the specification of implicit group keys \[in rectangular brackets\] to support grouping in conjunction with meta exports
-
 
 2020.01.15 SearchEngine 19.11
 - expanded Meta Export format to include information of the relative position within candidates
