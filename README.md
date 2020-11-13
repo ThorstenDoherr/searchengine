@@ -24,7 +24,7 @@ Windows
 - unleash the power of your multicore environment: all functions support multiprocessing boosting the speed manyfold
 - script language supports parameters and has new commands
 - improved MetaExport format
-- example code in the SEML directory implementing a machine learning algorithm based on "brain" Stata package and the Meta format
+- SEML directory contains sample code showing how to implement a ML algorithm based on https://github.com/ThorstenDoherr/brain Stata package and the Meta format
 - new logo and icon
 
 2020.04.09 SearchEngine 19.13
