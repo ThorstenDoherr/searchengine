@@ -1,6 +1,7 @@
-parameters script, output, para
+lparameters script, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17
 public engine, oldengine, engineChanged, mainForm
 local path, psl, mess 
+_screen.icon = "SearchFox.ico"
 _screen.LockScreen = .t.
 _screen.top = -5000
 _screen.left = -5000
@@ -18,7 +19,7 @@ endtry
 m.path = sys(16,0)
 m.path = substr(m.path, rat(" ",left(m.path,at("\",m.path)))+1)
 m.path = left(m.path, rat("\",m.path))
-set procedure to custom, cluster, searchengine, path, sheet
+set procedure to custom, cluster, searchengine, group, sheet
 set library to (m.path+"foxpro.fll")
 set escape off
 set resource off
@@ -42,17 +43,22 @@ if vartype(m.script) == "C"
 		return
 	endif
 	_screen.LockScreen = .t.
-	_screen.Width = 600
+	_screen.Width = 550
 	_screen.Height = 400
 	_screen.AutoCenter = .t.
 	_screen.FontBold = .f.
 	_screen.FontName = "Courier New"
 	_screen.FontSize = 9
 	_screen.Caption = "SearchEngine "+alltrim(m.script)
+	_screen.ForeColor = 4977945
+	_screen.BackColor = 0
 	_screen.WindowType = 1
 	_screen.LockScreen = .f.
-	if not m.engine.run(m.script, m.output, m.para)
+	if not m.engine.run(m.script, m.para0, m.para1, m.para2, m.para3, m.para4, m.para5, m.para6, m.para7, m.para8, m.para9, m.para10, m.para11, m.para12, m.para13, m.para14, m.para15, m.para16, m.para17)
 		m.mess = m.engine.getMessenger()
+		if m.mess.wasCanceled()
+			return
+		endif
 		if empty(m.mess.getErrorMessage())
 			messagebox("Unknown sript error.",16,_screen.Caption)
 		else
