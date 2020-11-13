@@ -14,7 +14,7 @@ instead to get the most recent version.
 
 2020.11.12
 	SearchEngine 20.20
-		MAJOR OVERHAUL of the SearchEngine introducing multiprocessing using the ParallelFox package by Joel Leach (https://github.com/VFPX/ParallelFox)
+		MAJOR OVERHAUL of the SearchEngine introducing multiprocessing using the https://github.com/VFPX/ParallelFox package by Joel Leach
 		- unleash the power of your multicore environment: all functions support multiprocessing boosting the speed manyfold
 		- script language supports parameters and has new commands
 		- improved MetaExport format
