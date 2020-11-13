@@ -62,6 +62,28 @@ void FAR FileEOF(ParamBlk FAR *parm)
 {	_RetLogical(feof(F[parm->p[0].val.ev_long]));
 }
 
+void FAR FileRead(ParamBlk FAR *parm)
+{	FILE *f;
+	int c;
+	long len, pos = 0;
+	
+	f = F[parm->p[0].val.ev_long];
+	len = parm->p[1].val.ev_long;
+	if (len >= BUFFERSIZE)
+	{	len = BUFFERSIZE-1;
+	}
+	while (len > 0)
+	{	c = getc(f);
+		if (c == EOF) break;
+		buffer[pos] = (char) c;
+		pos++;
+		len--;
+	}
+	if (c == EOF && pos > 0) clearerr(f);
+	buffer[pos] = '\0';
+	_RetChar(buffer);
+}
+
 void FAR FileReadCRLF(ParamBlk FAR *parm)
 {	FILE *f;
 	int cr, lf;
@@ -170,6 +192,23 @@ void FAR FileWriteLF(ParamBlk FAR *parm)
 	else
 	{	_RetInt(-1, 18);
 	}
+}
+
+void FAR FileGo(ParamBlk FAR *parm) // jumps to file position (starting at zero)
+{	FILE *f;
+	double pos;
+	
+	f = F[parm->p[0].val.ev_long];
+	pos = parm->p[1].val.ev_real;
+	fseek(f, 0L, SEEK_SET);
+	while (pos > 1)
+	{	pos--;
+		if (getc(f) == EOF)
+		{	_RetLogical(0);
+			return;
+		}
+	}
+	_RetLogical(1);
 }
 
 void FAR OpenArray(ParamBlk FAR *parm)
@@ -281,9 +320,9 @@ long FAR pivotdesc(AHandle FAR *ah, long top, long bot, long col)
 	cols = ah->cols;
 	array = ah->array;
 	mid = top+(bot-top)/2;
-	if (array[mid*cols+col] < array[top*cols+col]) swaprow(ah, top, mid);
-	if (array[bot*cols+col] < array[top*cols+col]) swaprow(ah, top, bot);
-	if (array[bot*cols+col] < array[mid*cols+col]) swaprow(ah, mid, bot);
+	if (array[mid*cols+col] > array[top*cols+col]) swaprow(ah, top, mid);
+	if (array[bot*cols+col] > array[top*cols+col]) swaprow(ah, top, bot);
+	if (array[bot*cols+col] > array[mid*cols+col]) swaprow(ah, mid, bot);
 	pivot = array[mid*cols+col];
 	t = top-1;
 	b = bot+1;
@@ -1098,6 +1137,7 @@ FoxInfo myFoxInfo[] =
 	{"FileClose", (FPFI) FileClose, 1, "I"},
 	{"FileRewind", (FPFI) FileRewind, 1, "I"},
 	{"FileEOF", (FPFI) FileEOF, 1, "I"},
+	{"FileRead", (FPFI) FileRead, 2, "II"},
 	{"FileReadCRLF", (FPFI) FileReadCRLF, 1, "I"},
 	{"FileReadLF", (FPFI) FileReadLF, 1, "I"},
 	{"FileSize", (FPFI) FileSize, 1, "I"},
@@ -1105,6 +1145,7 @@ FoxInfo myFoxInfo[] =
 	{"FileWrite", (FPFI) FileWrite, 2, "IC"},
 	{"FileWriteCRLF", (FPFI) FileWriteCRLF, 2, "IC"},
 	{"FileWriteLF", (FPFI) FileWriteLF, 2, "IC"},
+	{"FileGo", (FPFI) FileGo, 2, "IN"},
 	{"OpenArray", (FPFI) OpenArray, 3, "III"},
 	{"CloseArray", (FPFI) CloseArray, 1, "I"},
 	{"SetArrayElement", (FPFI) SetArrayElement, 4, "IIIN"},
