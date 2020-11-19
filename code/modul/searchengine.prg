@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2020.11.12
+*    Date:       2020.11.19
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
