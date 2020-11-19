@@ -4,7 +4,7 @@
 If you are not interested in the source code, ignore the **code** directory.
 
 ## Documentation
-The documentaion can be found in the  **doc** directory. It consists of a presentation, explaining the algorithm and major features and a manual.
+The documentaion can be found in the  **doc** directory. It consists of a presentation, explaining the algorithm and major features, and a manual.
 
 ## Prerequisites
 Windows
