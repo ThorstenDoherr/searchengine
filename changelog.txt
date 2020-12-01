@@ -12,6 +12,11 @@ https://github.com/ThorstenDoherr/searchengine
 
 instead to get the most recent version.
 
+2020.11.30
+	SearchEngine 20.20.1
+		- fixed a bug in the multiprocessing control
+		- minor GUI adjustments
+
 2020.11.12
 	SearchEngine 20.20
 		MAJOR OVERHAUL of the SearchEngine introducing multiprocessing using the https://github.com/VFPX/ParallelFox package by Joel Leach

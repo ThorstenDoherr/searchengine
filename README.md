@@ -19,6 +19,10 @@ Windows
 
 ## Version history
 
+2020.11.30 SearchEngine 20.20.1
+- fixed a bug in the multiprocessing control
+- minor GUI adjustments
+
 2020.11.12 SearchEngine 20.20
 - MAJOR OVERHAUL of the SearchEngine introducing multiprocessing using the https://github.com/VFPX/ParallelFox package by Joel Leach
 - unleash the power of your multicore environment: all functions support multiprocessing boosting the speed manyfold
