@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2020.11.05
+*   Date:       2020.11.26
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -579,12 +579,13 @@ define class ParallelFoxWrapper as Custom
 			if m.useMessenger and vartype(this.messenger) == "O"
 				this.messenger.forceProgress()
 				this.messenger.start()
-				do while this.parallel._Events.nCommands > 0 and _Screen.ParPoolMgr.nBusyWorkers > 0 and not this.messenger.queryCancel(.t.)
+				do while this.parallel._Events.nCommands > 0 or _Screen.ParPoolMgr.nBusyWorkers > 0
+					if this.messenger.queryCancel(.t.)
+						this.parallel.wait()
+						exit
+					endif
 					this.messenger.postProgress()
 				enddo
-				if This.parallel._Events.nCommands > 0 and _Screen.ParPoolMgr.nBusyWorkers > 0 && in case of cancel
-					this.parallel.wait()
-				endif
 				if not this.messenger.isCanceled()
 					this.messenger.forceProgress()
 				endif

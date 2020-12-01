@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2020.11.19
+*    Date:       2020.11.30
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5641,7 +5641,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.20"
+	version = "20.20.1"
 	tag = ""
 
 	protected function init(path, slot)
@@ -7207,11 +7207,11 @@ define class SearchEngine as custom
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
-*		try
+		try
 			m.rc = m.table.create(this, m.meta, m.low, m.high, m.runFilter)
-*		catch
-*			m.rc = .f.
-*		endtry
+		catch
+			m.rc = .f.
+		endtry
 		m.table.setMessenger(m.oldmes)
 		return m.rc
 	endfunc
@@ -8148,7 +8148,6 @@ define class SearchEngine as custom
 			this.messenger.forceMessage("Searching...")
 		endif
 		dimension m.tmp[1]
-		m.resultcnt = this.result.reccount()
 		m.lastProgress = 0
 		m.searchcnt = this.searchCluster.reccount()
 		m.searchrec = 1
@@ -8193,6 +8192,7 @@ define class SearchEngine as custom
 				this.result.deleteKey()
 				m.run = 1
 		endcase
+		m.resultcnt = this.result.reccount()
 		m.run = min(m.run,255)
 		this.result.setRun(m.run)
 		this.registry.forceRegistryKey()
@@ -8222,6 +8222,7 @@ define class SearchEngine as custom
 				this.pfw.callWorkers("mp_search", m.from, m.to, m.increment)
 				this.pfw.wait(.t.)
 				if this.messenger.wasCanceled()
+					this.messenger.sneakMessage("Canceling...")
 					m.wc = 1
 					this.result.useExclusive()
 				endif
@@ -9046,14 +9047,13 @@ define class SearchEngine as custom
 	
 	function mirror(runFilter as String)
 		local lm, pa, psl, wc, i, col, from
-		local resultcnt, run, idontcare, result, engine
+		local resultcnt, run, idontcare, result
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("safety","off")
 		m.psl.set("talk","off")
 		m.psl.set("exact","on")
 		m.psl.set("optimize","on")
-		m.psl.set("exclusive","on")
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Mirroring...")
