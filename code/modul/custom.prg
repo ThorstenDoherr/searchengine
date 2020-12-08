@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2020.11.26
+*   Date:       2020.12.08
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1117,7 +1117,7 @@ define class Messenger as custom
 	prefix = ""
 	default = ""
 	errorCancel = .f.
-	cancelMessage = ""
+	cancelText = ""
 	cancelTitle = ""
 	cancelQuery = ""
 	canceling = .f.
@@ -1155,7 +1155,7 @@ define class Messenger as custom
 		this.prefix = m.mess.prefix
 		this.default = m.mess.default
 		this.errorCancel = m.mess.errorCancel
-		this.cancelMessage = m.mess.cancelMessage
+		this.cancelText = m.mess.cancelText
 		this.cancelTitle = m.mess.cancelTitle
 		this.cancelQuery = m.mess.cancelQuery
 		this.canceling = m.mess.canceling
@@ -1385,7 +1385,7 @@ define class Messenger as custom
 	function startCancel(query as String, title as String, message as String)
 		this.cancelQuery = iif(vartype(m.query) == "C",m.query,"")
 		this.cancelTitle = iif(vartype(m.title) == "C",m.title,"")
-		this.cancelMessage = iif(vartype(m.message) == "C",m.message,"")
+		this.cancelText = iif(vartype(m.message) == "C",m.message,"")
 		this.canceling = .t.
 		this.canceled = .f.
 		this.link.canceled = .f.
@@ -1398,7 +1398,7 @@ define class Messenger as custom
 	local set
 		this.cancelQuery = ""
 		this.cancelTitle = ""
-		this.cancelMessage = ""
+		this.cancelText = ""
 		this.canceling = .f.
 		this.canceled = .f.
 		this.link.canceled = .f.
@@ -1488,6 +1488,10 @@ define class Messenger as custom
 	function specialMessage(message)
 		this.displayMessage(this.buildMessage(m.message), 3)
 	endfunc
+	
+	function cancelMessage(message)
+		this.displayMessage(this.buildMessage(m.message), 5)
+	endfunc
 
 	function errorMessage(message)
 		this.prefix = ""
@@ -1536,17 +1540,17 @@ define class Messenger as custom
 		if m.key == 27
 			if messagebox(this.cancelQuery,292,this.cancelTitle) == 6
 				this.canceled = .t.
-				if not empty(this.cancelMessage)
+				if not empty(this.cancelText)
 					m.prefix = ""
 					this.prefix = ""
-					this.displayMessage(this.buildMessage(this.cancelMessage), 5)
+					this.displayMessage(this.buildMessage(this.cancelText), 5)
 					this.prefix = m.prefix
 				endif
 				if this.errorCancel
-					if empty(this.cancelMessage)
+					if empty(this.cancelText)
 						messagebox("Canceled!",16,"Exception")
 					else
-						messagebox(this.cancelMessage,16,"Exception")
+						messagebox(this.cancelText,16,"Exception")
 					endif
 					cancel
 				endif

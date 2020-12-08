@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2020.11.30
+*    Date:       2020.12.08
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5641,7 +5641,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.20.1"
+	version = "20.20.2"
 	tag = ""
 
 	protected function init(path, slot)
@@ -8196,9 +8196,10 @@ define class SearchEngine as custom
 		m.run = min(m.run,255)
 		this.result.setRun(m.run)
 		this.registry.forceRegistryKey()
+		m.canceled = .f.
 		m.messenger = createobject("Messenger", this.messenger, .t.) && copy but no linkage
 		this.messenger.startProgress("Searching <<0>>/"+transform(m.searchcnt)+" (<<0>>)")
-		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceled.")		
+		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")		
 		this.pfw.setWorkerCount(min(min(m.searchcnt-m.searchrec+1,SEARCHBATCH),this.pfw.getMaxWorkerCount()))
 		m.wc = max(this.pfw.getWorkerCount(),1)
 		m.col = createobject("Collection")
@@ -8222,7 +8223,6 @@ define class SearchEngine as custom
 				this.pfw.callWorkers("mp_search", m.from, m.to, m.increment)
 				this.pfw.wait(.t.)
 				if this.messenger.wasCanceled()
-					this.messenger.sneakMessage("Canceling...")
 					m.wc = 1
 					this.result.useExclusive()
 				endif
@@ -8291,6 +8291,9 @@ define class SearchEngine as custom
 		this.result.deleteKey()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
+		if this.messenger.wasCanceled()
+			this.messenger.cancelMessage("Canceled.")
+		endif
 		return not this.messenger.wasCanceled()
 	endfunc
 	
