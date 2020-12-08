@@ -12,6 +12,10 @@ https://github.com/ThorstenDoherr/searchengine
 
 instead to get the most recent version.
 
+2020.12.08
+	SearchEngine 20.20.2
+		- minor adjustments to messages displayed during search
+
 2020.11.30
 	SearchEngine 20.20.1
 		- fixed a bug in the multiprocessing control
