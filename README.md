@@ -19,6 +19,11 @@ Windows
 
 ## Version history
 
+
+2021.02.03 SearchEngine 20.21
+- fixed a bug in Result Export preventing the combination of filtering and sample drawing
+- Mirroring does not get stuck in a clean up process anymore
+
 2020.12.08 SearchEngine 20.20.2
 - minor adjustments to messages displayed during search
 
