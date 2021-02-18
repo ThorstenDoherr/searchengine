@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2020.12.08
+*   Date:       2021.01.12
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1131,7 +1131,7 @@ define class Messenger as custom
 	report = .f.
 	copy = .f.
 
-	function init(mess as Object, nolink as boolean) && also errorCancel
+	function init(mess as Object) && also errorCancel
 		this.postTimer = createobject("Time")
 		this.queryTimer = createobject("Time")
 		if not vartype(m.mess) == "O"
@@ -4730,7 +4730,85 @@ define class BaseTable as custom
 		endif
 		return this.seekKey(m.key) > 0
 	endfunc
-
+	
+	function useIndex(IDXfile)
+		return this.forceIndex(.f., m.IDXfile)
+	endfunc
+	
+	function setIndex(IDXfile)
+	local pa
+		if not vartype(m.IDXfile) == "C" or empty(m.IDXfile)
+			m.pa = createobject("PreservedAlias")
+			this.select()
+			set index to
+			return .t.
+		endif
+		return this.forceIndex(.f., m.IDXfile)
+	endfunc
+	
+	function forceIndex(key, IDXfile, options)
+	local index, ok, pa
+		if not this.validAlias
+			return .f.
+		endif
+		m.pa = createobject("PreservedAlias")
+		this.select()
+		if not vartype(m.IDXfile) == "C"
+			m.IDXfile = this.dbf
+		endif
+		m.IDXfile = forceext(m.IDXfile, "idx")
+		m.ok = .t.
+		try
+			set index to (m.IDXfile)
+		catch
+			m.ok = .f.
+		endtry
+		if m.ok
+			return .t.
+		endif
+		if not vartype(m.key) == "C"
+			return .f.
+		endif
+		if not vartype(m.options) == "C"
+			m.options = ""
+		else
+			m.options = " "+m.options
+		endif
+		m.index = "index on "+m.key+" to "+m.IDXfile+m.options
+		m.ok = .t.
+		try 
+			&index
+			set index to (m.IDXfile)
+		catch
+			m.ok = .f.
+		endtry
+		return m.ok
+	endfunc
+	
+	function deleteIndex(IDXfile)
+	local ok, pa
+		if not vartype(m.IDXfile) == "C"
+			m.IDXfile = this.dbf
+		endif
+		m.IDXfile = forceext(m.IDXfile, "idx")
+		if not file(m.IDXfile)
+			return .t.
+		endif
+		if this.validAlias
+			m.pa = createobject("PreservedAlias")
+			this.select()
+			set index to 
+			m.ok = .t.
+			try
+				delete file (m.IDXfile)
+			catch
+				m.ok = .f.
+			endtry
+			return m.ok
+		endif
+		return .t.
+	endfunc
+	
 	function forceKey(key, options)
 	local index, pa, ok, shared
 		if not this.validAlias

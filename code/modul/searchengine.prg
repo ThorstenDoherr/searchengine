@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2020.12.08
+*    Date:       2021.02.03
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -227,7 +227,9 @@ endfunc
 function mp_mirror(from as Integer, to as Integer, run as Integer)
 	mp_bracket(@m.from, @m.to)
 	_screen.local1.useExclusive()
-	_screen.main.mirroring(m.from, m.to, _screen.local1, m.run, _screen.global1, _screen.messenger)
+	_screen.global1.useShared()
+	_screen.main.mirroring(m.from, m.to, _screen.local1, _screen.global1, m.run, _screen.global2, _screen.messenger)
+	_screen.global1.close()
 	_screen.local1.close()
 endfunc
 
@@ -317,14 +319,14 @@ define class LRCPD as Custom  && Least Character Position Delta
 enddefine
 
 define class RunFilter as Custom
-	hidden run[256], valid, start, filtering, all
+	dimension run[256]
+	valid =  .f.
+	filtering = .f.
 	
 	function init(filter as String)
 	local i, j, lexcnt, lexArray, subcnt, subArray, val, runset
-		this.start = -1
 		this.valid = .f.
 		this.filtering = .f.
-		this.all = .f.
 		m.runset = .f.
 		if vartype(m.filter) == "O"
 			m.filter = m.filter.toString()
@@ -334,7 +336,6 @@ define class RunFilter as Custom
 				this.run[m.i] = .t.
 			endfor
 			this.valid = .t.
-			this.all = .t.
 			return
 		endif
 		if vartype(m.filter) == "N"
@@ -347,14 +348,6 @@ define class RunFilter as Custom
 		dimension m.subArray[1]
 		m.lexcnt = alines(m.lexArray,m.filter,5,",")
 		for m.i = 1 to m.lexcnt
-			if like("start *",m.lexArray[m.i])
-				m.val = val(getwordnum(m.lexArray[m.i],2," "))
-				if m.val <= 0
-					return
-				endif
-				this.start = m.val
-				loop
-			endif
 			m.subcnt = alines(m.subArray,m.lexArray[m.i],5,"-")
 			if m.subcnt > 2
 				return
@@ -379,17 +372,11 @@ define class RunFilter as Custom
 				endfor
 			endif
 		endfor
-		if this.start < 0 and m.runset == .f.
+		if m.runset == .f.
 			return
 		endif
-		if m.runset == .f.
-			for m.i = 1 to 255
-				this.run[m.i] = .t.
-			endfor
-			this.all = .t.
-		endif
 		this.valid = .t.
-		this.filtering = this.start > 0 or m.runset == .t.
+		this.filtering = .t.
 	endfunc
 	
 	function isValid()
@@ -407,17 +394,10 @@ define class RunFilter as Custom
 		return this.run[m.run]
 	endfunc
 
-	function inRange(run as Integer, record as Integer)
-		return this.isFiltered(m.run) and m.record >= this.start
-	endfunc
-	
 	function toString()
-	local str, start, i
+	local str, i, start
 		m.str = ""
-		if this.start >= 0
-			m.str = "start "+ltrim(str(this.start,12,0))
-		endif
-		if this.all
+		if not this.filtering
 			return m.str
 		endif
 		m.start = 0
@@ -441,9 +421,9 @@ define class RunFilter as Custom
 		return ltrim(m.str,",")
 	endfunc
 	
-	function getRunFilter(exp as String)
+	function getRunFilter(exp as String, raw as boolean)
 	local filter, i, start
-		if this.all
+		if not this.filtering
 			return ""
 		endif
 		m.filter = ""
@@ -454,10 +434,18 @@ define class RunFilter as Custom
 				if m.start <= 0
 					loop
 				endif
-				if m.i-m.start > 1
-					m.filter = m.filter+" or "+m.exp+" >= "+ltrim(str(m.start))+" and "+m.exp+" <= "+ltrim(str(m.i-1))
+				if m.raw
+					if m.i-m.start > 1
+						m.filter = m.filter+' or '+m.exp+' >= "'+chr(m.start)+'" and '+m.exp+' <= "'+chr(m.i-1)+'"'
+					else
+						m.filter = m.filter+' or '+m.exp+' == "'+chr(m.start)+'"'
+					endif
 				else
-					m.filter = m.filter+" or "+m.exp+" == "+ltrim(str(m.start))
+					if m.i-m.start > 1
+						m.filter = m.filter+' or '+m.exp+' >= '+ltrim(str(m.start))+' and '+m.exp+' <= '+ltrim(str(m.i-1))
+					else
+						m.filter = m.filter+' or '+m.exp+' == '+ltrim(str(m.start))
+					endif
 				endif
 				m.start = 0
 			else
@@ -468,10 +456,7 @@ define class RunFilter as Custom
 		endfor
 		return substr(m.filter, 5)
 	endfunc
-	
-	function getStart()
-		return this.start
-	endfunc
+
 enddefine
 
 define class MetaFilter as Custom
@@ -3025,6 +3010,7 @@ define class EngineTable as BaseTable
 	endfunc
 enddefine
 
+
 define class ResultTable as BaseTable
 	protected function init(table)
 		BaseTable::init(m.table)
@@ -3041,12 +3027,13 @@ define class ResultTable as BaseTable
 			endif
 			return .f.
 		endif
-		local psl, pa, lm, pk
-		local result, search, searched
-		local array content[1]
+		local pa, lm, psl
+		local result, tmp, draw, sql
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
+		m.psl.set("exact","on")
+		m.psl.set("exclusive","off")		
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Exporting...")
@@ -3058,7 +3045,7 @@ define class ResultTable as BaseTable
 			this.erase()
 		endif
 		if not this.iscreatable()
-			this.messenger.errorMessage("Unable to shuffle ResultTable.")
+			this.messenger.errorMessage("Unable to create ResultTable.")
 			return .f.
 		endif
 		m.result = m.engine.getResultTable()
@@ -3097,61 +3084,60 @@ define class ResultTable as BaseTable
 			this.messenger.errormessage("Invalid setting.")
 			return .f.
 		endif
-		if not this.create()
-			this.errorMessage("Unable to create ResultTable.")
-			return .f.
+		m.sql = ""
+		if m.high < 101 or m.low > 0
+			m.sql = m.sql+" and low >= "+transform(m.low)+" and high < "+transform(m.high)
 		endif
-		m.result.select()
-		go top
-		scatter to m.content
-		this.select()
-		gather from m.content
-		m.pk = createobject("PreservedKey",m.result)
-		if not m.result.forceKey("searched")
-			this.messenger.errorMessage("Unable to index source ResultTable.")
-			return .f.
+		if m.runFilter.isFiltering()
+			m.sql = m.sql+" and m.runFilter.run[asc(run)]"
 		endif
-		m.search = createobject("UniqueAlias",.t.)
-		select distinct searched from (m.result.alias) where searched > 0 into cursor (m.search.alias) readwrite
-		if m.shuffle > 0
-			select searched, cast(rand() as b) as rnd from (m.search.alias) order by 2 into cursor (m.search.alias) readwrite
-			if m.shuffle < 1
-				m.shuffle = int(reccount(m.search.alias) * m.shuffle + 0.5)
-			endif
+		m.sql = substr(m.sql, 6)
+		if empty(m.sql) and m.shuffle <= 0
+			m.sql = "select * from "+m.result.alias+" into table "+this.dbf
+			&sql
+			use
+			this.useExclusive()
 		else
-			m.shuffle = reccount()
+			if m.shuffle > 0
+				if empty(m.sql)
+					m.tmp = m.result
+					m.tmp.forceKey("searched")
+				else							
+					this.messenger.forceMessage("Filtering...")
+					m.tmp = createobject("TempAlias")
+					m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into cursor "+m.tmp.alias
+					&sql
+					index on searched tag searched
+				endif
+				this.messenger.forceMessage("Shuffling...")
+				m.draw = createobject("TempAlias")
+				select distinct searched from (m.tmp.alias) where searched > 0 into cursor (m.draw.alias) readwrite
+				if m.shuffle < 1
+					m.shuffle = max(int(reccount(m.draw.alias) * m.shuffle + 0.5),1)
+				endif
+				m.sql = textmerge('select top <<int(m.shuffle)>> searched, cast(rand() as b) as rnd from <<m.draw.alias>> order by 2 into cursor <<m.draw.alias>> readwrite')
+				&sql
+				insert into (m.draw.alias) values (0, -1)
+				select a.* from (m.tmp.alias) a, (m.draw.alias) b where a.searched == b.searched into table (this.dbf)
+				use
+				this.useExclusive()
+			else
+				this.messenger.forceMessage("Filtering...")
+				m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into table "+this.dbf
+				&sql
+				use
+				this.useExclusive()
+			endif
 		endif
-		select (m.search.alias)
-		go top
-		this.messenger.startProgress("Exporting <<0>>/"+transform(m.shuffle))
-		this.messenger.startCancel("Cancel operation?","Exporting ResultTable","Canceled.")
-		scan
-			if recno() > m.shuffle
-				exit
-			endif
-			this.messenger.incProgress(1,1)
-			this.messenger.postProgress()
-			if this.messenger.queryCancel()
-				exit
-			endif
-			m.searched = searched
-			select * from (m.result.alias) where searched == m.searched and identity >= m.low and identity < m.high and m.runFilter.isFiltered(asc(run)) into array content
-			if _tally > 0
-				select (this.alias)
-				append from array m.content
-			endif
-		endscan
-		this.messenger.stopProgress()
-		this.messenger.sneakMessage("Closing...")
+		this.messenger.forceMessage("Exporting...")
 		this.forceRequiredKeys()
-		if this.messenger.wasCanceled()
-			return .f.
-		endif
 		if m.newrun
+			this.messenger.forceMessage("Compressing...")
 			this.compressRun()
 		endif
+		this.useShared()
 		return .t.
-	endfunc
+	endfunc	
 	
 	function isValid()
 		return this.hasValidStructure() and this.hasValidAlias()
@@ -3223,7 +3209,7 @@ define class ResultTable as BaseTable
 			return .f.
 		endif
 		m.ps1 = createobject("PreservedSetting","talk","off")
-		m.run = createobject("UniqueAlias",.t.)
+		m.run = createobject("TempAlias")
 		select distinct run, cast(" " as c(1)) as newrun from (this.alias) into cursor (m.run.alias) readwrite
 		update (m.run.alias) set newrun = chr(recno())
 		index on run tag run
@@ -3516,6 +3502,8 @@ define class ResultTable as BaseTable
 enddefine
 
 define class mp_ExportTable as BaseTable && contains help functions for ExportTables
+	txt = .f.
+	
 	function consolidate(col as Collection)
 	local i, table, line
 		this.messenger.startProgress("Consolidating <<0>>/"+transform(m.col.count-1))
@@ -3548,6 +3536,22 @@ define class mp_ExportTable as BaseTable && contains help functions for ExportTa
 		this.messenger.stopProgress()
 	endfunc
 	
+	function collect(col as Collection)
+	local i, table
+		if this.txt
+			return
+		endif
+		this.useExclusive()
+		select (this.alias)
+		for m.i = 1 to m.col.count
+			m.table = m.col.item(m.i)
+			append from (m.table.dbf)
+			m.table.useExclusive()
+			m.table.zap()
+			m.table.close()
+		endfor
+	endfunc
+
 	function navigate(cluster, keyrec, isrec)
 		if m.isrec
 			return m.cluster.goRecord(m.keyrec)
@@ -3574,7 +3578,6 @@ define class ExportTable as mp_ExportTable
 	exclusive = .f.
 	low = 0
 	high = 101
-	txt = .f.
 
 	protected function init(table)
 		local struc, substruc, s, f
@@ -3758,7 +3761,7 @@ define class ExportTable as mp_ExportTable
 		this.messenger.forceMessage("Sorting...")
 		m.result.forceKey("searched")
 		m.sort = createobject("BaseCursor", this.getPath(), m.result.getTableStructure())
-		if not empty(m.runFilter.toString())
+		if m.runFilter.isFiltering()
 			select (m.result.alias)
 			scan
 				if not m.runFilter.isFiltered(asc(run))
@@ -3995,7 +3998,6 @@ define class ExtendedExportTable as mp_ExportTable
 	foundGroupKey = ""
 	foundKey = ""
 	foundRec = .f.
-	txt = .f.
 	
 	protected function init(table)
 		local struc, substruc, s
@@ -4541,7 +4543,6 @@ enddefine
 
 define class GroupedExportTable as mp_ExportTable
 	text = .f.
-	txt = .f.
 	single = .f.
 	searchRec = .f.
 	foundKey = ""
@@ -5022,7 +5023,6 @@ define class MetaExportTable as mp_ExportTable
 	header = ""
 	foundTypes = .f.
 	searchedTypes = .f.
-	txt = .f.
 	rep = 0
 
 	protected function init(table)
@@ -5061,8 +5061,8 @@ define class MetaExportTable as mp_ExportTable
 	endfunc
 		
 	function create(engine, meta, raw, low, high, runFilter)
-		local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from
-		local result, runmax, s, resultcnt, searchCluster, join
+		local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from, to
+		local result, runmax, s, searchCluster, join
 		local table, foundreg, searchedreg, stype, ipos, count
 		local tmp1, tmp2, sql, struc, main, local, global
 		m.psl = createobject("PreservedSettingList")
@@ -5300,11 +5300,17 @@ define class MetaExportTable as mp_ExportTable
 		use
 		select (m.tmp2.alias)
 		use
-		m.resultcnt = m.result.reccount()
+		m.result.setKey()
 		m.from = m.engine.locateFrom(m.runFilter)
+		if m.from <= 0
+			m.from = 1
+			m.to = 0
+		else
+			m.to = m.engine.locateTo(m.runFilter)
+		endif
 		m.pfw = m.engine.getPFW()
-		m.wc = m.pfw.setOptimalWorkerCount(m.result.reccount()-m.from+1,250)
-		this.messenger.startProgress("Exporting <<0>>/"+transform(m.resultcnt-m.from+1))
+		m.wc = m.pfw.setOptimalWorkerCount(m.to-m.from+1,250)
+		this.messenger.startProgress("Exporting <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Exporting Meta","Canceled.")
 		if m.wc > 1
 			this.close()
@@ -5332,7 +5338,7 @@ define class MetaExportTable as mp_ExportTable
 			m.pfw.startWorkers()
 			m.pfw.callWorkers("mp_open", m.main, m.psl, m.local, m.global)
 			m.pfw.wait() && make sure all workers are idle, to maintain batch sequence
-			m.pfw.callWorkers("mp_exportmeta", m.from, m.resultcnt)
+			m.pfw.callWorkers("mp_exportmeta", m.from, m.to)
 			m.pfw.wait(.t.)
 			m.pfw.stopWorkers()
 			m.result.useShared()
@@ -5351,7 +5357,7 @@ define class MetaExportTable as mp_ExportTable
 			m.foundreg.useExclusive()
 			m.ipos.useExclusive()
 			m.count.useExclusive()
-			this.exporting(m.from, m.resultcnt, this, m.result, m.searchedreg, m.foundreg, m.ipos, m.count, m.engine, this.messenger)
+			this.exporting(m.from, m.to, this, m.result, m.searchedreg, m.foundreg, m.ipos, m.count, m.engine, this.messenger)
 			m.result.useShared()
 			m.foundreg.useShared() && this is the original registry of the SearchEngine
 		endif
@@ -5641,7 +5647,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.20.2"
+	version = "20.21"
 	tag = ""
 
 	protected function init(path, slot)
@@ -8160,7 +8166,7 @@ define class SearchEngine as custom
 				endif
 				m.run = m.run+1
 			case m.increment = 2 && merge
-				if not this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
+				if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
 					this.messenger.errormessage("Unable to increment ResultTable.")
 					return .f.
 				endif
@@ -8196,8 +8202,8 @@ define class SearchEngine as custom
 		m.run = min(m.run,255)
 		this.result.setRun(m.run)
 		this.registry.forceRegistryKey()
-		m.canceled = .f.
-		m.messenger = createobject("Messenger", this.messenger, .t.) && copy but no linkage
+		m.messenger = createobject("Messenger", this.messenger) && copy without linkage (same main process)
+		m.messenger.stopCancel()
 		this.messenger.startProgress("Searching <<0>>/"+transform(m.searchcnt)+" (<<0>>)")
 		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")		
 		this.pfw.setWorkerCount(min(min(m.searchcnt-m.searchrec+1,SEARCHBATCH),this.pfw.getMaxWorkerCount()))
@@ -8289,6 +8295,7 @@ define class SearchEngine as custom
 		this.messenger.sneakMessage("Closing...")
 		this.pfw.stopWorkers()
 		this.result.deleteKey()
+		this.result.deleteIndex()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
 		if this.messenger.wasCanceled()
@@ -8333,7 +8340,7 @@ define class SearchEngine as custom
 			this.result.forceKey("searched")
 		else
 			if m.increment = 2 && merge
-				this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
+				this.result.useIndex()
 			endif
 		endif
 		m.activeJoin = this.getActiveJoin()
@@ -8582,8 +8589,8 @@ define class SearchEngine as custom
 	endfunc
 
 	function research(identityMode as Number, scoreMode as Number, runFilter as String, nonDestructiveOnly as Boolean)
-		local lm, pa, psl, dp, col, wc, from
-		local activeJoin, resultcnt, engine
+		local lm, pa, psl, dp, col, wc, from, to
+		local activeJoin, engine
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Researching...")
@@ -8646,12 +8653,18 @@ define class SearchEngine as custom
 			this.messenger.errormessage("No active SearchField.")
 			return .f.
 		endif
-		m.engine = this.toString()
-		this.changed = .t.
+		this.result.setKey()
 		m.from = this.locateFrom(m.runFilter)
-		m.resultcnt = this.result.reccount()
-		m.wc = this.pfw.setOptimalWorkerCount(m.resultcnt-from+1,100)		
-		this.messenger.startProgress("Researching <<0>>/"+transform(m.resultcnt-m.from+1))
+		if m.from <= 0
+			m.from = 1
+			m.to = 0
+		else
+			m.to = this.locateTo(m.runFilter)
+		endif
+		this.changed = .t.
+		m.engine = this.toString()
+		m.wc = this.pfw.setOptimalWorkerCount(m.to-from+1,100)		
+		this.messenger.startProgress("Researching <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Researching","Canceled.")
 		if m.wc > 1
 			this.result.useShared()
@@ -8662,12 +8675,12 @@ define class SearchEngine as custom
 			this.pfw.startWorkers()
 			this.pfw.callWorkers("mp_open", m.engine, m.psl, .f., m.col)
 			this.pfw.wait()
-			this.pfw.callWorkers("mp_research", m.from, m.resultcnt, m.nonDestructiveOnly, m.identityMode, m.scoreMode)
+			this.pfw.callWorkers("mp_research", m.from, m.to, m.nonDestructiveOnly, m.identityMode, m.scoreMode)
 			this.pfw.wait(.t.)
 			this.pfw.stopWorkers()
 		else
 			this.result.useExclusive()
-			this.researching(m.from, m.resultcnt, this.result, m.nonDestructiveOnly, m.identityMode, m.scoreMode, m.runFilter, this.messenger)
+			this.researching(m.from, m.to, this.result, m.nonDestructiveOnly, m.identityMode, m.scoreMode, m.runFilter, this.messenger)
 			this.result.useShared()
 		endif
 		this.messenger.stopProgress()
@@ -8845,8 +8858,8 @@ define class SearchEngine as custom
 	endfunc
 
 	function refine(identityMode as Number, compareMode as Number, runFilter as String, destructiveOnly as Boolean)
-		local lm, pa, psl, dp, col, from
-		local activeJoin, resultcnt, wc, engine
+		local lm, pa, psl, dp, col, from, to
+		local activeJoin, wc, engine
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Refining...")
@@ -8909,12 +8922,18 @@ define class SearchEngine as custom
 			this.messenger.errormessage("No active SearchField.")
 			return .f.
 		endif
-		m.engine = this.toString()
-		this.changed = .t.
+		this.result.setKey()
 		m.from = this.locateFrom(m.runFilter)
-		m.resultcnt = this.result.reccount()
-		m.wc = this.pfw.setOptimalWorkerCount(m.resultcnt-m.from+1,100)		
-		this.messenger.startProgress("Researching <<0>>/"+transform(m.resultcnt-m.from+1))
+		if m.from <= 0
+			m.from = 1
+			m.to = 0
+		else
+			m.to = this.locateTo(m.runFilter)
+		endif
+		this.changed = .t.
+		m.engine = this.toString()
+		m.wc = this.pfw.setOptimalWorkerCount(m.to-m.from+1,100)		
+		this.messenger.startProgress("Researching <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Refining","Canceled.")
 		if m.wc > 1
 			this.result.useShared()
@@ -8925,12 +8944,12 @@ define class SearchEngine as custom
 			this.pfw.startWorkers()
 			this.pfw.callWorkers("mp_open", m.engine, m.psl, .f., m.col)
 			this.pfw.wait()
-			this.pfw.callWorkers("mp_refine", m.from, m.resultcnt, m.destructiveOnly, m.identityMode, m.compareMode)
+			this.pfw.callWorkers("mp_refine", m.from, m.to, m.destructiveOnly, m.identityMode, m.compareMode)
 			this.pfw.wait(.t.)
 			this.pfw.stopWorkers()
 		else
 			this.result.useExcluive()
-			this.refining(m.from, m.resultcnt, this.result, m.destructiveOnly, m.identityMode, m.compareMode, m.runFilter, this.messenger)
+			this.refining(m.from, m.to, this.result, m.destructiveOnly, m.identityMode, m.compareMode, m.runFilter, this.messenger)
 			this.result.useShared()
 		endif
 		this.messenger.stopProgress()
@@ -9049,8 +9068,8 @@ define class SearchEngine as custom
 	endfunc
 	
 	function mirror(runFilter as String)
-		local lm, pa, psl, wc, i, col, from
-		local resultcnt, run, idontcare, result
+		local lm, pa, psl, wc, i, local, global
+		local from, to, run, idontcare, result
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("safety","off")
@@ -9080,43 +9099,51 @@ define class SearchEngine as custom
 			this.messenger.errormessage("Run filter expression is invalid.")
 			return .f.
 		endif
-		if not this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
+		this.result.setKey()
+		m.from = this.locateFrom(m.runFilter)
+		if m.from <= 0
+			m.from = 1
+			m.to = 0
+		else
+			m.to = this.locateTo(m.runFilter)
+		endif
+		if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
 			this.messenger.errormessage("Unable to mirror ResultTable.")
 			return .f.
 		endif
-		m.engine = this.toString()
 		this.changed = .t.
-		m.from = this.locateFrom(m.runFilter)
-		m.resultcnt = this.result.reccount()
-		m.wc = this.pfw.setOptimalWorkerCount(m.resultcnt-from+1,5000)
-		this.messenger.startProgress("Mirroring <<0>>/"+transform(m.resultcnt-m.from+1))
+		m.wc = this.pfw.setOptimalWorkerCount(m.to-from+1,5000)
+		this.messenger.startProgress("Mirroring <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Mirroring","Canceled.")
-		m.col = createobject("Collection")
+		m.local = createobject("Collection")
 		for m.i = 1 to m.wc
 			m.result = createobject("BaseCursor", this.result.getRequiredTableStructure(), this.getEnginePath())
 			m.result.close()
-			m.col.add(m.result)
+			m.local.add(m.result)
 		endfor
 		if m.wc > 1
-			this.result.useShared()
+			this.result.close()
+			m.global = createobject("Collection")
+			m.global.add(this.result)
+			m.global.add(m.runFilter)
 			this.pfw.linkMessenger(this.messenger)
 			this.pfw.startWorkers()
-			this.pfw.callWorkers("mp_open", m.engine, m.psl, m.col, m.runFilter)
+			this.pfw.callWorkers("mp_open", createobject("DummyEngine"), m.psl, m.local, m.global)
 			this.pfw.wait()
-			this.pfw.callWorkers("mp_mirror", m.from, m.resultcnt, m.run)
+			this.pfw.callWorkers("mp_mirror", m.from, m.to, m.run)
 			this.pfw.wait(.t.)
-			this.pfw.stopWorkers()		
+			this.pfw.stopWorkers()
+			this.result.useShared()	
 		else
 			this.result.useExclusive()
-			m.result = m.col.item(1)
+			m.result = m.local.item(1)
 			m.result.useExclusive()
-			this.mirroring(m.from, m.resultcnt, m.result, m.run, m.runFilter, this.messenger)
+			this.mirroring(m.from, m.to, m.result, this.result, m.run, m.runFilter, this.messenger)
 			m.result.close()
+			this.result.useShared()
 		endif
 		this.messenger.stopProgress()
-		if this.messenger.wasCanceled()
-			this.messenger.sneakMessage("Canceling...")		
-		else
+		if not this.messenger.wasCanceled()
 			this.messenger.sneakMessage("Consolidating...")
 			this.result.useExclusive()
 			this.result.deleteKey()
@@ -9124,22 +9151,22 @@ define class SearchEngine as custom
 			for m.i = 1 to m.wc
 				this.messenger.incProgress(1,1)
 				this.messenger.forceProgress()
-				m.result = m.col.item(m.i)
+				m.result = m.local.item(m.i)
 				m.result.useExclusive()
 				select (this.result.alias)
 				append from (m.result.dbf)
 			endfor
 			this.messenger.stopProgress()
-			if m.idontcare or this.result.reccount() > m.resultcnt
-				this.result.setRun(m.run)
-			endif
+			this.result.setRun(m.run)
 		endif
+		this.messenger.sneakMessage("Closing...")
+		this.result.deleteIndex()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
 		return not this.messenger.wasCanceled()
 	endfunc
 
-	function mirroring(from as Integer, to as Integer, result as Object, run as Integer, runFilter as Object, messenger as Object)
+	function mirroring(from as Integer, to as Integer, result as Object, base as Object, run as Integer, runFilter as Object, messenger as Object)
 	local searched, found, rec
 		m.to = iif(m.to < 0, this.result.reccount(), m.to)
 		if m.from > m.to
@@ -9153,8 +9180,8 @@ define class SearchEngine as custom
 			m.runfilter = createobject("RunFilter")
 		endif
 		m.run = chr(m.run)
-		select (this.result.alias)
-		this.result.setKey('ltrim(str(searched))+" "+ltrim(str(found))')
+		select (m.base.alias)
+		m.base.useIndex()
 		for m.rec = m.from to m.to
 			go m.rec
 			m.messenger.incProgress(1,1)
@@ -9167,7 +9194,7 @@ define class SearchEngine as custom
 			endif
 			m.found = found
 			m.searched = searched
-			if not seek(ltrim(str(m.found))+" "+ltrim(str(m.searched)))  && reverse key order
+			if not indexseek(ltrim(str(m.found))+" "+ltrim(str(m.searched)))  && reverse key order
 				insert into (m.result.alias) (searched, found, run) values (m.found, m.searched, m.run)
 			endif
 		endfor
@@ -9198,7 +9225,7 @@ define class SearchEngine as custom
 		if m.wc > 1
 			this.pfw.linkMessenger(this.messenger)
 			this.pfw.startWorkers()
-			this.pfw.callWorkers("mp_open", this.toString(), m.psl, m.col, .f.)
+			this.pfw.callWorkers("mp_open", createobject("DummyEngine"), m.psl, m.col, .f.)
 			this.pfw.wait() && make sure all workers are idle, to maintain batch sequence
 			m.t.start()
 			this.pfw.callWorkers("mp_benchmark", 1, m.batch)
@@ -9357,7 +9384,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	function locateFrom(runFilter as Object)
-	local from, pa, start
+	local pa, rec
 		if not vartype(m.runFilter) == "O"
 			m.runFilter = createobject("RunFilter",m.runFilter)
 			if not m.runFilter.isValid()
@@ -9366,21 +9393,44 @@ define class SearchEngine as custom
 		endif
 		m.pa = createobject("PreservedAlias")
 		select (this.result.alias)
-		if reccount() <= 0
+		if reccount() <= 1
 			return 0
 		endif
-		m.start = 1
-		go m.start
-		if searched == 0
-			m.start = 2
+		if not m.runFilter.isFiltering()
+			return 2
 		endif
-		for m.from = m.start to reccount()
-			go m.from
-			if m.runFilter.isFiltered(asc(run))
-				return m.from
+		for m.rec = 2 to reccount()
+			go m.rec
+			if m.runFilter.run[asc(run)]
+				return m.rec
 			endif
 		endfor
-		return m.from
+		return 0
+	endfunc
+
+	function locateTo(runFilter as Object)
+	local pa, rec
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+			if not m.runFilter.isValid()
+				return .f.
+			endif
+		endif
+		m.pa = createobject("PreservedAlias")
+		select (this.result.alias)
+		if reccount() <= 1
+			return 0
+		endif
+		if not m.runFilter.isFiltering()
+			return reccount()
+		endif
+		for m.rec = reccount() to 2 step -1
+			go m.rec
+			if m.runFilter.run[asc(run)]
+				return m.rec
+			endif
+		endfor
+		return 0
 	endfunc
 
 	hidden function searchTerm(activeJoin as Object, searchTable as Object, searchTypes as Object, feedback as boolean, score as Reference, search as Reference, entry as Reference, typx as Reference)
@@ -10434,8 +10484,13 @@ define class SearchEngine as custom
 		return this.getSlot()
 	endfunc
 	
-	hidden function _run()
-		return ltrim(str(max(this.result.getRun(),0),18))
+	hidden function _run(para)
+	local run
+		m.run = ltrim(str(max(this.result.getRun(),0),18))
+		if vartype(m.para) == "C" and not empty(m.para)
+			this._setPara(m.para,m.run)
+		endif
+		return m.run
 	endfunc
 
 	hidden function _version()
@@ -10542,6 +10597,15 @@ define class SearchEngine as custom
 				throw
 		endcase
 	endfunc
-	
+		
 enddefine
 
+define class DummyEngine as SearchEngine
+	function init(path, slot)
+		return
+	endfunc
+
+	function toString()
+		return "[DummyEngine]"
+	endfunc
+enddefine
