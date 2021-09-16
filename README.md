@@ -20,6 +20,10 @@ Windows
 ## Version history
 
 
+2021.09.16 SearchEngine 20.211
+- reduced SORTLIMIT from 100000000 to 50000000 to prevent sort space overflows
+- progress bar does not switch to float numbers
+
 2021.02.03 SearchEngine 20.21
 - fixed a bug in Result Export preventing the combination of filtering and sample drawing
 - Mirroring does not get stuck in a clean up process anymore
