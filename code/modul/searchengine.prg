@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2021.02.03
+*    Date:       2021.09.16
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -31,7 +31,7 @@
 #define MINCREATEBATCH  25000
 #define MAXCREATEBATCH 500000
 #define SEARCHBATCH 100000
-#define SORTLIMIT 100000000
+#define SORTLIMIT 50000000
 #define BENCHBATCH 200000
 
 function mp_export(from as Integer, to as Integer)
@@ -5647,7 +5647,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.21"
+	version = "20.211"
 	tag = ""
 
 	protected function init(path, slot)

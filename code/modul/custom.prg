@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2021.01.12
+*   Date:       2021.08.24
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1088,7 +1088,7 @@ define class Progress as Custom
 				if m.j == m.pos
 					this.used = this.used+1
 					this.progress[this.used] = int(val(substr(m.lex[m.i],1,m.pos-1)))
-					this.template = this.template+"<<this.progress["+ltrim(str(this.used))+"]>>"
+					this.template = this.template+"<<int(this.progress["+ltrim(str(this.used))+"])>>"
 					m.lex[m.i] = substr(m.lex[m.i],m.pos+2)
 				endif
 			endif

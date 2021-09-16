@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      group.prg
-*   Date:       2020.09.07
+*   Date:       2021.08.17
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *               ParallelFox classes
@@ -361,10 +361,10 @@ define class FilterEnvelope as Custom
 	
 	function init(expression, activation)
 		if vartype(m.expression) == "C"
-			this.expression = m.expression
+			this.expression = alltrim(m.expression)
 		endif
 		if vartype(m.activation) == "N"
-			this.activation = m.activation
+			this.activation = int(m.activation)
 		endif
 	endfunc
 	
@@ -393,7 +393,7 @@ define class FilterEnvelope as Custom
 		return this.expression+" @ "+transform(this.activation)
 	endfunc
 enddefine
-	
+
 define class TrueFilterEnvelope as Custom
 	function isValid()
 		return .t.
@@ -405,24 +405,6 @@ define class TrueFilterEnvelope as Custom
 	
 	function getExpression()
 		return ".T."
-	endfunc	
-enddefine
-
-define class PathEnvelope as Custom
-	from = .F.
-	to = .F.
-	
-	function init(from, to)
-		this.from = m.from
-		this.to = m.to
-	endfunc
-enddefine
-
-define class NodeEnvelope as Custom
-	node = .F.
-	
-	function init(node)
-		this.node = m.node
 	endfunc
 enddefine
 
@@ -770,14 +752,6 @@ define class ClusterPathTable as BaseTable
 		release m.result
 	endfunc
 	
-	function setUndirected(undirected)
-		this.undirected = m.undirected
-	endfunc
-	
-	function isUndirected()
-		return this.undirected
-	endfunc
-
 	function setBlackHole(limit)
 		this.blackhole = m.limit
 	endfunc

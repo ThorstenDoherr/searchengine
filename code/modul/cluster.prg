@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2020.10.20
+*   Date:       2021.07.06
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -279,6 +279,7 @@ define class TableCluster as Custom
 		m.key = m.last.getKey()
 		m.table.forceKey(m.key)
 		this.cluster.add(m.table)
+		this.table = m.table
 		return .t.
 	endfunc
 		
@@ -340,6 +341,10 @@ define class TableCluster as Custom
 	
 	function getFirst()
 		return this.first
+	endfunc
+	
+	function getLast()
+		return this.first+this.cluster.count-1
 	endfunc
 	
 	function selectActiveTable()
@@ -931,6 +936,7 @@ define class TableCluster as Custom
 			return .f.
 		endif
 		this.cluster.remove(-1)
+		this.forceConformity()
 		m.sortexp = createobject("ComposedKey",m.struc,m.sortby.getFieldList(),.t.)
 		m.sortexp = m.sortexp.getExp()
 		for m.i = 1 to m.tableCluster.getTableCount()
@@ -981,7 +987,7 @@ define class TableCluster as Custom
 				m.top.add(m.col,m.key)
 			endif
 			m.col = m.col.item(2)
-			m.col.add(m.table)
+			m.col.add(m.i)
 		endfor
 		do while m.top.count > 0
 			for each item in m.top
@@ -991,7 +997,8 @@ define class TableCluster as Custom
 			m.top.remove(m.col.item(1))
 			m.tables = m.col.item(2)
 			for each item in m.tables
-				select (m.item.alias)
+				m.table = m.sorted.getTable(m.item)
+				select (m.table.alias)
 				scatter memo to m.buffer
 				m.overflowerr = .f.
 				try
@@ -1002,7 +1009,7 @@ define class TableCluster as Custom
 				if m.overflowerr
 					m.tarind = m.tarind + 1
 					if m.tarind > this.getTableCount()
-						m.sorted.call('erase()')
+						m.sorted.erase()
 						this.messenger.errorMessage("Cluster overlow.")
 						return .f.
 					endif
@@ -1027,9 +1034,10 @@ define class TableCluster as Custom
 					m.col.add(m.item)
 				endif
 			endfor
+			m.tables.remove(-1)
 		enddo
 		this.messenger.forceMessage("Cleaning...")
-		m.sorted.call('erase()')
+		m.sorted.erase()
 		for m.i = this.getTableCount() to 1 step -1
 			m.table = this.getTable(m.i)
 			if m.table.getReccount() > 0
@@ -1067,6 +1075,14 @@ define class TableCluster as Custom
 		if this.cluster.count > 0
 			this.table = this.cluster.item(1)
 			go top in (this.table.alias)
+			return .t.
+		endif
+		return .f.
+	endfunc
+	
+	function selectRecord(record as Integer)
+		if this.goRecord(m.record)
+			this.selectActiveTable()
 			return .t.
 		endif
 		return .f.
@@ -1528,7 +1544,7 @@ define class TableCluster as Custom
 	endfunc
 
 	function consume(template as String, reqStructure as String)
-	local ps1, ps2, pa, dir, pos, cnt, i, struc, table
+	local ps1, ps2, pa, dir, pos, cnt, i, struc, table, newname
 		m.pa = createobject("PreservedAlias")
 		m.ps1 = createobject("PreservedSetting","safety","off")
 		m.ps2 = createobject("PreservedSetting","talk","off")
@@ -1571,8 +1587,19 @@ define class TableCluster as Custom
 			m.table.close()
 			m.pos = m.pos+1
 			this.messenger.forceMessage("Consuming "+upper(m.table.getPureName()))
-			erase (this.createTableName(m.pos))
-			rename (m.table.getDBF()) to (this.createTableName(m.pos)+".dbf")
+			m.newname = this.createTableName(m.pos)
+			erase (m.newname+".dbf")
+			erase (m.newname+".fpt")
+			erase (m.newname+".cdx")
+			rename (m.table.getDBF()) to (m.newname+".dbf")
+			try
+				rename (forceext(m.table.getDBF(),"fpt")) to (m.newname+".fpt")
+			catch
+			endtry
+			try
+				rename (forceext(m.table.getDBF(),"cdx")) to (m.newname+".cdx")
+			catch
+			endtry
 		endfor
 		if m.pos < this.first
 			this.messenger.errorMessage("No consumable table found.")
