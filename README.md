@@ -19,6 +19,9 @@ Windows
 
 ## Version history
 
+2021.09.21 SearchEngine 20.212
+- changed SORTLIMIT back to 100000000 (overflows were not encountered)
+- error messages report proper exception descriptions 
 
 2021.09.16 SearchEngine 20.211
 - reduced SORTLIMIT from 100000000 to 50000000 to prevent sort space overflows
