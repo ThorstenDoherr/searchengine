@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2021.09.16
+*    Date:       2021.09.21
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -31,7 +31,7 @@
 #define MINCREATEBATCH  25000
 #define MAXCREATEBATCH 500000
 #define SEARCHBATCH 100000
-#define SORTLIMIT 50000000
+#define SORTLIMIT 100000000
 #define BENCHBATCH 200000
 
 function mp_export(from as Integer, to as Integer)
@@ -2586,11 +2586,10 @@ define class IndexCluster as Custom
 				&sql
 				use
 				m.sort.useShared()
-			catch
-				m.err = .t.
+			catch to m.err
 			endtry
-			if m.err
-				this.messenger.errormessage("Unable to create SortCursor.")
+			if vartype(m.err) == "O"
+				this.messenger.errormessage("Unable to create SortCursor: "+evl(m.err.message, "Exception"))
 				exit
 			endif
 			if m.collector.Count == 1
@@ -4320,11 +4319,10 @@ define class ExtendedExportTable as mp_ExportTable
 			use
 			m.found.useExclusive()
 			m.found.forceKey("searched")
-		catch
-			m.err = .t.
+		catch to m.err
 		endtry
-		if m.err
-			this.messenger.errormessage("Unable to create temporary Cursor.")
+		if vartype(m.err) == "O"
+			this.messenger.errormessage("Unable to create temporary Cursor: "+evl(m.err.message, "Exception"))
 			return .f.
 		endif
 		m.temp.close()
@@ -4803,11 +4801,10 @@ define class GroupedExportTable as mp_ExportTable
 			endif
 			use
 			m.path.useExclusive()
-		catch
-			m.err = .t.
+		catch to m.err
 		endtry
-		if m.err
-			this.messenger.errormessage("Unable to create network definition.")
+		if vartype(m.err) == "O"
+			this.messenger.errormessage("Unable to create network definition: "+evl(m.err.message, "Exception"))
 			return .f.
 		endif
 		m.temp.close()
@@ -4818,11 +4815,10 @@ define class GroupedExportTable as mp_ExportTable
 		m.cascadeTable.setPFW(m.engine.getPFW())
 		try
 			m.rc = m.cascadeTable.create(m.path,"searched","found")
-		catch
-			m.err = .t.
+		catch to m.err
 		endtry
-		if m.err
-			this.messenger.errormessage("Grouping exceeded system limits.")
+		if vartype(m.err) == "O"
+			this.messenger.errormessage("Grouping failed: "+evl(m.err.message, "Exception"))
 			return .f.
 		endif
 		if m.rc == .f.
@@ -4849,13 +4845,12 @@ define class GroupedExportTable as mp_ExportTable
 			m.group.useShared()
 			select (m.temp.alias)
 			use
-		catch
-			m.err = .t.
+		catch to m.err
 		endtry
 		m.cascadeTable.erase()
 		m.cascadeTable.setCursor(.f.)
-		if m.err
-			this.messenger.errormessage("Unable to create temporary GroupCursor.")
+		if vartype(m.err) == "O"
+			this.messenger.errormessage("Unable to create temporary GroupCursor: "+evl(m.err.message, "Exception"))
 			return .f.
 		endif
 		if not this.construct()
@@ -5647,7 +5642,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.211"
+	version = "20.212"
 	tag = ""
 
 	protected function init(path, slot)
@@ -7433,12 +7428,11 @@ define class SearchEngine as custom
 			m.gatherer.useExclusive()
 			select (m.tmp.alias)
 			use
-		catch
-			m.err = .t.
+		catch to m.err
 		endtry
-		if m.err
+		if vartype(m.err) == "O"
 			this.registry.erase()
-			this.messenger.errormessage("Unable to create temporary Cursor.")
+			this.messenger.errormessage("Unable to create temporary Cursor: "+evl(m.err.message, "Exception"))
 			return .f.
 		endif
 		this.registry.deleteKey()
