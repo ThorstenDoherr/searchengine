@@ -19,8 +19,11 @@ Windows
 
 ## Version history
 
+2021.09.22 SearchEngine 20.213
+- the path of basetable can now contain blanks without causing an exception (this error caused the influx of version changes)
+
 2021.09.21 SearchEngine 20.212
-- changed SORTLIMIT back to 100000000 (overflows were not encountered)
+- changed SORTLIMIT back to 100000000 (overflows are not the culprit of reported errors)
 - error messages report proper exception descriptions 
 
 2021.09.16 SearchEngine 20.211
