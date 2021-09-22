@@ -220,6 +220,54 @@
 		<para2>UFER</para2>
 	</line>
 	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>PFAD</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>GRUND</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>STEIG</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>STEIGE</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>STIEG</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>STIEGE</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>HAFEN</para2>
+	</line>
+	<line>
+		<type>Strasse</type>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>MARKT</para2>
+	</line>
+	<line>
 		<type>PLZ</type>
 		<com>blank</com>
 		<para1>ABCDEFGHIJKLMNOPQRSTUVWXYZ</para1>
