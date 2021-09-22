@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2021.07.06
+*   Date:       2021.09.22
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -924,7 +924,7 @@ define class TableCluster as Custom
 			endif
 			m.table = m.tableCluster.getTable(1)
 			this.messenger.forceMessage("Sorting "+proper(m.table.getPureName()))
-			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table "+this.path+this.start
+			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table '"+this.path+this.start+"'"
 			&sql
 			use
 			this.rebuild()
@@ -942,7 +942,7 @@ define class TableCluster as Custom
 		for m.i = 1 to m.tableCluster.getTableCount()
 			m.table = m.tableCluster.getTable(m.i)
 			this.messenger.forceMessage("Sorting "+proper(m.table.getPureName()))
-			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table "+this.createTableName(this.first+m.i+m.tableCluster.getTableCount()-1)
+			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table '"+this.createTableName(this.first+m.i+m.tableCluster.getTableCount()-1)+"'"
 			&sql
 			use
 		endfor
@@ -1492,7 +1492,7 @@ define class TableCluster as Custom
 								return .f.
 							endif
 							this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-							select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.getDBF())
+							select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
 							use
 							m.targetnr = m.targetnr+1
 							m.start = m.stop+1
@@ -1507,7 +1507,7 @@ define class TableCluster as Custom
 						endif
 						this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
 						m.stop = reccount(m.table.alias)
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.getDBF())
+						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
 						use
 						m.targetnr = m.targetnr+1
 					endif
@@ -1520,7 +1520,7 @@ define class TableCluster as Custom
 							return .f.
 						endif
 						this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.getDBF())
+						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
 						use
 						m.targetnr = m.targetnr+1
 						m.start = m.stop+1

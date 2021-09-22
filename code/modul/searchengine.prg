@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2021.09.21
+*    Date:       2021.09.22
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -2578,7 +2578,7 @@ define class IndexCluster as Custom
 		for m.i = 1 to m.collector.Count
 			this.messenger.forceMessage("Indexing ("+m.name+iif(m.collector.count > 1,transform(m.i)+" of "+transform(m.collector.count),"")+")")
 			m.table = m.collector.item(m.i)
-			m.sql = textmerge("select <<m.indexField>> as index, <<m.targetField>> as target from <<m.table.alias>> order by 1, 2 into table <<m.sort.dbf>>")
+			m.sql = textmerge("select <<m.indexField>> as index, <<m.targetField>> as target from <<m.table.alias>> order by 1, 2 into table (m.sort.dbf)")
 			m.sort.close()
 			m.sort.erase()
 			m.err = .f.
@@ -3092,7 +3092,7 @@ define class ResultTable as BaseTable
 		endif
 		m.sql = substr(m.sql, 6)
 		if empty(m.sql) and m.shuffle <= 0
-			m.sql = "select * from "+m.result.alias+" into table "+this.dbf
+			m.sql = "select * from "+m.result.alias+" into table (this.dbf)"
 			&sql
 			use
 			this.useExclusive()
@@ -3122,7 +3122,7 @@ define class ResultTable as BaseTable
 				this.useExclusive()
 			else
 				this.messenger.forceMessage("Filtering...")
-				m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into table "+this.dbf
+				m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into table (this.dbf)"
 				&sql
 				use
 				this.useExclusive()
@@ -5642,7 +5642,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.212"
+	version = "20.213"
 	tag = ""
 
 	protected function init(path, slot)
@@ -7423,7 +7423,7 @@ define class SearchEngine as custom
 		try
 			select cast(0 as i) as newreg, cast(recno() as i) as oldreg from (this.registry.alias) order by occurs, type, entry into cursor (m.tmp.alias) readwrite
 			update (m.tmp.alias) set newreg = recno()
-			select newreg, cast(0 as n(1)) as ok from (m.tmp.alias) order by oldreg into table (m.gatherer.dbf) readwrite
+			select newreg, cast(0 as n(1)) as ok from (m.tmp.alias) order by oldreg into table (m.gatherer.dbf)
 			use
 			m.gatherer.useExclusive()
 			select (m.tmp.alias)

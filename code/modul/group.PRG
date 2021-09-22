@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      group.prg
-*   Date:       2021.08.17
+*   Date:       2021.09.22
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *               ParallelFox classes
@@ -319,7 +319,7 @@ define class CascadeTable as BaseTable
 				m.cluster.forceKey("to")
 				m.sql = 'select b.from as '+m.fromfield+', a.'+m.toField+m.rest+' from '+m.table.alias+' a, '+m.cluster.alias+' b where a.'+m.fromfield+' == b.to into cursor '+m.clu.alias
 				&sql
-				m.sql = 'select a.'+m.fromfield+', b.from as '+m.toField+m.group+' from '+m.clu.alias+' a, '+m.cluster.alias+' b where a.'+m.toField+' == b.to group by 1, 2 into table '+m.next.dbf
+				m.sql = 'select a.'+m.fromfield+', b.from as '+m.toField+m.group+' from '+m.clu.alias+' a, '+m.cluster.alias+' b where a.'+m.toField+' == b.to group by 1, 2 into table (m.next.dbf)'
 				&sql
 				use
 				m.next.useExclusive()
@@ -343,7 +343,7 @@ define class CascadeTable as BaseTable
 				endif
 			endfor
 		else
-			select b.from, a.to from (m.cluster.alias) a, (m.next.alias) b where a.from == b.to into table (this.getDBF())
+			select b.from, a.to from (m.cluster.alias) a, (m.next.alias) b where a.from == b.to into table (this.dbf)
 		endif
 		use
 		this.messenger.forceMessage("Closing...")
@@ -525,7 +525,7 @@ define class ClusterPathTable as BaseTable
 		m.tmp3 = createobject("TempAlias")
 		m.tmp4 = createobject("TempAlias")
 		this.messenger.forceMessage("Pathing (Origin)...")
-		m.sql = "select distinct cast(.null. as "+m.f1.getDefinition()+") as origin, a."+m.fromField+" as to from "+m.table.alias+" a into table "+this.dbf
+		m.sql = "select distinct cast(.null. as "+m.f1.getDefinition()+") as origin, a."+m.fromField+" as to from "+m.table.alias+" a into table (this.dbf)"
 		&sql
 		use
 		this.useExclusive()
