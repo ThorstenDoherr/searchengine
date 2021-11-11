@@ -19,6 +19,11 @@ Windows
 
 ## Version history
 
+2021.11.11 SearchEngine 20.214
+- fixed a bug in single process refine
+- fixed some progress messages
+- better recognition of numbers in imported text files 
+
 2021.09.22 SearchEngine 20.213
 - the path of the BaseTable can now contain blanks without causing an exception (this error caused the influx of version changes)
 
