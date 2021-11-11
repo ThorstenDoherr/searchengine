@@ -1,6 +1,6 @@
 *==========================================================================
 *	Modul: 		sheet.prg
-*	Date:		2020.10.19
+*	Date:		2021.11.03
 *	Author:		Thorsten Doherr
 *	Procedure: 	custom.prg
 *	Library:	foxpro.fll
@@ -789,7 +789,7 @@ define class InsheetTableCluster as TableCluster
 	endfunc
 		
 	hidden function collectHistogram(hist, items, itemcnt)
-	local cnt, i, val, len, item, type, err, int
+	local cnt, i, val, len, item, type
 		m.cnt = min(m.itemcnt,alen(m.hist,1))
 		for m.i = 1 to m.cnt
 			m.type = m.hist[m.i,256]
@@ -808,27 +808,32 @@ define class InsheetTableCluster as TableCluster
 			if m.type == "C"
 				loop
 			endif
+			m.item = alltrim(m.item)
 			if m.len >= 19 or isalpha(m.item) or asc(m.item) == 95
 				m.hist[m.i,256] = "C"
 				loop
 			endif
 			m.item = strtran(strtran(m.item,",","."),";"," ")
-			m.err = .f.
-			m.int = "m.int = int("+m.item+")"
-			try
-				&int
-			catch
-				m.err = .t.
-			endtry
-			if m.err
+			m.val = val(m.item)
+			if m.val == 0 and not empty(ltrim(ltrim(ltrim(rtrim(rtrim(m.item,"0"),"."),"-")),"0"))
 				m.hist[m.i,256] = "C"
 				loop
+			endif
+			if "." $ m.item
+				if not rtrim(rtrim(str(abs(m.val),18,17),"0"),".") == ltrim(ltrim(rtrim(rtrim(m.item,"0"),"."),"-"))
+					m.hist[m.i,256] = "C"
+					loop
+				endif
+			else
+				if not ltrim(str(abs(m.val),18)) == ltrim(ltrim(m.item,"-"))
+					m.hist[m.i,256] = "C"
+					loop
+				endif
 			endif
 			if m.type == "N"
 				loop
 			endif
-			m.val = val(m.item)
-			if not m.int == m.val
+			if not int(m.val) == m.val
 				if "e" $ m.item or "E" $ m.item
 					m.hist[m.i,256] = "N"
 				else

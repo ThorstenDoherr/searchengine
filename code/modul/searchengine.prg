@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2021.09.22
+*    Date:       2021.11.11
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5642,7 +5642,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.213"
+	version = "20.214"
 	tag = ""
 
 	protected function init(path, slot)
@@ -6066,6 +6066,7 @@ define class SearchEngine as custom
 	function setBaseCluster(bc, maxTableCount)
 		if vartype(m.bc) == "O"
 			this.baseCluster = m.bc
+			this.baseCluster.useShared()
 			this.syncBaseCluster()
 			return
 		endif
@@ -6085,6 +6086,7 @@ define class SearchEngine as custom
 			this.baseCluster = createobject("TableCluster",m.bt, m.maxTableCount, .t.)
 		else
 			if vartype(m.bt) == "O"
+				m.bt.useShared()
 				this.baseCluster = createobject("TableCluster",m.bt.getDBF(), m.maxTableCount, .t.)
 			else
 				this.baseCluster = createobject("TableCluster")
@@ -6156,7 +6158,8 @@ define class SearchEngine as custom
 
 	function setSearchCluster(sc)
 		this.searchCluster = m.sc
-		this.syncsearchCluster()
+		this.searchCluster.useShared()
+		this.syncSearchCluster()
 	endfunc		
 
 	function setSearchTable(st, maxTableCount)
@@ -6169,6 +6172,7 @@ define class SearchEngine as custom
 			this.searchCluster = createobject("TableCluster",m.st,m.maxTableCount,.t.)
 		else
 			if vartype(m.st) == "O"
+				m.st.useShared()
 				this.searchCluster = createobject("TableCluster",m.st.getDBF(),m.maxTableCount,.t.)
 			else
 				this.searchCluster = createobject("TableCluster")
@@ -6221,6 +6225,7 @@ define class SearchEngine as custom
 		if vartype(m.rt) == "C"
 			this.result = createobject("ResultTable",m.rt)
 		else
+			m.rt.useShared()
 			this.result = createobject("ResultTable",m.rt.getDBF())
 		endif
 		this.result.useShared()
@@ -8264,7 +8269,7 @@ define class SearchEngine as custom
 			if m.wc > 1
 				this.result.useExclusive()
 			endif
-			this.messenger.sneakMessage("Condolidating"+substr(this.messenger.message,at(" ",this.messenger.message)))
+			this.messenger.sneakMessage("Consolidating"+substr(this.messenger.message,at(" ",this.messenger.message)))
 			for m.i = 1 to m.wc 
 				m.result = m.col.item(m.i)
 				m.result.useExclusive()
@@ -8942,7 +8947,7 @@ define class SearchEngine as custom
 			this.pfw.wait(.t.)
 			this.pfw.stopWorkers()
 		else
-			this.result.useExcluive()
+			this.result.useExclusive()
 			this.refining(m.from, m.to, this.result, m.destructiveOnly, m.identityMode, m.compareMode, m.runFilter, this.messenger)
 			this.result.useShared()
 		endif

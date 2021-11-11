@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2021.08.24
+*   Date:       2021.11.03
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1088,7 +1088,7 @@ define class Progress as Custom
 				if m.j == m.pos
 					this.used = this.used+1
 					this.progress[this.used] = int(val(substr(m.lex[m.i],1,m.pos-1)))
-					this.template = this.template+"<<int(this.progress["+ltrim(str(this.used))+"])>>"
+					this.template = this.template+"<<this.progress["+ltrim(str(this.used))+"]>>"
 					m.lex[m.i] = substr(m.lex[m.i],m.pos+2)
 				endif
 			endif
@@ -3083,6 +3083,12 @@ define class CFieldStructure as FieldStructure
 	endfunc
 enddefine
 
+define class VFieldStructure as CFieldStructure
+	function init(name, size, decimal, index, null)
+		FieldStructure::init(m.name, "C", m.size, m.decimal, m.index, m.null)
+	endfunc
+enddefine
+
 define class MFieldStructure as CFieldStructure
 	function init(name, size, decimal, index, null)
 		FieldStructure::init(m.name, "M", m.size, m.decimal, m.index, m.null)
@@ -3804,7 +3810,7 @@ define class TableStructure as custom
 	endfunc
 			
 
-	function getExpressionList(exp as String, placeholder as String) 
+	function getExpressionList(exp as String, placeholder as String, sep as String) 
 	local str, i
 		if not this.isValid()
 			return ""
@@ -3812,11 +3818,14 @@ define class TableStructure as custom
 		if not vartype(m.placeholder) == "C" or empty(m.placeholder)
 			m.placeholder = "*"
 		endif
+		if not vartype(m.sep) == "C"
+			m.sep = ", "
+		endif
 		m.str = ""
 		for m.i = 1 to alen(this.tstruct,1)
-			m.str = m.str+strtran(m.exp,m.placeholder,this.tstruct[m.i,1])+", "
+			m.str = m.str+strtran(m.exp,m.placeholder,this.tstruct[m.i,1])+m.sep
 		endfor
-		return rtrim(m.str,", ")
+		return rtrim(m.str,m.sep)
 	endfunc
 
 	function toString
@@ -4939,6 +4948,21 @@ define class BaseTable as custom
 		m.pa = createobject("PreservedAlias")
 		this.select()
 		reindex
+		if m.share
+			this.useShared()
+		endif
+		return .t.
+	endfunc
+
+	function recall()
+		local pa, share
+		m.share = this.isShared()
+		if not this.useExclusive()
+			return .f.
+		endif
+		m.pa = createobject("PreservedAlias")
+		this.select()
+		recall all
 		if m.share
 			this.useShared()
 		endif
