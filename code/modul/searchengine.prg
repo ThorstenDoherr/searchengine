@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2021.11.11
+*    Date:       2022.02.07
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5642,7 +5642,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.214"
+	version = "20.215"
 	tag = ""
 
 	protected function init(path, slot)

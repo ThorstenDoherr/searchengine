@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2021.11.03
+*   Date:       2022.02.01
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -6052,6 +6052,50 @@ define class UniDecoder as Custom
 	dimension byte2[16,64]
 	
 	function decode(str as String)
+	local i, j, len, newstr, chr, asc, page1, page2
+		m.last = 0
+		m.buf = ""
+		m.len = len(m.str)
+		m.newstr = ""
+		for m.i = 1 to m.len
+			m.chr = substr(m.str,m.i,1)
+			m.asc = asc(m.chr)
+			m.page1 = this.byte1[m.asc]
+			if m.page1 > 0
+				m.j = m.i+1
+				m.asc = asc(substr(m.str,m.j,1))-127
+				if m.asc >= 1 and m.asc <= 64
+					m.chr = this.byte2[m.page1,m.asc]
+					m.i = m.j
+					if m.page1 == 2
+						m.page1 = this.byte1[asc(m.chr)]
+						if m.page1 > 0
+							m.j = m.j+1
+							m.asc = asc(substr(m.str,m.j,1))
+							if m.asc > 0
+								m.page2 = this.byte1[m.asc]
+								if m.page2 > 0
+									m.j = m.j+1
+									m.asc = asc(substr(m.str,m.j,1))-127
+									if m.asc >= 1 and m.asc <= 64
+										m.asc = asc(this.byte2[m.page2,m.asc])-127
+										if m.asc >= 1 and m.asc <= 64
+											m.chr = this.byte2[m.page1,m.asc]
+											m.i = m.j
+										endif
+									endif
+								endif
+							endif
+						endif
+					endif	
+				endif
+			endif
+			m.newstr = m.newstr+m.chr		
+		endfor
+		return m.newstr
+	endfunc
+
+	function decode_once(str as String)
 	local i, len, newstr, chr, asc, page
 		m.len = len(m.str)
 		m.newstr = ""
