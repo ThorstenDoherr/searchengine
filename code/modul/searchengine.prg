@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.02.07
+*    Date:       2022.02.22
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -3085,7 +3085,7 @@ define class ResultTable as BaseTable
 		endif
 		m.sql = ""
 		if m.high < 101 or m.low > 0
-			m.sql = m.sql+" and low >= "+transform(m.low)+" and high < "+transform(m.high)
+			m.sql = m.sql+" and identity >= "+transform(m.low)+" and identity < "+transform(m.high)
 		endif
 		if m.runFilter.isFiltering()
 			m.sql = m.sql+" and m.runFilter.run[asc(run)]"
@@ -5642,7 +5642,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.215"
+	version = "20.216"
 	tag = ""
 
 	protected function init(path, slot)
@@ -7238,7 +7238,7 @@ define class SearchEngine as custom
 		m.dp.dyna("OCL","1,5,6")
 		m.dp.dyna("OL","1,6")
 		if m.dp.para(@m.table, @m.shuffle, @m.low, @m.high, @m.runfilter, @m.newrun) == 0
-			this.messenger.errorMessage("Invalid cascade definition.")
+			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
 		m.oldmes = m.table.getMessenger()
