@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.02.22
+*    Date:       2022.03.10
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5365,7 +5365,7 @@ define class MetaExportTable as mp_ExportTable
 	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex, searchCluster
 	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target, runmax
 	local lexarray, rec, table, type
-	local inc, key, item, element, scnt, rcnt
+	local inc, key, item, element, scnt, rcnt, freccount
 	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
 		if m.from > m.to
@@ -5388,6 +5388,7 @@ define class MetaExportTable as mp_ExportTable
 		m.found = -1
 		m.cnt = 1
 		m.icnt = 1
+		m.freccount = reccount(m.foundreg.alias)
 		m.already = createobject("Collection")
 		m.again = createobject("Collection")
 		if this.txt
@@ -5458,7 +5459,7 @@ define class MetaExportTable as mp_ExportTable
 									m.sx[m.sxcnt,1] = recno()
 									m.sx[m.sxcnt,2] = m.typeindex
 									m.sx[m.sxcnt,3] = 1-(occurs-1)/m.stype.getMaxOcc()
-									if recno() <= reccount(m.foundreg.alias)
+									if recno() <= m.freccount
 										select (m.foundreg.alias)
 										go recno(m.searchedreg.alias)
 										m.f = 1-(occurs-1)/m.ftype.getMaxOcc()
@@ -5642,7 +5643,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.216"
+	version = "20.217"
 	tag = ""
 
 	protected function init(path, slot)
