@@ -19,6 +19,16 @@ Windows
 
 ## Version history
 
+2022.03.10 SearchEngine 20.217
+- slight improvement of the meta export performance
+
+2022.02.22 SearchEngine 20.216
+- fixed a bug, where the identity range selection of Result Export returned empty tables
+
+2022.02.07 SearchEngine 20.215
+- support for double encoded UTF-8 sequences in imported text files
+- removed the "fast" option from the import options due to ensure consistent imports
+
 2021.11.11 SearchEngine 20.214
 - fixed a bug in single process refine
 - fixed some progress messages
