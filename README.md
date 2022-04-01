@@ -19,6 +19,9 @@ Windows
 
 ## Version history
 
+2022.04.01 SearchEngine 20.218
+- included two-way string comparisons into the meta export format
+
 2022.03.10 SearchEngine 20.217
 - slight improvement of the meta export performance
 
