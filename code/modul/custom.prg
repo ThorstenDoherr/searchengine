@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2022.02.01
+*   Date:       2022.03.31
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -5408,15 +5408,19 @@ define class BaseTable as custom
 		return fsize(m.file)
 	endfunc
 
-	function toString(class)
+	function toString(class, cluster)
 		local str, i, s, f
-		m.str = "Class: "
-		if not vartype(m.class) == "C"
-			m.str = m.str+proper(this.Class)
-		else
-			m.str = m.str+m.class
+		if vartype(m.class) == "O"
+			m.cluster = m.class
+			m.class = this.class
 		endif
-		m.str = m.str+chr(10)
+		if not vartype(m.cluster) == "O"
+			m.cluster = this
+		endif
+		if not vartype(m.class) == "C"
+			m.class = this.Class
+		endif
+		m.str = "Class: "+m.class+chr(10)
 		if this.validAlias
 			m.str = m.str+"Alias: "+proper(this.getAlias())+chr(10)
 		endif
@@ -5437,7 +5441,7 @@ define class BaseTable as custom
 		endif
 		m.str = m.str+chr(10)
 		if this.validAlias
-			m.str = m.str+"Record: "+ltrim(str(this.recno()))+"/"+ltrim(str(this.reccount()))+chr(10)
+			m.str = m.str+"Record: "+ltrim(str(this.recno()))+"/"+ltrim(str(m.cluster.reccount()))+chr(10)
 		endif
 		m.s = this.getRequiredTableStructure()
 		if m.s.isValid()
@@ -6044,6 +6048,19 @@ define class MultiPurpose3 as Custom
 		this.value1 = m.value1
 		this.value2 = m.value2
 		this.value3 = m.value3
+	endfunc
+enddefine
+
+define class MultiPurpose4 as Custom
+	value1 = .f.
+	value2 = .f.
+	value3 = .f.
+	value4 = .f.
+	function init(value1, value2, value3, value4)
+		this.value1 = m.value1
+		this.value2 = m.value2
+		this.value3 = m.value3
+		this.value4 = m.value4
 	endfunc
 enddefine
 
