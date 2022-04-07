@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.04.01
+*    Date:       2022.04.06
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -546,9 +546,7 @@ define class MetaFilter as Custom
 	local str, i
 		m.str = ""
 		for m.i = 1 to alen(this.meta)
-			if this.meta[m.i] > 0
-				m.str = m.str+textmerge("; <<m.i>> = <<this.meta[m.i]>>")
-			endif
+			m.str = m.str+textmerge("; <<m.i>> = <<this.meta[m.i]>>")
 		endfor
 		return substr(m.str,3)
 	endfunc
@@ -5395,11 +5393,11 @@ define class MetaExportTable as mp_ExportTable
 	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes
 	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex
 	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target, runmax
-	local lexarray, rec, type, sMaxOcc, fMaxOcc, searchField
+	local lexarray, rec, sMaxOcc, fMaxOcc, searchField
 	local inc, key, item, element, scnt, rcnt, freccount
-	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer
-	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1], cx[1,2]
-		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
+	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer, tarpos
+	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1], cx[1,2], lnmax[1,2]
+		m.to = iif(m.to < 0, m.result.reccount(), m.to)
 		if m.from > m.to
 			return
 		endif
@@ -5427,6 +5425,13 @@ define class MetaExportTable as mp_ExportTable
 		m.already = createobject("Collection")
 		m.again = createobject("Collection")
 		m.meta = createobject("Collection")
+		dimension m.lnmax[m.foundTypes.getSearchTypeCount(),2]
+		for m.i = 1 to m.foundTypes.getSearchTypeCount()
+			m.ftype = m.foundTypes.getSearchTypeByIndex(m.i)
+			m.stype = this.searchedTypes.getSearchTypeByIndex(m.i)
+			m.lnmax[m.i,1] = log(m.ftype.getMaxOcc())
+			m.lnmax[m.i,2] = log(m.stype.getMaxOcc())
+		endfor
 		for m.i = 1 to m.join.getJoinCount()
 			m.fa = m.join.getA(m.i)
 			m.fb = m.join.getB(m.i)
@@ -5514,9 +5519,8 @@ define class MetaExportTable as mp_ExportTable
 					for m.j = 1 to m.metaitem.value3.count
 						m.ftype = m.metaitem.value3.item(m.j)
 						m.typeindex = m.ftype.getTypeIndex()
-						m.stype = this.searchedtypes.getSearchTypeByIndex(m.typeindex)
-						m.sMaxOcc = m.stype.getMaxOcc()
-						m.fMaxOcc = m.ftype.getMaxOcc()
+						m.fMaxOcc = m.lnmax[m.typeindex,1]
+						m.sMaxOcc = m.lnmax[m.typeindex,2]
 						m.alen = alines(m.lexArray,m.ftype.prepare(m.searchField),5," ")
 						m.already.remove(-1)
 						for m.k = 1 to min(m.alen, MAXTYPEWORDS)
@@ -5527,11 +5531,11 @@ define class MetaExportTable as mp_ExportTable
 									m.sxcnt = m.sxcnt+1
 									m.sx[m.sxcnt,1] = recno()
 									m.sx[m.sxcnt,2] = m.typeindex
-									m.sx[m.sxcnt,3] = 1-(occurs-1)/m.sMaxOcc
+									m.sx[m.sxcnt,3] = 1-log(occurs)/m.sMaxOcc
 									if recno() <= m.freccount
 										select (m.foundreg.alias)
 										go recno(m.searchedreg.alias)
-										m.f = 1-(occurs-1)/m.fMaxOcc
+										m.f = 1-log(occurs)/m.fMaxOcc
 										if m.f < m.sx[m.sxcnt,3]
 											m.sx[m.sxcnt,3] = m.f
 										endif
@@ -5609,13 +5613,16 @@ define class MetaExportTable as mp_ExportTable
 			for m.i = m.start to m.end
 				select (m.target.alias)
 				go m.i
-				m.fxcnt = m.fxcnt+1
-				m.fx[m.fxcnt,1] = target
+				m.tarpos = target
 				select (m.foundreg.alias)
-				go m.fx[m.fxcnt,1]
+				go m.tarpos
+				if this.meta.meta[type] == 0
+					loop
+				endif
+				m.fxcnt = m.fxcnt+1
+				m.fx[m.fxcnt,1] = m.tarpos
 				m.fx[m.fxcnt,2] = type
-				m.ftype = m.foundtypes.getSearchTypeByIndex(type)
-				m.fx[m.fxcnt,3] = 1-(occurs-1)/m.ftype.getMaxOcc()
+				m.fx[m.fxcnt,3] = 1-log(occurs)/m.lnmax[type,1]
 			endfor
 			m.f = 1
 			m.s = 1
@@ -5669,12 +5676,6 @@ define class MetaExportTable as mp_ExportTable
 			for m.i = 1 to m.foundtypes.getSearchTypeCount()
 				for m.j = 1 to 3
 					m.f = substr("MFS",m.j,1)
-					if not m.f == "S"
-						m.type = m.foundtypes.getSearchTypeByIndex(m.i)
-					else
-						m.type = this.searchedtypes.getSearchTypeByIndex(m.i)
-					endif
-					m.type = m.type.getMaxOcc()
 					for m.k = 1 to this.meta.meta[m.i]
 						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
 							m.val = m.mx[m.m,3]
@@ -5700,607 +5701,8 @@ define class MetaExportTable as mp_ExportTable
 			FileClose(EXPORTHANDLE)
 		endif
 		m.messenger.forceProgress()
-FileClose(99)
 	endfunc
 
-	function exporting_compare(from as Integer, to as Integer, export as Object, result as Object, searchedreg as Object, foundreg as Object, ipos as Object, count as Object, engine as Object, messenger as Object)
-	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes
-	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex
-	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target, runmax
-	local lexarray, rec, type, sMaxOcc, fMaxOcc, searchField
-	local inc, key, item, element, scnt, rcnt, freccount
-	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster
-	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1], cx[1,2]
-*FileOpenWrite(99,"d:\meta.log")
-*FileWriteCRLF(99,"META")
-		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
-		if m.from > m.to
-			return
-		endif
-		if not vartype(m.messenger) == "O"
-			m.messenger = createobject("Messenger")
-			m.messenger.setSilent(.t.)
-		endif
-		m.ipos.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
-		m.count.forceKey('searched')
-		m.join = m.engine.getSearchFieldJoin()
-		m.searchedreg.forceRegistryKey()
-		m.base2reg = m.engine.getBase2RegistryCluster()
-		m.searchCluster = m.engine.getSearchCluster()
-		m.foundCluster = m.engine.getFoundCluster()
-		m.foundTypes = m.engine.getSearchTypes()
-		m.lrcpdScope = m.engine.getLrcpdScope()
-		m.runmax = m.result.getRun()
-		dimension m.lexarray[1]
-		m.searched = -1
-		m.found = -1
-		m.cnt = 1
-		m.icnt = 1
-		m.freccount = reccount(m.foundreg.alias)
-		m.already = createobject("Collection")
-		m.again = createobject("Collection")
-		m.meta = createobject("Collection")
-		for m.i = 1 to m.join.getJoinCount()
-			m.fa = m.join.getA(m.i)
-			m.fb = m.join.getB(m.i)
-			m.fa = m.fa.getName()
-			m.fb = m.fb.getName()
-			m.useField = .t.
-			for m.j = 1 to m.foundtypes.getSearchTypeCount(m.fb)
-				m.ftype = m.foundtypes.getSearchTypeByField(m.fb,m.j)
-				m.typeindex = m.ftype.getTypeIndex()
-				if this.meta.meta[m.typeindex] == 0
-					loop
-				endif
-				if m.useField
-					m.useField = .f.
-					m.metaitem = createobject("Multipurpose4",m.fa,m.fb,createobject("Collection"),.f.)
-					if this.compare > 0
-						m.metaitem.value4 = createobject("LRCPD")
-						m.metaitem.value4.setScope(m.lrcpdScope)
-					endif
-					m.meta.add(m.metaitem)
-				endif
-				m.metaitem.value3.add(m.ftype)
-			endfor
-		endfor
-		if this.txt
-			m.chr9 = chr(9)
-			m.export.erase()
-			FileOpenWrite(EXPORTHANDLE,m.export.dbf)
-			FileWriteCRLF(EXPORTHANDLE,this.header)
-		else
-			m.chr9 = ","
-		endif
-		if this.rep > 0
-			dimension m.rx[this.rep]
-		endif
-		if this.compare > 0
-			dimension m.cx[this.compare,2]
-		endif
-		for m.rec = m.from to m.to
-			m.messenger.incProgress(1,1)
-			m.messenger.postProgress()
-			if m.messenger.queryCancel()
-				exit
-			endif
-			select (m.result.alias)
-			go (m.rec)		
-			m.run = asc(run)
-			m.identity = identity
-			if searched <= 0 or not this.runFilter.isFiltered(m.run) or m.identity < this.low or m.identity >= this.high
-				loop
-			endif
-			m.found = found
-			m.score = score
-			m.pos = 0
-			if seek(ltrim(str(searched))+" "+ltrim(str(found)),m.ipos.alias)
-				m.pos = evaluate(m.ipos.alias+".pos")
-				m.icnt = evaluate(m.ipos.alias+".cnt")
-			endif
-			if this.compare > 0
-				m.foundCluster.goRecord(m.found)
-				m.foundTable = m.foundCluster.getActiveTable()
-			endif
-			if searched != m.searched
-				for m.i = 1 to this.rep
-					m.rx[m.i] = 0
-				endfor
-				m.searched = searched
-*FileWriteCRLF(99,textmerge("<<m.searched>>:<<m.found>>"))						
-				if seek(m.searched, m.count.alias)
-					m.cnt = evaluate(m.count.alias+".cnt")
-				endif
-				m.sxcnt = 0
-				m.searchCluster.goRecord(m.searched)
-				m.searchTable = m.searchCluster.getActiveTable()
-				m.again.remove(-1)
-				m.index = 0
-				for m.i = 1 to m.meta.count
-					m.metaitem = m.meta.item(m.i)
-					m.searchField = alltrim(m.searchTable.getValueAsString(m.metaitem.value1))
-					if this.compare > 0
-						m.metaitem.value4.setA(m.searchField)
-					endif
-					m.inc = 1
-					for m.j = 1 to m.metaitem.value3.count
-						m.ftype = m.metaitem.value3.item(m.j)
-						m.typeindex = m.ftype.getTypeIndex()
-						m.stype = this.searchedtypes.getSearchTypeByIndex(m.typeindex)
-						m.sMaxOcc = m.stype.getMaxOcc()
-						m.fMaxOcc = m.ftype.getMaxOcc()
-						m.alen = alines(m.lexArray,m.ftype.prepare(m.searchField),5," ")
-						m.already.remove(-1)
-*FileWriteCRLF(99,textmerge("<<m.searched>>:<<alltrim(m.searchfield)>>:<<m.typeindex>>"))						
-						for m.k = 1 to min(m.alen, MAXTYPEWORDS)
-							m.lex = left(m.lexarray[m.k], ENTRYLENGTH)
-							if m.already.getKey(m.lex) == 0
-								select (m.searchedreg.alias)
-								if seek(m.searchedreg.buildRegistryKey(m.typeindex, m.lex))
-									m.sxcnt = m.sxcnt+1
-									m.sx[m.sxcnt,1] = recno()
-									m.sx[m.sxcnt,2] = m.typeindex
-									m.sx[m.sxcnt,3] = 1-(occurs-1)/m.sMaxOcc
-									if recno() <= m.freccount
-										select (m.foundreg.alias)
-										go recno(m.searchedreg.alias)
-										m.f = 1-(occurs-1)/m.fMaxOcc
-										if m.f < m.sx[m.sxcnt,3]
-											m.sx[m.sxcnt,3] = m.f
-										endif
-									endif
-									m.already.add(m.sx[m.sxcnt,3],m.lex)
-								endif
-								if m.sxcnt == MAXWORDCOUNT
-									exit
-								endif
-							endif
-						endfor
-						if not m.ftype.isDestructive()
-							m.index = m.index+m.inc
-							m.inc = 0
-							for m.k = 1 to m.already.count
-								m.lex = m.already.getKey(m.k)
-								m.f = m.already.item(m.k)
-								m.key = m.again.getKey(m.lex)
-								if m.key == 0
-									m.item = createobject("Collection")
-									m.item.add(createobject("Multipurpose2", m.index, m.f))
-									m.again.add(m.item, m.lex)
-								else
-									m.item = m.again.item(m.key)
-									m.element = m.item.item(m.item.count)
-									if m.element.value1 == m.index
-										m.element.value2 = max(m.element.value2,m.f)
-									else
-										m.item.add(createobject("Multipurpose2", m.index, m.f))
-									endif
-								endif
-							endfor
-						endif
-					endfor
-				endfor
-				asort(m.sx,1,m.sxcnt)
-				if this.rep > 0
-					m.scnt = m.again.count
-					m.rcnt = 0
-					for m.i = 1 to m.again.count
-						m.item = m.again.item(m.i)
-						if m.item.count > 1
-							m.rcnt = m.rcnt + 1
-							for m.j = 1 to m.item.count
-								m.element = m.item.item[m.j]
-								m.rx[m.element.value1] = max(m.rx[m.element.value1], m.element.value2)
-							endfor
-						endif
-					endfor
-				endif
-			endif
-			for m.i = 1 to this.compare
-				m.metaitem = m.meta.item(m.i)
-				m.metaitem.value4.setB(m.foundTable.getValueAsString(m.metaitem.value2))
-				m.cx[m.i,1] = m.metaitem.value4.compareAB()
-				m.cx[m.i,2] = m.metaitem.value4.compareBA()
-			endfor
-			m.fxcnt = 0
-			m.cluster = 1
-			m.index = m.base2reg.index.item(m.cluster)
-			m.start = 0
-			m.end = reccount(m.index.alias)-1
-			do while m.found > m.end
-				m.cluster = m.cluster+1
-				m.index = m.base2reg.index.item(m.cluster)
-				m.start = m.end
-				m.end = m.end+reccount(m.index.alias)-1
-			enddo
-			select (m.index.alias)
-			go m.found-m.start
-			m.start = index
-			skip
-			m.end = min(index-1, m.start+MAXWORDCOUNT-1)
-			m.target = m.base2reg.target.item(m.cluster)
-			for m.i = m.start to m.end
-				select (m.target.alias)
-				go m.i
-				m.fxcnt = m.fxcnt+1
-				m.fx[m.fxcnt,1] = target
-				select (m.foundreg.alias)
-				go m.fx[m.fxcnt,1]
-				m.fx[m.fxcnt,2] = type
-				m.ftype = m.foundtypes.getSearchTypeByIndex(type)
-				m.fx[m.fxcnt,3] = 1-(occurs-1)/m.ftype.getMaxOcc()
-			endfor
-			m.f = 1
-			m.s = 1
-			m.mxcnt = 0
-			do while m.s <= m.sxcnt or m.f <= m.fxcnt
-				m.mxcnt = m.mxcnt+1
-				if m.f <= m.fxcnt and (m.s > m.sxcnt or m.fx[m.f,1] < m.sx[m.s,1])
-					m.mx[m.mxcnt,1] = "F"
-					m.mx[m.mxcnt,2] = m.fx[m.f,2]
-					m.mx[m.mxcnt,3] = m.fx[m.f,3]
-					m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"F"+str(2-m.fx[m.f,3],11,9)
-					m.f = m.f+1
-					loop
-				endif
-				if m.s <= m.sxcnt and (m.f > m.fxcnt or m.sx[m.s,1] < m.fx[m.f,1])
-					m.mx[m.mxcnt,1] = "S"
-					m.mx[m.mxcnt,2] = m.sx[m.s,2]
-					m.mx[m.mxcnt,3] = m.sx[m.s,3]
-					m.mx[m.mxcnt,4] = str(m.sx[m.s,2],10,0)+"S"+str(2-m.sx[m.s,3],11,9)
-					m.s = m.s+1
-					loop
-				endif
-				m.mx[m.mxcnt,1] = "M"
-				m.mx[m.mxcnt,2] = m.fx[m.f,2]
-				m.mx[m.mxcnt,3] = m.fx[m.f,3]
-				m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"B"+str(2-m.fx[m.f,3],11,9)
-				m.s = m.s+1
-				m.f = m.f+1
-			enddo
-			asort(m.mx,4,m.mxcnt)
-			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+rtrim(rtrim(ltrim(str(m.identity,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.score,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.cnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.icnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.pos,18,9)),"0"),".")
-			for m.i = 1 to m.runmax
-				if m.i = m.run
-					m.line = m.line+m.chr9+"1"
-				else
-					if this.runFilter.isFiltered(m.i)
-						m.line = m.line+m.chr9+"0"
-					endif
-				endif
-			endfor
-			if this.rep > 0
-				m.line = m.line+m.chr9+ltrim(str(m.scnt))+m.chr9+ltrim(str(m.rcnt))
-				for m.i = 1 to this.rep
-					m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.rx[m.i],18,9)),"0"),".")
-				endfor
-			endif
-			m.m = 1
-			for m.i = 1 to m.foundtypes.getSearchTypeCount()
-				for m.j = 1 to 3
-					m.f = substr("MFS",m.j,1)
-					if not m.f == "S"
-						m.type = m.foundtypes.getSearchTypeByIndex(m.i)
-					else
-						m.type = this.searchedtypes.getSearchTypeByIndex(m.i)
-					endif
-					m.type = m.type.getMaxOcc()
-					for m.k = 1 to this.meta.meta[m.i]
-						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-							m.val = m.mx[m.m,3]
-							m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.val,18,9)),"0"),".")
-							m.m = m.m+1
-						else
-							m.line = m.line+m.chr9+"0"
-						endif
-					endfor
-					do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-						m.m = m.m+1
-					enddo
-				endfor
-			endfor
-			if this.txt
-				FileWriteCRLF(EXPORTHANDLE,m.line)
-			else
-				m.line = "insert into "+m.export.alias+" values ("+m.line+")"
-				&line
-			endif
-		endfor
-		if this.txt
-			FileClose(EXPORTHANDLE)
-		endif
-		m.messenger.forceProgress()
-*FileClose(99)
-	endfunc
-
-	function exportingX(from as Integer, to as Integer, export as Object, result as Object, searchedreg as Object, foundreg as Object, ipos as Object, count as Object, engine as Object, messenger as Object)
-	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes
-	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex, searchCluster
-	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target, runmax
-	local lexarray, rec, table, type, sMaxOcc, fMaxOcc, searchField
-	local inc, key, item, element, scnt, rcnt, freccount
-	local meta, useField, item1, item2
-	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1]
-		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
-		if m.from > m.to
-			return
-		endif
-		if not vartype(m.messenger) == "O"
-			m.messenger = createobject("Messenger")
-			m.messenger.setSilent(.t.)
-		endif
-		m.ipos.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
-		m.count.forceKey('searched')
-		m.join = m.engine.getSearchFieldJoin()
-		m.searchedreg.forceRegistryKey()
-		m.base2reg = m.engine.getBase2RegistryCluster()
-		m.searchCluster = m.engine.getSearchCluster()
-		m.foundTypes = m.engine.getSearchTypes()
-		m.runmax = m.result.getRun()
-		dimension m.lexarray[1]
-		m.searched = -1
-		m.found = -1
-		m.cnt = 1
-		m.icnt = 1
-		m.freccount = reccount(m.foundreg.alias)
-		m.already = createobject("Collection")
-		m.again = createobject("Collection")
-		m.meta = createobject("Collection")
-		for m.i = 1 to m.join.getJoinCount()
-			m.fa = m.join.getA(m.i)
-			m.fb = m.join.getB(m.i)
-			m.fa = m.fa.getName()
-			m.fb = m.fb.getName()
-			m.useField = .t.
-			for m.j = 1 to m.foundtypes.getSearchTypeCount(m.fb)
-				m.ftype = m.foundtypes.getSearchTypeByField(m.fb,m.j)
-				m.typeindex = m.ftype.getTypeIndex()
-				if this.meta.meta[m.typeindex] == 0
-					loop
-				endif
-				if m.useField
-					m.useField = .f.
-					m.item1 = createobject("Multipurpose3",m.fa,m.fb,createobject("Collection"))
-					m.meta.add(m.item1)
-				endif
-				m.item1.value3.add(m.ftype)
-			endfor
-		endfor
-		if this.txt
-			m.chr9 = chr(9)
-			m.export.erase()
-			FileOpenWrite(EXPORTHANDLE,m.export.dbf)
-			FileWriteCRLF(EXPORTHANDLE,this.header)
-		else
-			m.chr9 = ","
-		endif
-		if this.rep > 0
-			dimension m.rx[this.rep]
-		endif
-		for m.rec = m.from to m.to
-			m.messenger.incProgress(1,1)
-			m.messenger.postProgress()
-			if m.messenger.queryCancel()
-				exit
-			endif
-			select (m.result.alias)
-			go (m.rec)		
-			m.run = asc(run)
-			m.identity = identity
-			if searched <= 0 or not this.runFilter.isFiltered(m.run) or m.identity < this.low or m.identity >= this.high
-				loop
-			endif
-			m.found = found
-			m.score = score
-			m.pos = 0
-			if seek(ltrim(str(searched))+" "+ltrim(str(found)),m.ipos.alias)
-				m.pos = evaluate(m.ipos.alias+".pos")
-				m.icnt = evaluate(m.ipos.alias+".cnt")
-			endif
-			if searched != m.searched
-				for m.i = 1 to this.rep
-					m.rx[m.i] = 0
-				endfor
-				m.searched = searched
-				if seek(m.searched, m.count.alias)
-					m.cnt = evaluate(m.count.alias+".cnt")
-				endif
-				m.sxcnt = 0
-				m.searchCluster.goRecord(m.searched)
-				m.table = m.searchCluster.getActiveTable()
-				m.again.remove(-1)
-				m.index = 0
-				for m.i = 1 to m.join.getJoinCount()
-					m.fa = m.join.getA(m.i)
-					m.fb = m.join.getB(m.i)
-					m.fa = m.fa.getName()
-					m.fb = m.fb.getName()
-					m.searchField = m.table.getValueAsString(m.fa)
-					m.inc = 1
-					for m.j = 1 to m.foundtypes.getSearchTypeCount(m.fb)
-						m.ftype = m.foundtypes.getSearchTypeByField(m.fb,m.j)
-						m.typeindex = m.ftype.getTypeIndex()
-						if this.meta.meta[m.typeindex] == 0
-							loop
-						endif
-						m.stype = this.searchedtypes.getSearchTypeByIndex(m.typeindex)
-						m.sMaxOcc = m.stype.getMaxOcc()
-						m.fMaxOcc = m.ftype.getMaxOcc()
-						m.alen = alines(m.lexArray,m.ftype.prepare(m.searchField),5," ")
-						m.already.remove(-1)
-						for m.k = 1 to min(m.alen, MAXTYPEWORDS)
-							m.lex = left(m.lexarray[m.k], ENTRYLENGTH)
-							if m.already.getKey(m.lex) == 0
-								select (m.searchedreg.alias)
-								if seek(m.searchedreg.buildRegistryKey(m.typeindex, m.lex))
-									m.sxcnt = m.sxcnt+1
-									m.sx[m.sxcnt,1] = recno()
-									m.sx[m.sxcnt,2] = m.typeindex
-									m.sx[m.sxcnt,3] = 1-(occurs-1)/m.sMaxOcc
-									if recno() <= m.freccount
-										select (m.foundreg.alias)
-										go recno(m.searchedreg.alias)
-										m.f = 1-(occurs-1)/m.fMaxOcc
-										if m.f < m.sx[m.sxcnt,3]
-											m.sx[m.sxcnt,3] = m.f
-										endif
-									endif
-									m.already.add(m.sx[m.sxcnt,3],m.lex)
-								endif
-								if m.sxcnt == MAXWORDCOUNT
-									exit
-								endif
-							endif
-						endfor
-						if not m.ftype.isDestructive()
-							m.index = m.index+m.inc
-							m.inc = 0
-							for m.k = 1 to m.already.count
-								m.lex = m.already.getKey(m.k)
-								m.f = m.already.item(m.k)
-								m.key = m.again.getKey(m.lex)
-								if m.key == 0
-									m.item = createobject("Collection")
-									m.item.add(createobject("Multipurpose2", m.index, m.f))
-									m.again.add(m.item, m.lex)
-								else
-									m.item = m.again.item(m.key)
-									m.element = m.item.item(m.item.count)
-									if m.element.value1 == m.index
-										m.element.value2 = max(m.element.value2,m.f)
-									else
-										m.item.add(createobject("Multipurpose2", m.index, m.f))
-									endif
-								endif
-							endfor
-						endif
-					endfor
-				endfor
-				asort(m.sx,1,m.sxcnt)
-				if this.rep > 0
-					m.scnt = m.again.count
-					m.rcnt = 0
-					for m.i = 1 to m.again.count
-						m.item = m.again.item(m.i)
-						if m.item.count > 1
-							m.rcnt = m.rcnt + 1
-							for m.j = 1 to m.item.count
-								m.element = m.item.item[m.j]
-								m.rx[m.element.value1] = max(m.rx[m.element.value1], m.element.value2)
-							endfor
-						endif
-					endfor
-				endif
-			endif
-			m.fxcnt = 0
-			m.cluster = 1
-			m.index = m.base2reg.index.item(m.cluster)
-			m.start = 0
-			m.end = reccount(m.index.alias)-1
-			do while m.found > m.end
-				m.cluster = m.cluster+1
-				m.index = m.base2reg.index.item(m.cluster)
-				m.start = m.end
-				m.end = m.end+reccount(m.index.alias)-1
-			enddo
-			select (m.index.alias)
-			go m.found-m.start
-			m.start = index
-			skip
-			m.end = min(index-1, m.start+MAXWORDCOUNT-1)
-			m.target = m.base2reg.target.item(m.cluster)
-			for m.i = m.start to m.end
-				select (m.target.alias)
-				go m.i
-				m.fxcnt = m.fxcnt+1
-				m.fx[m.fxcnt,1] = target
-				select (m.foundreg.alias)
-				go m.fx[m.fxcnt,1]
-				m.fx[m.fxcnt,2] = type
-				m.ftype = m.foundtypes.getSearchTypeByIndex(type)
-				m.fx[m.fxcnt,3] = 1-(occurs-1)/m.ftype.getMaxOcc()
-			endfor
-			m.f = 1
-			m.s = 1
-			m.mxcnt = 0
-			do while m.s <= m.sxcnt or m.f <= m.fxcnt
-				m.mxcnt = m.mxcnt+1
-				if m.f <= m.fxcnt and (m.s > m.sxcnt or m.fx[m.f,1] < m.sx[m.s,1])
-					m.mx[m.mxcnt,1] = "F"
-					m.mx[m.mxcnt,2] = m.fx[m.f,2]
-					m.mx[m.mxcnt,3] = m.fx[m.f,3]
-					m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"F"+str(2-m.fx[m.f,3],11,9)
-					m.f = m.f+1
-					loop
-				endif
-				if m.s <= m.sxcnt and (m.f > m.fxcnt or m.sx[m.s,1] < m.fx[m.f,1])
-					m.mx[m.mxcnt,1] = "S"
-					m.mx[m.mxcnt,2] = m.sx[m.s,2]
-					m.mx[m.mxcnt,3] = m.sx[m.s,3]
-					m.mx[m.mxcnt,4] = str(m.sx[m.s,2],10,0)+"S"+str(2-m.sx[m.s,3],11,9)
-					m.s = m.s+1
-					loop
-				endif
-				m.mx[m.mxcnt,1] = "M"
-				m.mx[m.mxcnt,2] = m.fx[m.f,2]
-				m.mx[m.mxcnt,3] = m.fx[m.f,3]
-				m.mx[m.mxcnt,4] = str(m.fx[m.f,2],10,0)+"B"+str(2-m.fx[m.f,3],11,9)
-				m.s = m.s+1
-				m.f = m.f+1
-			enddo
-			asort(m.mx,4,m.mxcnt)
-			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+rtrim(rtrim(ltrim(str(m.identity,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.score,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.cnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.icnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.pos,18,9)),"0"),".")
-			for m.i = 1 to m.runmax
-				if m.i = m.run
-					m.line = m.line+m.chr9+"1"
-				else
-					if this.runFilter.isFiltered(m.i)
-						m.line = m.line+m.chr9+"0"
-					endif
-				endif
-			endfor
-			if this.rep > 0
-				m.line = m.line+m.chr9+ltrim(str(m.scnt))+m.chr9+ltrim(str(m.rcnt))
-				for m.i = 1 to this.rep
-					m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.rx[m.i],18,9)),"0"),".")
-				endfor
-			endif
-			m.m = 1
-			for m.i = 1 to m.foundtypes.getSearchTypeCount()
-				for m.j = 1 to 3
-					m.f = substr("MFS",m.j,1)
-					if not m.f == "S"
-						m.type = m.foundtypes.getSearchTypeByIndex(m.i)
-					else
-						m.type = this.searchedtypes.getSearchTypeByIndex(m.i)
-					endif
-					m.type = m.type.getMaxOcc()
-					for m.k = 1 to this.meta.meta[m.i]
-						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-							m.val = m.mx[m.m,3]
-							m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.val,18,9)),"0"),".")
-							m.m = m.m+1
-						else
-							m.line = m.line+m.chr9+"0"
-						endif
-					endfor
-					do while m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
-						m.m = m.m+1
-					enddo
-				endfor
-			endfor
-			if this.txt
-				FileWriteCRLF(EXPORTHANDLE,m.line)
-			else
-				m.line = "insert into "+m.export.alias+" values ("+m.line+")"
-				&line
-			endif
-		endfor
-		if this.txt
-			FileClose(EXPORTHANDLE)
-		endif
-		m.messenger.forceProgress()
-	endfunc
 enddefine
 
 define class SearchEngine as custom
@@ -6320,7 +5722,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.218"
+	version = "20.219"
 	tag = ""
 
 	protected function init(path, slot)
