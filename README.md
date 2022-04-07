@@ -19,6 +19,10 @@ Windows
 
 ## Version history
 
+2022.04.07 SearchEngine 20.219
+- fixed a bug in meta export ignoring excluded search types 
+- changed the formular for the absolute identfication potentials in the meta export format to be based on logarithmic distributions
+
 2022.04.01 SearchEngine 20.218
 - included two-way string comparisons into the meta export format
 
