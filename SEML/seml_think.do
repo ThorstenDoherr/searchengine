@@ -39,6 +39,7 @@ global vars : colnames(input)
 brain think brain
 gen byte equal = cond(brain > 0.5,1,9)
 keep searched found equal brain
+format brain %8.6f
 save think, replace
-export delimited think.txt, delim(tab) noquote replace
+export delimited think.txt, delim(tab) noquote datafmt replace
 log close
