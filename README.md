@@ -19,6 +19,10 @@ Windows
 
 ## Version history
 
+2022.08.19 SearchEngine 20.22
+- changed "darwinistic" setting to "darwinian" (the former is the German spelling)
+- small changes to the import function for text files (proper cleanup after canceling, skipping byte-order-marks)
+
 2022.04.07 SearchEngine 20.219
 - fixed a bug in meta export ignoring excluded search types 
 - changed the formular for the absolute identfication potentials in the meta export format to be based on logarithmic distributions
