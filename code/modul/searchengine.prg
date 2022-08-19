@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.04.06
+*    Date:       2022.08.19
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -5722,7 +5722,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.219"
+	version = "20.22"
 	tag = ""
 
 	protected function init(path, slot)
@@ -6005,7 +6005,15 @@ define class SearchEngine as custom
 		this.darwin = m.darwin
 	endfunc
 
+	function setDarwinian(darwin)
+		this.darwin = m.darwin
+	endfunc
+
 	function isDarwinistic()
+		return this.darwin
+	endfunc
+
+	function isDarwinian()
 		return this.darwin
 	endfunc
 
@@ -6662,7 +6670,7 @@ define class SearchEngine as custom
 		m.str = m.str+"Flags: "
 		m.str = m.str+iif(this.isValid(),"valid, ","")
 		m.str = m.str+iif(this.isCreatable(),"creatable, ","")
-		m.str = m.str+iif(this.isDarwinistic(),"darwinistic, ","")
+		m.str = m.str+iif(this.isDarwinian(),"darwinian, ","")
 		m.str = m.str+iif(this.isRelative(),"relative, ","")
 		m.str = m.str+iif(this.isIgnorant(),"ignorant, ","")
 		m.str = m.str+iif(this.isZealous(),"zealous, ","")
@@ -7008,6 +7016,8 @@ define class SearchEngine as custom
 							do case
 								case m.lex == "darwinistic"
 									this.setDarwinistic(.t.)
+								case m.lex == "darwinian"
+									this.setDarwinian(.t.)
 								case m.lex == "relative"
 									this.setRelative(.t.)
 								case m.lex == "ignorant"
@@ -10479,6 +10489,11 @@ define class SearchEngine as custom
 		this.setDarwinistic(m.darwin)
 	endfunc
 	
+	hidden function _darwinian(darwin)
+		m.darwin = iif(m.darwin,.t.,.f.) && invalid type forces exception
+		this.setDarwinian(m.darwin)
+	endfunc
+
 	hidden function _ignorant(ignorant)
 		m.ignorant = iif(m.ignorant,.t.,.f.) && invalid type forces exception
 		this.setIgnorant(m.ignorant)

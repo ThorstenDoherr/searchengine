@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2021.09.22
+*   Date:       2022.07.29
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -28,6 +28,8 @@ define class TableCluster as Custom
 	pseudo = .f.
 	preserve = .f.
 	errorCancel = .f.
+	key = ""
+	keyexp = ""
 	
 	function init(startTable as String, tableCount as Integer, tolerant as boolean, careless as boolean)
 		this.messenger = createobject("Messenger", this.errorCancel)
@@ -91,7 +93,7 @@ define class TableCluster as Custom
 		m.table.close()
 		m.len = m.end - m.start
 		this.leading0 = iif(substr(m.name,m.start+1,1) == "0",m.len,0)
-		m.num = val(substr(m.name,m.start+1,m.len))
+		m.num = int(val(substr(m.name,m.start+1,m.len)))
 		this.first = m.num
 		this.trunc = substr(m.name,1,m.start)+"*"+substr(m.name,m.end+1)
 		m.name = substr(m.name,m.end+1)
@@ -237,7 +239,7 @@ define class TableCluster as Custom
 				return .f.
 			endif
 			m.table = createobject("BaseTable",this.path+this.start)
-			if not m.table.create(m.struc)
+			if not m.table.construct(m.struc)
 				return .f.
 			endif
 			this.cluster.add(m.table)
@@ -502,7 +504,7 @@ define class TableCluster as Custom
 		m.lm = createobject("LastMessage",this.messenger)
 		m.sql = alltrim(m.sql)
 		m.type = lower(getwordnum(m.sql,1))
-		if not inlist(m.type,"update","select","delete")
+		if not inlist(m.type,"update","select","delete","alter")
 			this.messenger.errorMessage("Unsupported sql command.")
 			return .f.
 		endif
@@ -524,7 +526,14 @@ define class TableCluster as Custom
 				return .f.
 			endif
 			this.cluster.remove(-1)
-		endif
+		else
+			if m.type == "alter"
+				if this.getTableCount() == 0 or not this.useExclusive()
+					this.messenger.errorMessage("Unable to get exclusive access.")
+					return .f.
+				endif
+			endif
+		endif		
 		m.col = this.parseForExpression(@m.sql)
 		if vartype(m.col) == "O"
 			for m.i = m.col.count to 1 step -1
@@ -1068,6 +1077,38 @@ define class TableCluster as Custom
 		enddo
 		return .t.
 	endfunc
+	
+	function find(key) && automatically sets focus on active table
+		this.offset = 0
+		this.key = m.key
+		for this.index = 1 to this.cluster.count
+			this.table = this.cluster.item(this.index)
+			select (this.table.alias)
+			if seek(m.key)
+				return .t.
+			endif
+			this.offset = this.offset + reccount(this.table.alias)
+		endfor
+		return .f.
+	endfunc
+	
+	function next() && automatically sets focus on active table
+		select (this.table.alias)
+		skip
+		if not eof() and evaluate(this.keyexp) == this.key
+			return .t.
+		endif
+		this.offset = this.offset + reccount()
+		for this.index = this.index+1 to this.cluster.count
+			this.table = this.cluster.item(this.index)
+			select (this.table.alias)
+			if seek(this.key)
+				return .t.
+			endif
+			this.offset = this.offset + reccount(this.table.alias)
+		endfor
+		return .f.
+	endfunc
 
 	function rewind()
 		this.offset = 0
@@ -1137,7 +1178,7 @@ define class TableCluster as Custom
 		enddo
 	endfunc
 	
-	function compress(sizeMB as Integer)
+	function compress(sizeMB as Integer, combined as Boolean)
 	local target, targetnr, source, sourcenr, struc, i, f, memo
 	local dbfsize, fptsize, recsize, limit, records, buffer, full
 	local ps1, ps2, ps3, ps4, pa, combined, iter
@@ -1147,6 +1188,14 @@ define class TableCluster as Custom
 		m.ps3 = createobject("PreservedSetting","escape","off")
 		m.ps4 = createobject("PreservedSetting","safety","off")
 		this.messenger.forceMessage("Compressing...")
+		if vartype(m.sizeMB) == "L" and pcount() == 1
+			m.combined = m.sizeMB
+		endif
+		if vartype(m.sizeMB) == "N" and m.sizeMB > 0
+			m.limit = 1024 * 1024 * min(m.sizeMB, 2000)
+		else
+			m.limit = 1000 * 1000 * 1000 * 2
+		endif
 		if not this.callAnd('useExclusive()')
 			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
 			return .f.
@@ -1167,13 +1216,6 @@ define class TableCluster as Custom
 		m.dbfsize = m.target.getDBFsize()
 		m.fptsize = m.target.getFPTsize()
 		m.recsize = m.target.getRecordSize()
-		if vartype(m.sizeMB) == "N" and m.sizeMB > 0
-			m.limit = 1024 * 1024 * min(m.sizeMB, 2000)
-			m.combined = .t.
-		else
-			m.limit = 1000 * 1000 * 1000 * 2
-			m.combined = .f.
-		endif
 		m.struc = m.target.getTableStructure()
 		m.target.select()
 		m.sourcenr = 2
@@ -1255,7 +1297,7 @@ define class TableCluster as Custom
 					select * from (m.source.alias) where recno() <= m.records into cursor (m.buffer.alias) readwrite
 					select (m.target.alias)
 					append from (dbf(m.buffer.alias))
-					delete while recno() <= m.records in (m.source.alias)
+					delete for recno() <= m.records in (m.source.alias)
 					pack in (m.source.alias)
 				endif 
 			endif
@@ -1295,6 +1337,10 @@ define class TableCluster as Custom
 		this.messenger.forceMessage("Spreading...")
 		if not this.callAnd('useExclusive()')
 			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
+			return .f.
+		endif
+		if this.first == 0 and not this.forceConformity()
+			this.messenger.errorMessage("Unable to achive conformity.")
 			return .f.
 		endif
 		if not (vartype(m.sizeMB) == "N" and m.sizeMB > 0)
@@ -1642,23 +1688,40 @@ define class TableCluster as Custom
 		m.tc = "TableCount: "+ltrim(str(this.getTableCount(),18))
 		if this.getTableCount() > 0
 			m.str = this.getTable(1)
-			return m.str.toString(proper(this.class)+chr(10)+m.tc)
+			return m.str.toString(proper(this.class)+chr(10)+m.tc, this)
 		endif
 		return "Class: "+proper(this.class)+chr(10)+m.tc+chr(10)
 	endfunc
 	
 	function forceKey(keyexp as String)
-		return this.callAnd("forceKey('"+m.keyexp+"')")
+	local rc
+		this.keyexp = ""
+		this.key = .null.
+		m.rc = this.callAnd("forceKey('"+m.keyexp+"')")
+		if m.rc
+			this.keyexp = m.keyexp
+		endif
+		return m.rc
 	endfunc
 	
 	function setKey(keyexp as String)
+	local rc
+		this.keyexp = ""
+		this.key = .null.
 		if vartype(m.keyexp) == "L"
-			return this.callAnd("setKey()")
+			m.rc = this.callAnd("setKey()")
+		else
+			m.rc = this.callAnd("setKey('"+m.keyexp+"')")
 		endif
-		return this.callAnd("setKey('"+m.keyexp+"')")
+		if m.rc
+			this.keyexp = m.keyexp
+		endif
+		return m.rc
 	endfunc
 	
 	function deleteKey(keyexp as String)
+		this.keyexp = ""
+		this.key = .null.
 		if vartype(m.keyexp) == "L"
 			return this.callAnd("deleteKey()")
 		endif
@@ -1680,8 +1743,11 @@ define class TableCluster as Custom
 		return this.callAnd('open()')
 	endfunc
 
-	function pack()
-		return this.callAnd('pack()')
+	function pack(memo)
+		if m.memo == .f.
+			return this.callAnd('pack()')
+		endif
+		return this.callAnd('pack(.t.)')
 	endfunc
 	
 	function reccount()
@@ -1828,11 +1894,7 @@ define class CursorCluster as TableCluster
 		else
 			m.path = sys(2023)
 		endif
-		if adir(m.dir,m.path,"D") == 0
-			TableCluster::init()
-			return
-		endif
-		m.path = m.path+"\"
+		m.path = rtrim(strtran(m.path,"/","\"),"\")+"\"
 		m.cnt = 0
 		for m.i = 1 to 1000
 			m.file = m.path+sys(3)

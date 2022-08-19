@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2022.03.31
+*   Date:       2022.08.05
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1113,7 +1113,7 @@ define class Messenger as custom
 	onscreen = .t.
 	property = .f.
 	type = 0
-	silent = .f.
+	silent = -1
 	prefix = ""
 	default = ""
 	errorCancel = .f.
@@ -1335,14 +1335,22 @@ define class Messenger as custom
 		return this.interval
 	endfunc
 	
-	function setSilent(silent as Boolean)
-		this.silent = m.silent
+	function setSilent(silent)
+		if vartype(m.silent) == "L"
+			this.silent = iif(m.silent,9,-1)
+		else
+			this.silent = m.silent
+		endif
 	endfunc
 	
 	function isSilent()
-		return this.silent
+		return this.silent >= 9
 	endfunc
 	
+	function getSilent()
+		return this.silent
+	endfunc
+
 	function startProgress(template as String)
 		this.progress = createobject("Progress",m.template)
 		this.lastProgress = createobject("Progress",this.progress)
@@ -1620,7 +1628,7 @@ define class Messenger as custom
 			this.link.displayMessage(this.message, this.type)
 			return
 		endif
-		if this.silent
+		if this.type <= this.silent
 			return
 		endif
 		if this.onscreen

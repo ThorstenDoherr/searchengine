@@ -1,6 +1,6 @@
 *==========================================================================
 *	Modul: 		sheet.prg
-*	Date:		2021.11.03
+*	Date:		2022.08.10
 *	Author:		Thorsten Doherr
 *	Procedure: 	custom.prg
 *	Library:	foxpro.fll
@@ -203,6 +203,7 @@ define class InsheetTableCluster as TableCluster
 		m.nonames = this.nonames
 		m.separator = this.scanSeparator(m.crlf)
 		this.readline(m.crlf, @m.firstline)
+		m.firstline = this.skipByteOrderMark(m.firstline)
 		FileRewind(SHEETHANDLE)
 		this.initHistogram(@m.hist)
 		m.wc = this.pfw.setOptimalWorkerCount(m.filesize, 1024*1024*8)
@@ -367,6 +368,7 @@ define class InsheetTableCluster as TableCluster
 			m.table.erase()
 			if this.messenger.wasCanceled()
 				erase (this.getPath()+this.getStart()+"___w*_t*.dbf")
+				erase (this.getPath()+this.getStart()+"___w*_t*.fpt")
 				this.erase(.t.)
 				return .f.
 			endif
@@ -529,7 +531,7 @@ define class InsheetTableCluster as TableCluster
 
 	function appending(from as Integer, to as Integer, file as String, structure as Object, separator as String, nonames as Boolean, crlf as Boolean, messenger as Object)
 	local i, line, linebreak, cr, worker, ind, ins, cnt, val, item, len
-	local table, struct, blocksize, sizerec, size, datasize, sizememo, sizelimit, basecnt, norm, decoder
+	local table, struct, blocksize, sizerec, size, datasize, sizememo, sizelimit, basecnt, norm, decoder, bom
 	local array struc[1], items[1], values[1]
 		m.struct = this.getTableStructure()
 		if vartype(_screen.worker) == "N" and _screen.worker > 0
@@ -609,6 +611,7 @@ define class InsheetTableCluster as TableCluster
 			FileClose(SHEETHANDLE)
 			return
 		endif
+		m.bom = (m.from == 1)
 		if m.crlf
 			if left(m.line,1) == chr(10) and m.cr && jumped right between cr and lf
 				m.line = substr(m.line,2)
@@ -619,6 +622,9 @@ define class InsheetTableCluster as TableCluster
 		else
 			m.line = FileReadLF(SHEETHANDLE)				
 			m.from = m.from+len(m.line)+1
+		endif
+		if m.bom
+			m.line = this.skipByteOrderMark(m.line)
 		endif
 		dimension m.items[1]
 		select (m.table.alias)
@@ -1110,6 +1116,19 @@ define class InsheetTableCluster as TableCluster
 			m.itemarray[m.ind] = m.str
 		endif
 		return m.ind
+	endfunc
+	
+	hidden function skipByteOrderMark(str as String)
+		if left(m.str,3) == chr(239)+chr(187)+chr(191)
+			return substr(m.str,4)
+		endif
+		if inlist(left(m.str,4),chr(255)+chr(254)+chr(0)+chr(0),chr(0)+chr(0)+chr(254)+chr(255))
+			return substr(m.str,5)
+		endif
+		if inlist(left(m.str,2),chr(255)+chr(254),chr(254)+chr(255))
+			return substr(m.str,3)
+		endif
+		return m.str
 	endfunc
 
 	hidden function rtrimEmptyElements(itemarray)

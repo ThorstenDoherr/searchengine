@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      group.prg
-*   Date:       2021.09.22
+*   Date:       2022.08.08
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *               ParallelFox classes
@@ -437,6 +437,10 @@ define class ClusterPathTable as BaseTable
 	function getPFW()
 		return this.pfw
 	endfunc	
+	
+	function mp(mp as Integer)
+		return this.pfw.mp(m.mp)
+	endfunc
 	
 	function create(table, fromField, toField, cascade as Object)
 	local i, wc, psl, lm, pa, pk, f1, f2, filter
