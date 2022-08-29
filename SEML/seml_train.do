@@ -1,10 +1,13 @@
-// seml_train.do [new]
+// seml_train.do [new] [range]
 // Trains a neural network based on meta information and a scrutinized training sample
 // to identify false positives in SearchEngine results.
 // Several network profiles will be trained and reported.
 //
 // Parameter:
 // new - recreates training data, e.g. to change retention, otherwise an existing train file will be used
+// range - an equal value will be copied downward until another non-missing value is encountered within a block
+//
+// range-mode is typically required, if students misunderstood the default format (see below).
 //
 // Requires:
 // meta.txt or meta.dta - full meta export of the result
@@ -25,6 +28,9 @@
 // Remarks:
 // - equal has to be 1 (match) or 9 (non-match) in samples, exports and truths
 // - a value in a block header of the scrutinized data (searched not empty, found empty) is the default value for the block (reduces typing)
+// - the default value in the block header is used for all missings and zeroes within a block
+// - in range-mode, an equal value will be copied until another non-missing value is encountered
+// - range-mode is applied before the default replacement but is considered the inferior format because it is more prone to errors
 // - truth*.txt files replace the random draw of the retention
 // - export*.txt observations overwrite the estimation because they contain complete runs or other sub-populations
 // - retention will only be redrawn if the "new" parameter is specified
@@ -75,7 +81,22 @@ program define aggregate_run
 	rename run`run' run`list'
 end
 
+local new = 0
+local range = 0
 if "`1'" == "new" {
+	local new = 1
+}
+if "`2'" == "new" {
+	local new = 1
+}
+if "`1'" == "range" {
+	local range = 1
+}
+if "`2'" == "range" {
+	local range = 1
+}
+
+if `new' {
 	cap erase seml_train.dta
 }
 cap use seml_train, clear
@@ -126,12 +147,13 @@ if _rc != 0 {
 	replace export = export[_n-1] if export == 0 & searched == searched[_n-1] & found == found[_n-1]
 	replace sample = sample[_n-1] if sample == 0 & searched == searched[_n-1] & found == found[_n-1]
 	drop if searched == searched[_n+1] & found == found[_n+1] // truth > export > sample
+	sort searched pos
 	drop pos
 	replace found = . if found == 0
-	gen long n = _n
-	sort searched found n
-	drop if searched == searched[_n-1] & found == found[_n-1]
-	drop n
+	// applying range mode: every equal value in a block is valid until another is encountered
+	if `range' {
+		replace equal = equal[_n-1] if (equal == 0 | equal == .) & (equal[_n-1] != . | equal[_n-1] != 0) & searched == searched[_n-1]
+	}
 	// applying the default value for every searched block
 	egen byte default = max(equal * (found == .)), by(searched)
 	replace equal = default if equal == . | equal == 0
