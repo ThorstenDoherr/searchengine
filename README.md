@@ -17,6 +17,10 @@ Windows
 * The **data** directory contains two sample files to train your matching skills.
 * You will need a **SE** directory for every dataset constituting the base of a search project.
 
+## Special Preparer
+The SearchEngine already includes all necessary preparer but some languages or contexts may require the definition of special preparer (harmonization/tokenization directives). In the directory **code/preparer** you will find sub-directories for special preparer, i.e. the **GermanFirmsStreets** preparer for German firm and street names. Just copy the **searchengine.xml** next to the searchengine.exe and the associated preparer become available. Of course, you can always rely on your own external harmonization routines. As the SearchEngine is word based, special care has to be taken for languages that allow the concatenation of words, i.e. German.
+You can also create your own special preparer using the existing one(s) as templates.
+
 ## Version history
 
 2022.08.19 SearchEngine 20.22
