@@ -582,6 +582,22 @@ void FAR Compare(ParamBlk FAR *parm)
 	}
 }
 
+void FAR Invert(ParamBlk FAR *parm)
+{	char FAR *str;
+	long len, i;
+
+	len = parm->p[0].val.ev_length;
+	if (len >= BUFFERSIZE)
+	{	len = BUFFERSIZE-1;
+	}
+	_HLock(parm->p[0].val.ev_handle);
+	str = (char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	for (i=0; i < len; i++) buffer[i] = 255-str[i];
+	buffer[i] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_RetChar(buffer);
+}
+
 void FAR CollectSumArray(ParamBlk FAR *parm)
 {	AHandle FAR *ah;
 	double FAR *array;
@@ -1159,6 +1175,7 @@ FoxInfo myFoxInfo[] =
 	{"ApplyNoise", (FPFI) ApplyNoise, 4, "IIII"},
 	{"FilterNoise", (FPFI) FilterNoise, 4, "IIII"},
 	{"Compare", (FPFI) Compare, 3, "CCI"},
+	{"Invert", (FPFI) Invert, 1, "C"},
 	{"CollectSumArray", (FPFI) CollectSumArray, 5, "IIIIN"},
 	{"LimitDescArray", (FPFI) LimitDescArray, 6, "INIIII"},
 	{"BinarySearchAscArray", (FPFI) BinarySearchAscArray, 5, "INIII"},
