@@ -22,6 +22,9 @@ The SearchEngine already includes all necessary preparer but some languages or c
 You can also create your own special preparer using the existing one(s) as templates.
 
 ## Version history
+2022.12.06 SearchEngine 20.22.1
+- fixed SearchEngine.log ouput to use the "darwinian" keyword ("darwinistic" is still working, no need to adjust scripts) 
+- improved output of progress bar (no more strange rounding errors)
 
 2022.08.19 SearchEngine 20.22
 - changed "darwinistic" setting to "darwinian" (the former is the German spelling)
