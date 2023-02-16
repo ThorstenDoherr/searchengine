@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.08.19
+*    Date:       2022.12.06
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -2702,7 +2702,7 @@ define class IndexCluster as Custom
 	function indexing(from as Integer, to as Integer, sort as Object, index as Object, target as Object, oldindex as Integer, messenger as Object)
 	local i, base, actTarget, actIndex
 		m.to = iif(m.to < 0, m.sort.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -3509,7 +3509,7 @@ define class ResultTable as BaseTable
 	endfunc
 enddefine
 
-define class mp_ExportTable as BaseTable && contains help functions for ExportTables
+define class mp_ExportTable as BaseTable && contains tool functions for ExportTables
 	txt = .f.
 	
 	function consolidate(col as Collection)
@@ -3836,7 +3836,7 @@ define class ExportTable as mp_ExportTable
 	local oldsrec, skip, srec, skey, fkey, identity, equal, score, max, stxt, ftxt
 	local converter, run
 		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -4389,7 +4389,7 @@ define class ExtendedExportTable as mp_ExportTable
 	local join, joinCount, val, sql
 	local array data[1]
 		m.to = iif(m.to < 0, m.search.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -4913,7 +4913,7 @@ define class GroupedExportTable as mp_ExportTable
 	local i, ins, str, blank, converter, f, con, join, joinCount, found, val, struc
 	local array data[1]
 		m.to = iif(m.to < 0, m.group.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -5398,7 +5398,7 @@ define class MetaExportTable as mp_ExportTable
 	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer, tarpos
 	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1], cx[1,2], lnmax[1,2]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -5722,7 +5722,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.22"
+	version = "20.22.1"
 	tag = ""
 
 	protected function init(path, slot)
@@ -7656,7 +7656,7 @@ define class SearchEngine as custom
 	function collecting(from as Integer, to as Integer, registry as Object, collector as Object, messenger as Object)
 	local rec, baseTable, i, j, searchType, field, lexArray, already, alen, lex, wcnt
 		m.to = iif(m.to < 0, this.baseCluster.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -7715,7 +7715,7 @@ define class SearchEngine as custom
 	function optimizing(from as Integer, to as Integer, collector as Object, gatherer as Object, messenger as Object)
 	local newreg, rec
 		m.to = iif(m.to < 0, m.collector.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -7979,7 +7979,7 @@ define class SearchEngine as custom
 	local i, j, k, already, copy, table, wcnt, fa, fb, searchType, typeIndex, key, alen
 	local same, lexarray, lex, rec
 		m.to = iif(m.to < 0, this.searchCluster.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -8117,7 +8117,7 @@ define class SearchEngine as custom
 	function transferring(from as Integer, to as Integer, expandMode as Integer, registry as Object, updreg as Object, messenger as Object)
 	local rec, occurs
 		m.to = iif(m.to < 0, m.updreg.reccount(), m.to) 
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -8412,7 +8412,7 @@ define class SearchEngine as custom
 		local cluster, tar, run, activeJoin
 		local array tmp1[MAXWORDCOUNT,7], tmp2[MAXWORDCOUNT,2], typx[256,4]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -8791,7 +8791,7 @@ define class SearchEngine as custom
 		local searched, found, cluster, start, end, tar, type
 		local array tmp1[MAXWORDCOUNT,7], tmp2[MAXWORDCOUNT,3], typx[256,4], continuum[1]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -9059,7 +9059,7 @@ define class SearchEngine as custom
 		local searchTable, foundtable, searched, found, identity
 		local array rcpd[256], searchField[256], foundType[256]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -9266,7 +9266,7 @@ define class SearchEngine as custom
 	function mirroring(from as Integer, to as Integer, result as Object, base as Object, run as Integer, runFilter as Object, messenger as Object)
 	local searched, found, rec
 		m.to = iif(m.to < 0, this.result.reccount(), m.to)
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"
@@ -9342,7 +9342,7 @@ define class SearchEngine as custom
 	
 	function benchmarking(from as Integer, to as Integer, table as Object, messenger as Object)
 		local i, j, value, len
-		if m.from > m.to
+		if m.from > m.to or m.to <= 0
 			return
 		endif
 		if not vartype(m.messenger) == "O"

@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2022.08.05
+*   Date:       2023.02.16
 *   Author:     Thorsten Doherr
 *   Required:   none
 *   Function:   A colorful mix of base classes
@@ -1065,7 +1065,7 @@ define class Progress as Custom
 	endfunc
 	
 	hidden function defineTemplate(template)
-	local i, j, cnt, pos, lex
+	local i, j, cnt, pos, lex, chr, dec
 		if vartype(m.template) == "N"
 			m.template = "<<0>>/"+transform(m.template)
 		else
@@ -1079,16 +1079,29 @@ define class Progress as Custom
 		m.cnt = alines(m.lex,m.template,18,"<<")
 		for m.i = 1 to m.cnt
 			m.pos = at(">>",m.lex[m.i])
-			if m.pos > 0 and m.i > 1
+			if m.pos > 1 and m.i > 1
+				m.dec = 0
 				for m.j = 1 to m.pos-1
-					if not isdigit(substr(m.lex[m.i],m.j,1))
+					m.chr = substr(m.lex[m.i],m.j,1)
+					if not (isdigit(m.chr) or m.chr == "." or (m.chr == "-" and m.j == 1))
 						exit
+					endif
+					if m.chr == "."
+						if m.dec > 0
+							exit
+						endif
+						m.dec = m.pos-m.j-1
 					endif
 				endfor
 				if m.j == m.pos
 					this.used = this.used+1
-					this.progress[this.used] = int(val(substr(m.lex[m.i],1,m.pos-1)))
-					this.template = this.template+"<<this.progress["+ltrim(str(this.used))+"]>>"
+					this.progress[this.used] = val(substr(m.lex[m.i],1,m.pos-1))
+					if m.dec == 0
+						this.progress[this.used] = int(this.progress[this.used])
+						this.template = this.template+"<<int(this.progress["+ltrim(str(this.used))+"])>>"
+					else
+						this.template = this.template+"<<round(this.progress["+ltrim(str(this.used))+"],"+ltrim(str(m.dec))+")>>"
+					endif
 					m.lex[m.i] = substr(m.lex[m.i],m.pos+2)
 				endif
 			endif
@@ -1710,7 +1723,7 @@ define class Time as Custom
 		return m.t
 	endfunc
 
-	function passed(threshold)
+	function expired(threshold)
 	local dt, s, t
 		m.dt = datetime()
 		m.s = seconds()
@@ -1722,6 +1735,16 @@ define class Time as Custom
 		if m.t >= m.threshold
 			this.dt = m.dt
 			this.s = m.s
+			return .t.
+		endif
+		return .f.
+	endfunc
+	
+	function passed(threshold)
+	local s
+		if abs(seconds()-this.s) >= m.threshold
+			this.dt = datetime()
+			this.s = seconds()
 			return .t.
 		endif
 		return .f.
@@ -2684,9 +2707,19 @@ define class StringList as custom
 		return m.str
 	endfunc
 
-	function toString()
+	function toString(alias)
 	local str, i
 		m.str = ""
+		if vartype(m.alias) == "C"
+			m.alias = upper(alltrim(m.alias))+"."
+			if this.size > 0
+				m.str = m.alias+this.list[1]
+			endif
+			for m.i = 2 to this.size
+				m.str = m.str+this.sep+" "+m.alias+this.list[m.i]
+			endfor
+			return m.str
+		endif
 		if this.size > 0
 			m.str = this.list[1]
 		endif
@@ -2694,6 +2727,10 @@ define class StringList as custom
 			m.str = m.str+this.sep+" "+this.list[m.i]
 		endfor
 		return m.str
+	endfunc
+	
+	function getFieldList(alias)
+		return this.toString(m.alias)
 	endfunc
 enddefine
 
@@ -3016,15 +3053,18 @@ define class FieldStructure as custom
 		return '" "'
 	endfunc
 
-	function baseConverter(field as String, sort as Boolean)
+	function baseConverter(field as String, sort as Boolean, desc as boolean)
 		return '""'
 	endfunc
 
-	function keyConverter(field as String, sort as Boolean)
+	function keyConverter(field as String, sort as Boolean, desc as boolean)
 		if this.null
-			return 'NVL('+this.baseConverter(m.field, m.sort)+',"")'
+			if m.desc
+				return 'NVL('+this.baseConverter(m.field, .t., .t.)+',padr("",'+ltrim(str(this.size))+',"'+chr(255)+'"))'
+			endif
+			return 'NVL('+this.baseConverter(m.field, m.sort, m.desc)+',"")'
 		endif
-		return this.baseConverter(m.field, m.sort)
+		return this.baseConverter(m.field, m.sort, m.desc)
 	endfunc
 	
 	function blankConverter()
@@ -3074,7 +3114,10 @@ define class CFieldStructure as FieldStructure
 		return "U"
 	endfunc
 
-	function baseConverter(field as String, sort as Boolean)
+	function baseConverter(field as String, sort as Boolean, desc as boolean)
+		if m.desc
+			return 'IIF(ISNULL('+m.field+'),.NULL.,Invert('+m.field+'))'
+		endif
 		return 'RTRIM('+m.field+')'
 	endfunc
 	
@@ -3165,11 +3208,24 @@ define class NFieldStructure as FieldStructure
 		return val(m.val.toString())
 	endfunc
 	
-	function baseConverter(field as String, sort as Boolean)
-		if m.sort		
-			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR('+m.field+','+ltrim(str(this.size))+','+ltrim(str(this.decimal))+'))'
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
+		if m.desc		
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"N","P")+Invert(STR(ABS('+m.field+'),'+ltrim(str(this.size))+','+ltrim(str(this.decimal))+')))'
+		endif
+		if m.sort
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR(ABS('+m.field+'),'+ltrim(str(this.size))+','+ltrim(str(this.decimal))+'))'
 		endif
 		return 'IIF(ISNULL('+m.field+'),.NULL.,LTRIM(STR('+m.field+','+ltrim(str(this.size))+','+ltrim(str(this.decimal))+')))'
+	endfunc
+	
+	function keyConverter(field as String, sort as Boolean, desc as boolean)
+		if this.null
+			if m.desc
+				return 'NVL('+this.baseConverter(m.field, .t., .t.)+',padr("'+chr(255)+'",'+ltrim(str(this.size))+',"'+chr(255)+'"))'
+			endif
+			return 'NVL('+this.baseConverter(m.field, m.sort, m.desc)+',"")'
+		endif
+		return this.baseConverter(m.field, m.sort, m.desc)
 	endfunc
 	
 	function defaultConverter()
@@ -3218,9 +3274,12 @@ define class IFieldStructure as NFieldStructure
 		return "U"
 	endfunc
 
-	function baseConverter(field as String, sort as Boolean)
-		if m.sort		
-			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR('+m.field+',10))'
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
+		if m.desc
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"N","P")+Invert(STR(ABS('+m.field+'),10)))'
+		endif		
+		if m.sort
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR(ABS('+m.field+'),10))'
 		endif
 		return 'IIF(ISNULL('+m.field+'),.NULL.,LTRIM(STR('+m.field+')))'
 	endfunc
@@ -3235,9 +3294,12 @@ define class BFieldStructure as IFieldStructure
 		return 18
 	endfunc
 
-	function baseConverter(field as String, sort as Boolean)
-		if m.sort		
-			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR('+m.field+',36,18))'
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
+		if m.desc
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"N","P")+Invert(STR(ABS('+m.field+'),36,18)))'
+		endif		
+		if m.sort
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR(ABS('+m.field+'),36,18))'
 		endif
 		return 'IIF(ISNULL('+m.field+'),.NULL.,RTRIM(RTRIM(LTRIM(STR('+m.field+',36,18)),"0"),"."))'
 	endfunc
@@ -3270,8 +3332,21 @@ define class LFieldStructure as IFieldStructure
 		return upper(alltrim(m.val.toString())) == ".T."
 	endfunc
 	
-	function baseConverter(field as String, sort as Boolean)
-		return 'IIF('+m.field+',".T.",".F.")'
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
+		if m.desc
+			return 'IIF(ISNULL('+m.field+',.NULL.,IIF('+m.field+',".F.",".T."))'
+		endif
+		return 'IIF(ISNULL('+m.field+',.NULL.,IIF('+m.field+',".T.",".F."))'
+	endfunc
+
+	function keyConverter(field as String, sort as Boolean, desc as boolean)
+		if this.null
+			if m.desc
+				return 'NVL('+this.baseConverter(m.field, .t., .t.)+',"'+chr(255)+chr(255)+chr(255)+'"))'
+			endif
+			return 'NVL('+this.baseConverter(m.field, m.sort, m.desc)+',"")'
+		endif
+		return this.baseConverter(m.field, m.sort, m.desc)
 	endfunc
 
 	function defaultConverter()
@@ -3295,7 +3370,10 @@ define class DFieldStructure as LFieldStructure
 		return date(val(substr(m.val,1,4)),val(substr(m.val,5,2)),val(substr(m.val,7,2)))
 	endfunc
 	
-	function baseConverter(field as String, sort as Boolean)
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
+		if m.desc
+			return 'IIF(ISNULL('+m.field+'),.NULL.,Invert(DTOC('+m.field+',1)))'
+		endif
 		return 'DTOC('+m.field+',1)'
 	endfunc
 	
@@ -3330,7 +3408,10 @@ define class TFieldStructure as DFieldStructure
 	endfunc
 	
 	function baseConverter(field as String, sort as Boolean)
-		return 'IIF(ISNULL('+m.field+'),.NULL.,TTOC('+m.field+',1))'
+		if m.desc
+			return 'IIF(ISNULL('+m.field+'),.NULL.,Invert(TTOC('+m.field+',1)))'
+		endif
+		return 'TTOC('+m.field+',1)'
 	endfunc
 enddefine
 
@@ -3338,11 +3419,16 @@ define class ComposedKey as custom
 	protected struc, sort
 
 	function init(table, keyList, sort)
-		this.sort = m.sort
 		if vartype(m.table) == "C"
 			m.table = createobject("TableStructure",m.table)
 		endif
 		m.table = m.table.getTableStructure()
+		if pcount() == 2
+			if vartype(m.keyList) == "L"
+				m.sort = m.keyList
+			endif
+		endif
+		this.sort = m.sort
 		if not vartype(m.keyList) == "L"
 			if vartype(m.keylist) == "C"
 				m.keylist = createobject("TableStructure",m.keylist)
@@ -3354,7 +3440,7 @@ define class ComposedKey as custom
 	endfunc
 
 	function getexp(keyList)
-		local exp, i, f
+		local exp, i, f, item
 		if parameters() > 0
 			if vartype(m.keyList) == "C"
 				m.keyList = createobject("StringList",m.keyList,",")
@@ -3368,7 +3454,10 @@ define class ComposedKey as custom
 		m.exp = ""
 		for m.i = 1 to this.struc.getFieldCount()
 			m.f = this.struc.getFieldStructure(m.i)
-			m.exp = m.exp+m.f.keyConverter(m.keyList.getItem(m.i), this.sort)+'+CHR(0)+'
+			m.item = m.keyList.getItem(m.i)
+			m.desc = lower(getwordnum(m.item,2)) == "desc"
+			m.item = getwordnum(m.item,1)
+			m.exp = m.exp+m.f.keyConverter(m.item, this.sort, m.desc)+'+CHR(0)+'
 		endfor
 		return left(m.exp,len(m.exp)-8)
 	endfunc
@@ -3748,6 +3837,19 @@ define class TableStructure as custom
 		endfor
 		return 0
 	endfunc
+	
+	function getStructureByType(type as Character)
+		local i, str
+		m.type = ltrim(upper(m.type))
+		m.str = ""
+		for m.i = 1 to this.getFieldCount()
+			if this.tstruct[m.i,2] == m.type
+				m.f = this.getFieldStructure(m.i)
+				m.str = m.str+","+m.f.toString()
+			endif
+		endfor
+		return createobject("TableStructure",substr(m.str,2))
+	endfunc
 
 	function getStructureWithout(names)
 		local i, icnt, f, str
@@ -3759,10 +3861,10 @@ define class TableStructure as custom
 		for m.i = 1 to m.icnt
 			m.f = this.getFieldStructure(m.i)
 			if m.names.getFieldIndex(m.f.getName()) == 0
-				m.str = m.str+", "+m.f.toString()
+				m.str = m.str+","+m.f.toString()
 			endif
 		endfor
-		return createobject("TableStructure",substr(m.str,3))
+		return createobject("TableStructure",substr(m.str,2))
 	endfunc
 
 	function getStructureWith(names)
@@ -4103,6 +4205,7 @@ define class BaseTable as custom
 	protected requiredStructure, requiredKeys, optionalStructure
 	protected TableStructure, validAlias, validStructure, validKeys, validOptional, valid
 	protected Messenger, cursor, byalias
+	protected memos
 	alias = ""
 	dbf = ""
 	validAlias = .f.
@@ -4111,6 +4214,7 @@ define class BaseTable as custom
 	cursor = .f.
 	errorCancel = .f.
 	byalias = .f.
+	memos = .f.
 
 	function init(table)
 		declare Sleep in kernel32 integer millis
@@ -4143,6 +4247,7 @@ define class BaseTable as custom
 			this.validOptional = this.optionalStructure.checkStructure(this.TableStructure)
 			this.checkValidKeys()
 			this.checkValid()
+			this.memos = this.TableStructure.getStructureByType("M")
 			return 
 		endif
 		this.validAlias = .f.
@@ -4152,6 +4257,7 @@ define class BaseTable as custom
 		this.valid = .f.
 		this.TableStructure = createobject("TableStructure")
 		this.alias = ""
+		this.memos = createobject("TableStructure")
 		if not empty(m.handle)
 			this.dbf = createobject("String",fullpath(alltrim(m.handle)))
 			this.dbf = this.dbf.getFileExtensionChange("DBF",.t.)
@@ -4175,6 +4281,9 @@ define class BaseTable as custom
 		endif
 		if vartype(this.TableStructure) != "O"
 			this.TableStructure = createobject("TableStructure")
+		endif
+		if vartype(this.memos) != "O"
+			this.memos = createobject("TableStructure")
 		endif
 	endfunc
 
@@ -4501,6 +4610,10 @@ define class BaseTable as custom
 			this.useShared()
 		endif
 		return m.ok
+	endfunc
+	
+	function hasMemos()
+		return this.memos.getFieldCount() >0
 	endfunc
 
 	function getRequiredTableStructure
@@ -5351,23 +5464,20 @@ define class BaseTable as custom
 	endfunc
 
 	function getMemoSize()
-	local size, i, f, blocksize, datasize, len
+	local size, i, blocksize, datasize, len
 		if not this.validAlias
 			return 0
 		endif
 		m.size = 0
 		m.blocksize = int(val(sys(2012, this.alias)))
 		m.datasize = m.blocksize - 8
-		for m.i = 1 to this.tablestructure.getFieldCount()
-			m.f = this.tablestructure.getFieldStructure(m.i)
-			if m.f.getType() == "M"
-				m.len = len(evaluate(this.alias+"."+m.f.getName()))
-				if m.len > 0
-					m.size = m.size + (int((m.len - 1) / m.datasize) + 1) * m.blocksize
-				endif
+		for m.i = 1 to this.memos.getFieldCount()
+			m.len = len(evaluate(this.alias+"."+this.memos.tstruct[m.i,1]))
+			if m.len > 0
+				m.size = m.size + (int((m.len - 1) / m.datasize) + 1)
 			endif
 		endfor
-		return m.size
+		return m.size * m.blocksize
 	endfunc
 
 	function getDBFsize()
@@ -5642,7 +5752,7 @@ enddefine
 define class Stack as custom
 	dimension elements[64]
 	size = 0
-
+	
 	function push(element)
 		this.size = this.size+1
 		if this.size > alen(this.elements,1)
@@ -5881,6 +5991,30 @@ define class HashTree as Custom
 	endfunc
 enddefine
 				
+define class CollectionStorage as Custom
+	storage = .f.
+		
+	function init(size)
+	local i, col
+		this.storage = createobject("Collection")
+		for m.i = 1 to m.size
+			this.storage.add(createobject("Collection"))
+		endfor
+	endfunc
+	
+	function return(col as Collection)
+		m.col.remove(-1)
+		this.storage.add(m.col)
+	endfunc
+	
+	function borrow()
+	local col
+		m.col = this.storage.item(1)
+		this.storage.remove(1)
+		return m.col
+	endfunc
+enddefine
+
 define class StringNormizer as Custom
 	dimension anorm[255]
 

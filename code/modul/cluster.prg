@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2022.07.29
+*   Date:       2022.11.09
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -228,7 +228,7 @@ define class TableCluster as Custom
 		endif
 		return this.appendTable(m.struc)
 	endfunc
-
+	
 	function appendTable(struc as Object)
 	local table, i, last, key, close, newname
 		if this.cluster.count == 0
@@ -698,14 +698,9 @@ define class TableCluster as Custom
 		this.messenger.forceMessage("Appending...")
 		m.first = this.first-1
 		this.messenger.startProgress("Appending <<0>>/"+transform(m.cluster.getTableCount()))
-		this.messenger.startCancel("Cancel Operation?","Cluster Append","Canceled.")
 		for m.c = 1 to m.cluster.getTableCount()
 			this.messenger.incProgress(1,1)
 			this.messenger.forceProgress()
-			if this.messenger.queryCancel()
-				m.c = this.getTableCount()+1
-				exit
-			endif
 			m.clustertable = m.cluster.getTable(m.c)
 			m.table = createobject("BaseTable",this.createTableName(m.first+this.getTableCount()+m.c))
 			m.table.erase()
@@ -713,24 +708,26 @@ define class TableCluster as Custom
 			m.table.select()
 			append from (m.clustertable.getDBF())
 		endfor
-		this.messenger.sneakMessage("Cleaning...")
+		this.messenger.sneakMessage("Appending...")
 		m.table = createobject("TableCluster",this.createTableName(m.first+this.getTableCount()+m.c))
 		m.table.erase()
 		this.tolerant = .t.
 		this.rebuild(this.getTableCount()+m.cluster.getTableCount())
-		return not this.messenger.isInterrupted()
+		return .t.
 	endfunc
 
 	function cgroup(tablecluster as Object, groupby as String, grouping as String)
-	local pa, ps1, ps2, ps3, ps4, lm, first
+	local pa, ps1, ps2, ps3, ps4, ps5, lm, first
 	local table1, table2, struc, sqlbase, sql, i, j, k, list, item
-	local bysize, by, change, cnt, value
+	local bysize, by, change, value, match, leave
 		m.pa = createobject("PreservedAlias")
 		m.ps1 = createobject("PreservedSetting","talk","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","escape","off")
 		m.ps4 = createobject("PreservedSetting","deleted","off")
+		m.ps5 = createobject("PreservedSetting","exclusive","on")
 		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Grouping...")
 		if m.tablecluster.getTableCount() == 0
 			this.messenger.errorMessage("Empty TableCluster.")
 			return .f.
@@ -787,26 +784,17 @@ define class TableCluster as Custom
 			this.start = this.createTableName(1,.t.)
 		endif
 		m.first = this.first-1
-		this.messenger.setDefault("Grouping")
-		this.messenger.startProgress(m.tablecluster.getTableCount())
-		this.messenger.startCancel("Cancel Operation?","Cluster Grouping","Canceled.")
 		for m.i = 1 to m.tablecluster.getTableCount()
-			this.messenger.setProgress(m.i)
-			this.messenger.forceProgress()
-			if this.messenger.queryCancel()
-				this.messenger.sneakMessage("Canceling...")
-				m.tablecluster = createobject("TableCluster",this.createTableName(m.first+1))
-				m.tablecluster.erase()
-				return .f.
-			endif
+			this.messenger.forceMessage("Grouping into "+proper(this.createTableName(m.first+m.i,.t.)))
 			m.table1 = m.tableCluster.getTable(m.i)
 			m.sql = strtran(strtran(m.sqlbase,"?1",m.table1.getAlias()),"?2",this.createTableName(m.first+m.i))
 			&sql
 			use
 		endfor
+		this.messenger.forceMessage("Grouping...")
 		m.tablecluster = createobject("TableCluster",this.createTableName(m.first+m.i))
 		m.tablecluster.erase()
-		this.rebuild(-1)
+		this.rebuild(m.i-1)
 		m.bysize = m.groupby.getFieldCount()
 		dimension m.by[m.bysize,2]
 		for m.i = 1 to m.bysize
@@ -820,25 +808,15 @@ define class TableCluster as Custom
 			m.item.variable = m.struc.getFieldStructure(m.i+m.bysize)
 			m.item.variable = m.item.variable.getName()
 		endfor
-		this.messenger.setDefault("Collecting")
-		this.messenger.startProgress(this.cluster.count - 1)
 		for m.i = 1 to this.cluster.count - 1
-			this.messenger.setProgress(m.i)
-			this.messenger.forceProgress()
-			if this.messenger.queryCancel()
-				this.messenger.sneakMessage("Canceling...")
-				this.erase()
-				this.cluster.remove(-1)
-				return .f.
-			endif
 			m.table1 = this.cluster.item(m.i)
+			this.messenger.forceMessage("Grouping "+proper(m.table1.getPureName()))
 			select (m.table1.alias)
 			scan
 				if deleted()
 					loop
 				endif
-				for m.j = 1 to m.grouping.count
-					m.item = m.grouping.item(m.j)
+				for each item in m.grouping 
 					m.item.set(evaluate(m.item.variable))
 				endfor
 				for m.j = 1 to m.bysize
@@ -851,13 +829,13 @@ define class TableCluster as Custom
 					if eof()
 						loop
 					endif
-					m.k = 0
-					do while m.k <= m.bysize and not eof()
+					m.match = .f.
+					m.leave = .f.
+					do while not eof()
 						if deleted()
 							skip
 							loop
 						endif
-						m.cnt = 0
 						for m.k = 1 to m.bysize
 							m.value = evaluate(m.by[m.k,1])
 							if m.value < m.by[m.k,2]
@@ -865,13 +843,19 @@ define class TableCluster as Custom
 								exit
 							endif
 							if m.value > m.by[m.k,2]
-								m.k = m.bysize+1
+								m.leave = .t.
 								exit
 							endif
-							m.cnt = m.cnt+1
 						endfor
+						if m.k > m.bysize
+							m.match = .t.
+							exit
+						endif
+						if m.leave
+							exit
+						endif
 					enddo
-					if not eof() and m.cnt == m.bysize
+					if m.match
 						for m.k = 1 to m.grouping.count
 							m.item = m.grouping.item(m.k)
 							m.item.execute(evaluate(m.item.variable))
@@ -894,36 +878,40 @@ define class TableCluster as Custom
 				go top in (m.table2.alias)
 			endfor
 		endfor
-		this.messenger.forceMessage("Cleaning...")
+		this.messenger.forceMessage("Grouping...")
 		this.pack()
 		return .t.	
 	endfunc
 
-	function csort(tablecluster as Object, sortby as String)
-	local pa, ps1, ps2, ps3, ps4, lm
-	local struc, table, tables, i, sortexp, sql, sorted, pos, top
-	local insexp, ins, col, target, tarind, buffer, overflowerr, item, key
+	function csort(tablecluster as Object, orderby as String)
+	local pa, ps1, ps2, ps3, ps4, ps5, lm
+	local sortby, struc, table, i, sortexp, sql, sorted, pos, top
+	local insexp, ins, cols, col, newcol, buffer, overflowerr, item, key
 		m.pa = createobject("PreservedAlias")
 		m.ps1 = createobject("PreservedSetting","talk","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","escape","off")
 		m.ps4 = createobject("PreservedSetting","deleted","off")
+		m.ps5 = createobject("PreservedSetting","exclusive","on")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Sorting...")
 		if m.tablecluster.getTableCount() == 0
 			this.messenger.errorMessage("Empty TableCluster.")
 			return .f.
 		endif
-		if vartype(m.sortby) == "C"
-			m.sortby = createobject("TableStructure",m.sortby)
-		endif
+		m.orderby = createobject("StringList",m.orderby,",")
+		m.sortby = ""
+		for m.i = 1 to m.orderby.getItemCount()
+			m.sortby = m.sortby+","+getwordnum(m.orderby.getItem(m.i),1)
+		endfor
+		m.sortby = createobject("TableStructure",substr(m.sortby,2))
 		if not m.sortby.isValid()
-			this.messenger.errorMessage("Invalid sortby parameter.")
+			this.messenger.errorMessage("Invalid orderby parameter.")
 			return .f.
 		endif
 		m.struc = m.tablecluster.getTableStructure()
 		if not m.sortby.checkNames(m.struc)
-			this.messenger.errorMessage("Unknown sortby field.")
+			this.messenger.errorMessage("Unknown orderby field.")
 			return .f.
 		endif
 		if m.tableCluster.getTableCount() == 1
@@ -933,13 +921,13 @@ define class TableCluster as Custom
 			endif
 			m.table = m.tableCluster.getTable(1)
 			this.messenger.forceMessage("Sorting "+proper(m.table.getPureName()))
-			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table '"+this.path+this.start+"'"
+			m.sql = "select * from (m.table.alias) order by "+m.orderby.getFieldList(m.table.alias)+" into table '"+this.path+this.start+"'"
 			&sql
 			use
 			this.rebuild()
 			return .t.
 		endif
-		this.build(this.path+this.start,m.tableCluster.getTableCount()*2,.t.)
+		this.build(this.path+this.start,m.tableCluster.getTableCount(),.t.)
 		if this.getTableCount() > 0 and not this.erase()
 			this.messenger.errorMessage("Unable to clear table cluster.")
 			return .f.
@@ -947,40 +935,30 @@ define class TableCluster as Custom
 		this.cluster.remove(-1)
 		this.forceConformity()
 		m.sortexp = createobject("ComposedKey",m.struc,m.sortby.getFieldList(),.t.)
-		m.sortexp = m.sortexp.getExp()
+		m.sortexp = m.sortexp.getExp(m.orderby.getFieldList())
+		m.sorted = createobject("CursorCluster",this.path)
 		for m.i = 1 to m.tableCluster.getTableCount()
 			m.table = m.tableCluster.getTable(m.i)
+			m.sorted.appendTable()
 			this.messenger.forceMessage("Sorting "+proper(m.table.getPureName()))
-			m.sql = "select * from (m.table.alias) order by "+m.sortby.getFieldList()+" into table '"+this.createTableName(this.first+m.i+m.tableCluster.getTableCount()-1)+"'"
+			m.sql = "select * from (m.table.alias) order by "+m.orderby.getFieldList(m.table.alias)+" into table '"+m.sorted.table.dbf+"'"
 			&sql
 			use
+			m.sorted.table.useExclusive()
 		endfor
-		m.sorted = createobject("TableCluster",this.createTableName(this.first+m.tableCluster.getTableCount()),m.tableCluster.getTableCount())
-		for m.i = 1 to m.tableCluster.getTableCount()
-			m.table = m.sorted.getTable(m.i)
-			m.struc = m.table.getTableStructure()
-			m.table = createobject("BaseTable",this.createTableName(this.first+m.i-1))
-			this.messenger.forceMessage("Creating "+proper(m.table.getPureName()))
-			if not m.table.create(m.struc)
-				this.messenger.errorMessage("Unable to create cluster table.")
-				return .f.
-			endif
-			m.table.close()
-		endfor
-		this.build(this.path+this.start,m.tableCluster.getTableCount(),.t.)
-		m.struc = this.getTableStructure()
+		m.struc = m.sorted.getTableStructure()
 		m.insexp = "insert into ? values (m.buffer[1]"
 		for m.i = 2 to m.struc.getFieldCount()
 			m.insexp = m.insexp+",m.buffer["+ltrim(str(m.i))+"]"
 		endfor
 		m.insexp = m.insexp+")"
 		dimension m.buffer[m.struc.getFieldCount()]
-		m.tarind = 1
-		m.target = this.getTable(m.tarind)
-		m.ins = strtran(m.insexp,"?",m.target.alias)
+		this.appendTable(m.struc)
+		m.ins = strtran(m.insexp,"?",this.table.alias)
 		m.top = createobject("Collection")
 		m.top.keysort = 2
-		this.messenger.forceMessage("Filling "+proper(m.target.getPureName()))
+		m.cols = createobject("CollectionStorage",m.sorted.getTableCount()*2+1)
+		this.messenger.forceMessage("Sorting into "+proper(this.table.getPureName()))
 		for m.i = 1 to m.sorted.getTableCount()
 			m.table = m.sorted.getTable(m.i)
 			select (m.table.alias)
@@ -988,15 +966,13 @@ define class TableCluster as Custom
 			m.key = evaluate(m.sortexp)
 			m.pos = m.top.getKey(m.key)
 			if m.pos > 0
-				m.col = m.top.item(m.pos)
+				m.newcol = m.top.item(m.pos)
 			else
-				m.col = createobject("Collection")
-				m.col.add(m.key)
-				m.col.add(createobject("Collection"))
-				m.top.add(m.col,m.key)
+				m.newcol = m.cols.borrow()
+				m.newcol.add(m.key)
+				m.top.add(m.newcol,m.key)
 			endif
-			m.col = m.col.item(2)
-			m.col.add(m.i)
+			m.newcol.add(m.i)
 		endfor
 		do while m.top.count > 0
 			for each item in m.top
@@ -1004,8 +980,8 @@ define class TableCluster as Custom
 				exit
 			endfor
 			m.top.remove(m.col.item(1))
-			m.tables = m.col.item(2)
-			for each item in m.tables
+			m.col.remove(1)
+			for each item in m.col
 				m.table = m.sorted.getTable(m.item)
 				select (m.table.alias)
 				scatter memo to m.buffer
@@ -1016,15 +992,12 @@ define class TableCluster as Custom
 					m.overflowerr = .t.
 				endtry
 				if m.overflowerr
-					m.tarind = m.tarind + 1
-					if m.tarind > this.getTableCount()
-						m.sorted.erase()
+					if not this.appendTable()
 						this.messenger.errorMessage("Cluster overlow.")
 						return .f.
 					endif
-					m.target = this.getTable(m.tarind)
-					this.messenger.forceMessage("Filling "+proper(m.target.getPureName()))
-					m.ins = strtran(m.insexp,"?",m.target.alias)
+					this.messenger.forceMessage("Sorting into "+proper(this.table.getPureName()))
+					m.ins = strtran(m.insexp,"?",this.table.alias)
 					&ins
 				endif
 				skip
@@ -1032,29 +1005,18 @@ define class TableCluster as Custom
 					m.key = evaluate(m.sortexp)
 					m.pos = m.top.getKey(m.key)
 					if m.pos > 0
-						m.col = m.top.item(m.pos)
+						m.newcol = m.top.item(m.pos)
 					else
-						m.col = createobject("Collection")
-						m.col.add(m.key)
-						m.col.add(createobject("Collection"))
-						m.top.add(m.col,m.key)
+						m.newcol = m.cols.borrow()
+						m.newcol.add(m.key)
+						m.top.add(m.newcol,m.key)
 					endif
-					m.col = m.col.item(2)
-					m.col.add(m.item)
+					m.newcol.add(m.item)
 				endif
 			endfor
-			m.tables.remove(-1)
+			m.cols.return(m.col)
 		enddo
-		this.messenger.forceMessage("Cleaning...")
-		m.sorted.erase()
-		for m.i = this.getTableCount() to 1 step -1
-			m.table = this.getTable(m.i)
-			if m.table.getReccount() > 0
-				exit
-			endif
-			m.table.erase()
-			this.cluster.remove(m.i)
-		endfor
+		this.messenger.clearMessage()
 		return .t.	
 	endfunc
 	
@@ -1178,417 +1140,192 @@ define class TableCluster as Custom
 		enddo
 	endfunc
 	
-	function compress(sizeMB as Integer, combined as Boolean)
-	local target, targetnr, source, sourcenr, struc, i, f, memo
-	local dbfsize, fptsize, recsize, limit, records, buffer, full
-	local ps1, ps2, ps3, ps4, pa, combined, iter
+	function compress(sizeMB as Integer)
+		return this.adjust(m.sizeMB)
+	endfunc
+
+	function spread(sizeMB as Integer)
+		return this.adjust(m.sizeMB)
+	endfunc
+	
+	function copy(cluster as TableCluster, sizeMB as Integer)
+	local pa, ps1, ps2, ps3, ps4, i, table
+		if vartype(m.sizeMB) == "L"
+			m.pa = createobject("PreservedAlias")
+			m.ps1 = createobject("PreservedSetting","talk","off")
+			m.ps2 = createobject("PreservedSetting","escape","off")
+			m.ps3 = createobject("PreservedSetting","safety","off")
+			m.ps4 = createobject("PreservedSetting","exclusive","on")
+			this.messenger.forceMessage("Copying...")
+			if not m.cluster.isValid()
+				this.messenger.forceMessage("Invalid cluster.")
+				return .f.
+			endif
+			this.erase(.t.)
+			if m.cluster.cluster.count == 1
+				m.table = m.cluster.cluster.item(1)
+				this.messenger.forceMessage("Copying "+proper(m.table.getPureName()))
+				select (m.table.alias)
+				copy to (this.path+this.start) with cdx
+			else
+				this.forceConformity()
+				for m.i = 1 to m.cluster.cluster.count
+					m.table = m.cluster.cluster.item(m.i)
+					this.messenger.forceMessage("Copying "+proper(m.table.getPureName()))
+					select (m.table.alias)
+					copy to (this.createTableName(max(this.first,1)+m.i-1)) with cdx
+				endfor
+			endif
+			this.rebuild(m.cluster.cluster.count)
+			this.messenger.clearMessage()
+			return .t.
+		endif
+		return this.adjust(m.sizeMB, m.cluster)
+	endfunc
+
+	function adjust(sizeMB as Integer, source as TableCluster)
+	local pa, ps1, ps2, ps3, ps4, ps5, swap
+	local limit, struc, buffer, target_cluster, target
+	local rec_size, empty_rec_size, empty_memo_size, size, memo_size
+	local max_records, records_left, i, j
+	local table, start, stop
+	local memos, blocksize, datasize, len, bytes
 		m.pa = createobject("PreservedAlias")
 		m.ps1 = createobject("PreservedSetting","talk","off")
-		m.ps2 = createobject("PreservedSetting","deleted","off")
-		m.ps3 = createobject("PreservedSetting","escape","off")
-		m.ps4 = createobject("PreservedSetting","safety","off")
-		this.messenger.forceMessage("Compressing...")
-		if vartype(m.sizeMB) == "L" and pcount() == 1
-			m.combined = m.sizeMB
+		m.ps2 = createobject("PreservedSetting","escape","off")
+		m.ps3 = createobject("PreservedSetting","safety","off")
+		m.ps4 = createobject("PreservedSetting","deleted","off")
+		m.ps5 = createobject("PreservedSetting","exclusive","on")
+		this.messenger.forceMessage("Adjusting...")
+		if vartype(m.sizeMB) == "O"
+			m.swap = m.sizeMB
+			m.sizeMB = m.source
+			m.source = m.swap
+		endif
+		if not vartype(m.source) == "O"
+			m.source = this
+		endif
+		if not m.source.isValid()
+			this.messenger.forceMessage("Invalid cluster.")
+			return .f.
+		endif
+		if not m.source.callAnd('useExclusive()')
+			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
+			return .f.
 		endif
 		if vartype(m.sizeMB) == "N" and m.sizeMB > 0
 			m.limit = 1024 * 1024 * min(m.sizeMB, 2000)
 		else
 			m.limit = 1000 * 1000 * 1000 * 2
 		endif
-		if not this.callAnd('useExclusive()')
-			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
-			return .f.
-		endif
-		this.deleteKey()
-		m.buffer = createobject("UniqueAlias",.t.)
-		m.targetnr = 1
-		m.target = this.cluster.item(m.targetnr)
-		m.struc = m.target.getTableStructure()
-		m.memo = .f.
-		for m.i = 1 to m.struc.getFieldCount()
-			m.f = m.struc.getFieldStructure(m.i)
-			if m.f.getType() == "M"
-				m.memo = .t.
-				exit
-			endif
-		endfor
-		m.dbfsize = m.target.getDBFsize()
-		m.fptsize = m.target.getFPTsize()
-		m.recsize = m.target.getRecordSize()
-		m.struc = m.target.getTableStructure()
-		m.target.select()
-		m.sourcenr = 2
-		m.iter = int((this.cluster.count-1)*this.cluster.count/2)
-		do while m.sourcenr <= this.cluster.count
-			this.messenger.forceMessage("Compressing "+transform(int(m.iter - ((this.cluster.count-m.targetnr+1)*(this.cluster.count-m.targetnr)/2 - m.sourcenr + m.targetnr)))+"/"+transform(m.iter))
-			if reccount(m.target.alias) == 0
-				do while reccount(m.target.alias) == 0
-					this.cluster.remove(m.targetnr)
-					m.target.erase()
-					m.sourcenr = m.sourcenr-1
-					if m.targetnr > this.cluster.count
-						exit
-					endif
-					m.target = this.cluster.item(m.targetnr)
-				enddo
-				m.iter = int((this.cluster.count-1)*this.cluster.count/2)
-				if m.targetnr > this.cluster.count
-					exit
-				endif
-				for m.i = m.targetnr to this.cluster.count
-					m.target = this.cluster.item(m.i)
-					m.target.rename(this.createTableName(this.first+m.i-1,.t.))
-				endfor
-				m.target = this.cluster.item(m.targetnr)
-				if m.targetnr >= m.sourcenr
-					m.sourcenr = m.targetnr+1
-				endif
-				m.dbfsize = m.target.getDBFsize()
-				m.fptsize = m.target.getFPTsize()
-				m.recsize = m.target.getRecordSize()				
-				loop
-			endif
-			m.source = this.cluster.item(m.sourcenr)
-			m.full = .f.
-			if m.memo
-				m.records = 0
-				select (m.source.alias)
-				if m.combined
-					scan
-						m.dbfsize = m.dbfsize + m.recsize
-						m.fptsize = m.fptsize + m.source.getMemoSize()
-						if m.dbfsize+fptsize > m.limit
-							m.full = .t.
-							m.dbfsize = m.dbfsize - m.recsize
-							m.fptsize = m.fptsize - m.source.getMemoSize()
-							exit
-						endif
-						m.records = m.records+1
-					endscan
-				else
-					scan
-						m.dbfsize = m.dbfsize + m.recsize
-						m.fptsize = m.fptsize + m.source.getMemoSize()
-						if m.dbfsize > m.limit or m.fptsize > m.limit
-							m.full = .t.
-							m.dbfsize = m.dbfsize - m.recsize
-							m.fptsize = m.fptsize - m.source.getMemoSize()
-							exit
-						endif
-						m.records = m.records+1
-					endscan
-				endif
-			else
-				m.records = int((m.limit-m.dbfsize)/m.recsize)
-				if m.records <= reccount(m.source.alias)
-					m.full = .t.
-				else
-					m.records = reccount(m.source.alias)
-				endif
-				m.dbfsize = m.dbfsize + m.records * m.recsize
-			endif
-			if m.records > 0
-				if m.records == reccount(m.source.alias)
-					select (m.target.alias)
-					append from (dbf(m.source.alias))
-					zap in m.source.alias
-				else
-					select * from (m.source.alias) where recno() <= m.records into cursor (m.buffer.alias) readwrite
-					select (m.target.alias)
-					append from (dbf(m.buffer.alias))
-					delete for recno() <= m.records in (m.source.alias)
-					pack in (m.source.alias)
-				endif 
-			endif
-			if m.full
-				m.targetnr = m.targetnr+1
-				m.target = this.cluster.item(m.targetnr)
-				m.dbfsize = m.target.getDBFsize()
-				m.fptsize = m.target.getFPTsize()
-				m.recsize = m.target.getRecordSize()				
-				if m.targetnr >= m.sourcenr
-					m.sourcenr = m.targetnr+1
-				endif
-			else
-				m.sourcenr = m.sourcenr+1
-			endif
-		enddo
-		this.messenger.forceMessage("Compressing "+transform(m.iter)+"/"+transform(m.iter))
-		this.messenger.forceMessage("Closing...")
-		do while this.cluster.count > m.targetnr
-			m.target = this.cluster.item(this.cluster.count)
-			m.target.erase()
-			this.cluster.remove(this.cluster.count)
-		enddo
-		this.messenger.forceMessage("")
-		return .t.
-	endfunc
-
-	function spread(sizeMB as Integer)
-	local target, targetnr, struc, i, f, memo, recsize, emptysize, maxrec
-	local table, chunksize, start, stop, cut, first, buffer
-	local ps1, ps2, ps3, ps4, pa, limit, targetsize
-		m.pa = createobject("PreservedAlias")
-		m.ps1 = createobject("PreservedSetting","talk","off")
-		m.ps2 = createobject("PreservedSetting","deleted","off")
-		m.ps3 = createobject("PreservedSetting","escape","off")
-		m.ps4 = createobject("PreservedSetting","safety","off")
-		this.messenger.forceMessage("Spreading...")
-		if not this.callAnd('useExclusive()')
-			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
-			return .f.
-		endif
-		if this.first == 0 and not this.forceConformity()
-			this.messenger.errorMessage("Unable to achive conformity.")
-			return .f.
-		endif
-		if not (vartype(m.sizeMB) == "N" and m.sizeMB > 0)
-			m.sizeMB = 500
-		endif
-		m.limit = 1024 * 1024 * min(m.sizeMB, 2000)
-		this.deleteKey()
-		m.first = this.first-1
-		m.buffer = createobject("UniqueAlias",.t.)
-		m.table = this.cluster.item(1)
-		m.recsize = m.table.getRecordSize()
-		m.struc = m.table.getTableStructure()
-		m.memo = .f.
-		for m.i = 1 to m.struc.getFieldCount()
-			m.f = m.struc.getFieldStructure(m.i)
-			if m.f.getType() == "M"
-				m.memo = .t.
-				exit
-			endif
-		endfor
-		m.targetnr = this.cluster.count+1
-		m.target = createobject("BaseTable",this.createTableName(m.first+m.targetnr))
-		m.target.erase()
-		m.target.create(m.struc)
-		m.emptysize = m.target.getDBFsize()+ m.target.getFPTsize()
-		if m.memo
-			m.targetsize = m.emptysize
+		m.source.setKey()
+		m.struc = m.source.getTableStructure()
+		m.buffer = createobject("TempAlias")
+		if m.source == this
+			m.target_cluster = createobject("CursorCluster",this.path)
 		else
-			m.targetsize = 0
-			m.maxrec = int((m.limit-m.emptysize)/m.recsize)
+			m.target_cluster = this
+			m.target_cluster.erase(.t.)
 		endif
-		for m.i = 1 to this.cluster.count
-			m.table = this.cluster.item(m.i)
-			this.messenger.forceMessage("Spreading "+proper(m.table.getPureName()))
-			if m.table.getDBFsize()+ m.table.getFPTsize() <= m.limit
-				loop
-			endif
-			if m.memo
-				m.chunksize = m.emptysize
-				m.table.select()
-				go top
-				do while not eof()
-					m.chunksize = m.chunksize+m.recsize+m.table.getMemoSize()
-					if m.chunksize > m.limit
-						exit
-					endif
-					skip
-				enddo
-				m.chunksize = 0
-				m.start = recno()
-				m.cut = m.start
-				do while not eof()
-					m.chunksize = m.chunksize+m.recsize+m.table.getMemoSize()
-					if m.targetsize+m.chunksize > m.limit
-						this.messenger.forceMessage("Spreading "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-						m.stop = recno()-1
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
-						select (m.target.alias)
-						append from (dbf(m.buffer.alias))
-						select (m.table.alias)
-						m.start = recno()
-						m.chunksize = 0
-						m.targetnr = m.targetnr+1
-						m.target = createobject("BaseTable",this.createTableName(m.first+m.targetnr))
-						m.target.erase()
-						m.target.create(m.struc)
-						m.targetsize = m.emptysize
-						loop
-					endif
-					skip
-				enddo
-				m.stop = reccount()
-				select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
-				select (m.target.alias)
-				append from (dbf(m.buffer.alias))
-				select (m.table.alias)
-				m.targetsize = m.targetsize+m.chunksize
-				delete from (m.table.alias) where recno() >= m.cut
-			else
-				m.start = m.maxrec+1
-				m.cut = m.start
-				select (m.table.alias)
-				do while m.start <= reccount()
-					this.messenger.forceMessage("Spreading "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-					m.stop = min(m.start+m.maxrec-1-m.targetsize,reccount())
-					select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
-					select (m.target.alias)
-					append from (dbf(m.buffer.alias))
-					select (m.table.alias)
-					m.targetsize = m.targetsize+m.stop-m.start+1
-					m.start = m.stop+1
-					if m.targetsize >= m.maxrec
-						m.targetnr = m.targetnr+1
-						m.target = createobject("BaseTable",this.createTableName(m.first+m.targetnr))
-						m.target.erase()
-						m.target.create(m.struc)
-						m.targetsize = 0
-					endif
-				enddo
-				delete from (m.table.alias) where recno() >= m.cut
-			endif
-			m.table.pack()
-		endfor
-		this.messenger.forceMessage("Cleaning...")
-		m.target.close()
-		this.call('close()')
-		m.table = createobject("TableCluster",this.createTableName(m.first+m.targetnr+1))
-		m.table.call('erase()')
-		m.table = createobject("BaseTable",this.createTableName(m.first+m.targetnr))
-		if m.table.getReccount() == 0
-			m.table.erase()
-		endif
-		this.build(this.path+this.start,m.targetnr)
-		this.messenger.forceMessage("")
-		return .t.
-	endfunc
-	
-	function copy(cluster as TableCluster, sizeMB as Integer)
-	local target, targetnr, struc, i, f, memo, recsize, emptysize, maxrec
-	local table, chunksize, start, stop
-	local ps1, ps2, ps3, ps4, pa, limit
-		m.pa = createobject("PreservedAlias")
-		m.ps1 = createobject("PreservedSetting","talk","off")
-		m.ps2 = createobject("PreservedSetting","deleted","off")
-		m.ps3 = createobject("PreservedSetting","escape","off")
-		m.ps4 = createobject("PreservedSetting","safety","off")
-		this.messenger.forceMessage("Copying...")
-		if m.cluster.getTableCount() == 0
-			this.messenger.forceMessage("Empty cluster.")
-			return .f.
-		endif
-		if not vartype(m.sizeMB) == "N" 
-			m.limit = -1
-		else
-			m.limit = 1024 * 1024 * max(min(m.sizeMB, 2000),1)
-		endif
-		if this.getTableCount() > 0 and not this.callAnd('isCreatable()') and not this.callAnd('erase()')
-			this.messenger.errorMessage("Unable to clear table cluster.")
-			return .f.
-		endif
-		this.cluster.remove(-1)
-		if m.limit <= 0
-			for m.i = 1 to m.cluster.getTableCount()
-				m.table = m.cluster.getTable(m.i)
-				m.target = createobject("BaseTable",this.createTableName(this.first+m.i-1))
-				this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-				if not (m.target.isCreatable() or m.target.erase())
-					this.messenger.errorMessage("Unable to clear table space.")
-					return .f.
-				endif
-				m.table.select()
-				copy to (m.target.getDBF())
-			endfor
-			m.targetnr = m.cluster.getTableCount()
-		else
-			m.table = m.cluster.getTable(1)
-			m.recsize = m.table.getRecordSize()
-			m.struc = m.table.getTableStructure()
-			m.memo = .f.
-			for m.i = 1 to m.struc.getFieldCount()
-				m.f = m.struc.getFieldStructure(m.i)
-				if m.f.getType() == "M"
-					m.memo = .t.
-					exit
-				endif
-			endfor
-			m.target = createobject("BaseTable",this.createTableName(this.first))
-			m.target.erase()
-			if not m.target.create(m.struc)
-				this.messenger.errorMessage("Unable to clear table space.")
-				return .f.
-			endif
-			m.emptysize = m.target.getDBFsize() + m.target.getFPTsize()
-			m.target.erase()
-			if m.memo == .f.
-				m.maxrec = max(int((m.limit-m.emptysize)/m.recsize),1)
-			endif
-			m.targetnr = 0
-			for m.i = 1 to m.cluster.getTableCount()
-				m.table = m.cluster.getTable(m.i)
-				select (m.table.alias)
+		m.target_cluster.appendTable(m.struc)
+		m.target = m.target_cluster.table
+		m.rec_size = m.struc.getRecordSize()
+		m.empty_rec_size = m.target.getDBFsize()
+		m.empty_memo_size = m.target.getFPTsize()
+		m.memos = m.struc.getStructureByType("M")
+		if m.memos.getFieldCount() > 0
+			m.blocksize = int(val(sys(2012, m.target.alias)))
+			m.datasize = m.blocksize - 8
+			m.size = m.empty_rec_size
+			m.memo_size = m.empty_memo_size
+			for m.i = 1 to m.source.cluster.count
+				m.table = m.source.cluster.item(m.i)
+				this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
 				m.start = 1
-				m.chunksize = m.emptysize
-				if m.memo
-					scan
-						m.chunksize = m.chunksize + m.recsize + m.table.getMemoSize()
-						if m.memo
-							m.chunksize = m.chunksize + m.table.getMemoSize()
+				m.table.select()
+				scan
+					m.size = m.size+m.rec_size
+					m.bytes = 0
+					for m.j = 1 to m.memos.getFieldCount()
+						m.len = len(evaluate(m.memos.tstruct[m.j,1]))
+						if m.len > 0
+							m.bytes = m.bytes + (int((m.len - 1) / m.datasize) + 1)
 						endif
-						if m.chunksize > m.limit
-							m.stop = max(recno(m.table.alias)-1,m.start)
-							m.target = createobject("BaseTable",this.createTableName(this.first+m.targetnr))
-							if not (m.target.isCreatable() or m.target.erase())
-								this.messenger.errorMessage("Unable to clear table space.")
-								return .f.
-							endif
-							this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
+					endfor
+					m.memo_size = m.memo_size + m.bytes * blocksize
+					if m.size > m.limit or m.memo_size > m.limit
+						m.stop = recno()-1
+						if m.target.reccount() > 0
+							select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
+							select (m.target.alias)
+							append from dbf(m.buffer.alias)
+						else
 							select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
 							use
-							m.targetnr = m.targetnr+1
-							m.start = m.stop+1
-							m.chunksize = m.emptysize
+							m.target.useExclusive()
 						endif
-					endscan
-					if m.start <= reccount(m.table.alias)
-						m.target = createobject("BaseTable",this.createTableName(this.first+m.targetnr))
-						if not (m.target.isCreatable() or m.target.erase())
-							this.messenger.errorMessage("Unable to clear table space.")
-							return .f.
-						endif
-						this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-						m.stop = reccount(m.table.alias)
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
-						use
-						m.targetnr = m.targetnr+1
-					endif
-				else
-					do while m.start <= reccount(m.table.alias)
-						m.stop = m.start+m.maxrec-1
-						m.target = createobject("BaseTable",this.createTableName(this.first+m.targetnr))
-						if not (m.target.isCreatable() or m.target.erase())
-							this.messenger.errorMessage("Unable to clear table space.")
-							return .f.
-						endif
-						this.messenger.forceMessage("Copying "+proper(m.table.getPureName())+" into "+proper(m.target.getPureName()))
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
-						use
-						m.targetnr = m.targetnr+1
+						m.target_cluster.appendTable()
+						m.target = m.target_cluster.table
 						m.start = m.stop+1
-					enddo
+						m.size = m.empty_rec_size
+						m.memo_size = m.empty_memo_size
+					endif
+				endscan
+				if m.target.reccount() > 0
+					select * from (m.table.alias) where recno() >= m.start into cursor (m.buffer.alias) readwrite
+					select (m.target.alias)
+					append from dbf(m.buffer.alias)
+				else
+					select * from (m.table.alias) where recno() >= m.start into table (m.target.dbf)
+					use
+					m.target.useExclusive()
 				endif
 			endfor
+		else
+			m.max_records = int((m.limit-m.empty_rec_size)/m.rec_size)		
+			m.records_left = m.max_records
+			for m.i = 1 to m.source.cluster.count
+				m.table = m.source.cluster.item(m.i)
+				this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
+				m.start = 1
+				do while m.start <= m.table.reccount()
+					m.stop = min(m.table.reccount(),m.start+m.records_left-1)
+					this.messenger.incProgress(m.stop-m.start-1,1)
+					this.messenger.forceProgress()
+					if m.target.reccount() > 0
+						select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
+						select (m.target.alias)
+						append from dbf(m.buffer.alias)
+					else
+						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
+						use
+						m.target.useExclusive()
+					endif
+					m.records_left = m.max_records-m.target.reccount()
+					if m.records_left <= 0
+						m.target_cluster.appendTable()
+						m.target = m.target_cluster.table
+						m.records_left = m.max_records
+					endif
+					m.start = m.stop+1
+				enddo
+			endfor
 		endif
-		this.messenger.forceMessage("Cleaning...")
-		m.table = createobject("TableCluster",this.createTableName(this.first+m.targetnr))
-		m.table.erase()
-		this.build(this.path+this.start,m.targetnr)
-		this.messenger.forceMessage("")
+		this.messenger.forceMessage("Adjusting...")
+		if m.source == this
+			this.erase(.t.)
+			for m.i = 1 to m.target_cluster.cluster.count
+				m.table = m.target_cluster.cluster.item(m.i)
+				m.table.rename(this.createTableName(max(this.first,1)+m.i-1,.t.))
+			endfor
+			m.target_cluster.close()
+			this.rebuild(m.target_cluster.cluster.count)
+			m.target_cluster.cluster.remove(-1)
+		endif
+		this.messenger.clearMessage()
 		return .t.
 	endfunc
 	
-	function adjust(sizeMB as Integer)
-		if this.compress()
-			return this.spread(m.sizeMB)
-		endif
-		return .f.
-	endfunc
-
 	function consume(template as String, reqStructure as String)
 	local ps1, ps2, pa, dir, pos, cnt, i, struc, table, newname
 		m.pa = createobject("PreservedAlias")
@@ -1885,35 +1622,49 @@ define class TableCluster as Custom
 enddefine
 
 define class CursorCluster as TableCluster
+	hidden dummy
+
 	function init(path)
-	local file, table, dir, i, cnt
+	local file, dir, i, cnt, pa
+		m.pa = createobject("PreservedAlias")
 		this.setCursor(.t.)
 		dimension m.dir[1]
-		if vartype(m.path) == "C"
-			m.path = justpath(m.path)
-		else
+		if not vartype(m.path) == "C"
 			m.path = sys(2023)
 		endif
 		m.path = rtrim(strtran(m.path,"/","\"),"\")+"\"
 		m.cnt = 0
 		for m.i = 1 to 1000
 			m.file = m.path+sys(3)
-			if adir(m.dir,m.file+"_*.dbf") > 0
-				loop
-			endif
-			m.table = createobject("BaseTable",m.file+"_1.dbf")
-			if m.table.create("dummy c(1)")
+			if adir(m.dir,m.file+"_*.dbf") == 0 and not file(m.file+"_X.TMP")
 				exit
 			endif
 		endfor
-		m.table.close()
 		if m.i > 1000
 			TableCluster::init()
 			return
 		endif
+		this.dummy = m.file+"_X.TMP"
+		create table (this.dummy) (dummy n(1))
+		use
 		TableCluster::init(m.file+"_1.dbf")
 	endfunc
+
+	function appendTable(struc)
+		if this.cluster.count == 0 and vartype(m.struc) == "L"
+			m.struc = "dummy c(1)"
+		endif
+		return TableCluster::appendTable(m.struc)
+	endfunc
+	
+	function destroy()
+		if this.cursor
+			this.call("setCursor(.t.)")
+		endif
+		erase (this.dummy)
+	endfunc
 enddefine
+
 
 define class Grouping as Custom
 	variable = ""
