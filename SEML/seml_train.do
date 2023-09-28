@@ -36,8 +36,12 @@
 // - retention will only be redrawn if the "new" parameter is specified
 // - retention will be drawn only from sample files
 //
+// AGGREGATION OF SEARCH RUNS
+// Search runs with similar setups but only different thresholds can be aggregated.
+// Search runs with low number of observations should be aggregated with similar search runs,
+// i.e. runs using 3gram preparer regardless off smoothing.
 // To aggregate search runs add definitions after the settings.
-// Examples (numerate the macros in ascending order):
+// Examples (enumerate the macros in ascending order):
 // global run1 2 3 4    // to aggregate run 2, 3 and 4
 // global run2 6 7 8 9  // to aggregate run 6 to 9
 //
