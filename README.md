@@ -4,7 +4,7 @@
 If you are not interested in the source code, ignore the **code** directory.
 
 ## Documentation
-The documentaion can be found in the  **doc** directory. It consists of a presentation explaining the algorithm and major features and a manual.
+The documentaion can be found in the  **doc** directory. It consists of presentations explaining the algorithm and major features, a manual and a background paper.
 
 ## Prerequisites
 Windows
@@ -22,6 +22,9 @@ The SearchEngine already includes all necessary preparer but some languages or c
 You can also create your own special preparer using the existing one(s) as templates.
 
 ## Version history
+2023.03.21 SearchEngine 20.22.2
+- removed remnants of the deprecated "fast parsing" option of the import routines
+
 2022.12.06 SearchEngine 20.22.1
 - fixed SearchEngine.log ouput to use the "darwinian" keyword ("darwinistic" is still working, no need to adjust scripts) 
 - improved output of progress bar (no more strange rounding errors)
