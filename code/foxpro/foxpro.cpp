@@ -1,9 +1,9 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
-#include <pro_ext.h>
+#include "pro_ext.h"
 
-#define BUFFERSIZE 25000000
+#define BUFFERSIZE 33554432
 
 typedef struct
 {	double *array;
@@ -14,6 +14,28 @@ typedef struct
 static AHandle ArrayHandler[65000];
 static FILE *F[65000];
 static char FAR buffer[BUFFERSIZE+2];
+static char FAR anorm[256][2] = {{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'0','\0'},{'1','\0'},{'2','\0'},{'3','\0'},{'4','\0'},{'5','\0'},{'6','\0'},{'7','\0'},{'8','\0'},{'9','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'A','\0'},{'B','\0'},{'C','\0'},{'D','\0'},{'E','\0'},{'F','\0'},{'G','\0'},{'H','\0'},{'I','\0'},{'J','\0'},{'K','\0'},{'L','\0'},{'M','\0'},{'N','\0'},{'O','\0'},{'P','\0'},{'Q','\0'},{'R','\0'},{'S','\0'},{'T','\0'},{'U','\0'},{'V','\0'},{'W','\0'},{'X','\0'},{'Y','\0'},{'Z','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'A','\0'},{'B','\0'},{'C','\0'},{'D','\0'},
+{'E','\0'},{'F','\0'},{'G','\0'},{'H','\0'},{'I','\0'},{'J','\0'},{'K','\0'},{'L','\0'},{'M','\0'},{'N','\0'},{'O','\0'},{'P','\0'},{'Q','\0'},{'R','\0'},{'S','\0'},{'T','\0'},{'U','\0'},{'V','\0'},{'W','\0'},{'X','\0'},{'Y','\0'},{'Z','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'S','\0'},{' ','\0'},{'O','E'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'S','\0'},{' ','\0'},{'O','E'},{' ','\0'},{' ','\0'},{'Y','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'A','\0'},{'A','\0'},{'A','\0'},{'A','\0'},{'A','E'},{'A','\0'},{'A','E'},{'C','\0'},{'E','\0'},
+{'E','\0'},{'E','\0'},{'E','\0'},{'I','\0'},{'I','\0'},{'I','\0'},{'I','\0'},{'T','\0'},{'N','\0'},{'O','\0'},{'O','\0'},{'O','\0'},{'O','\0'},{'O','E'},{' ','\0'},{'O','\0'},{'U','\0'},{'U','\0'},{'U','\0'},{'U','E'},{'Y','\0'},{'T','H'},{'S','S'},{'A','\0'},{'A','\0'},{'A','\0'},{'A','\0'},{'A','E'},{'A','\0'},{'A','E'},{'C','\0'},{'E','\0'},{'E','\0'},{'E','\0'},{'E','\0'},{'I','\0'},{'I','\0'},{'I','\0'},{'I','\0'},{'T','\0'},{'N','\0'},{'O','\0'},{'O','\0'},{'O','\0'},{'O','\0'},{'O','E'},{' ','\0'},{'O','\0'},{'U','\0'},{'U','\0'},{'U','\0'},{'U','E'},{'Y','\0'},{'T','H'},{'Y','\0'}};
+static char FAR byte1[256] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,5,6,7,8,9,10,0,0,11,12,13,14,15,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static char FAR byte2[17][64][2] = 
+{{{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'¡','\0'},{'¢','\0'},{'£','\0'},{'¤','\0'},{'¥','\0'},{'¦','\0'},{'§','\0'},{'¨','\0'},{'©','\0'},{'ª','\0'},{'«','\0'},{'¬','\0'},{' ','\0'},{'®','\0'},{'¯','\0'},{'°','\0'},{'±','\0'},{'²','\0'},{'³','\0'},{'´','\0'},{'µ','\0'},{'¶','\0'},{'·','\0'},{'¸','\0'},{'¹','\0'},{'º','\0'},{'»','\0'},{'¼','\0'},{'½','\0'},{'¾','\0'},{'¿','\0'}},
+{{'À','\0'},{'Á','\0'},{'Â','\0'},{'Ã','\0'},{'Ä','\0'},{'Å','\0'},{'Æ','\0'},{'Ç','\0'},{'È','\0'},{'É','\0'},{'Ê','\0'},{'Ë','\0'},{'Ì','\0'},{'Í','\0'},{'Î','\0'},{'Ï','\0'},{'Ð','\0'},{'Ñ','\0'},{'Ò','\0'},{'Ó','\0'},{'Ô','\0'},{'Õ','\0'},{'Ö','\0'},{'×','\0'},{'Ø','\0'},{'Ù','\0'},{'Ú','\0'},{'Û','\0'},{'Ü','\0'},{'Ý','\0'},{'Þ','\0'},{'ß','\0'},{'à','\0'},{'á','\0'},{'â','\0'},{'ã','\0'},{'ä','\0'},{'å','\0'},{'æ','\0'},{'ç','\0'},{'è','\0'},{'é','\0'},{'ê','\0'},{'ë','\0'},{'ì','\0'},{'í','\0'},{'î','\0'},{'ï','\0'},{'ð','\0'},{'ñ','\0'},{'ò','\0'},{'ó','\0'},{'ô','\0'},{'õ','\0'},{'ö','\0'},{'÷','\0'},{'ø','\0'},{'ù','\0'},{'ú','\0'},{'û','\0'},{'ü','\0'},{'ý','\0'},{'þ','\0'},{'ÿ','\0'}},
+{{'A','\0'},{'a','\0'},{'A','\0'},{'a','\0'},{'A','\0'},{'a','\0'},{'C','\0'},{'c','\0'},{'C','\0'},{'c','\0'},{'C','\0'},{'c','\0'},{'C','\0'},{'c','\0'},{'D','\0'},{'d','\0'},{'D','\0'},{'d','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'H','\0'},{'h','\0'},{'H','\0'},{'h','\0'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'I','J'},{'i','j'},{'J','\0'},{'j','\0'},{'K','\0'},{'k','\0'},{'k','\0'},{'L','\0'},{'l','\0'},{'L','\0'},{'l','\0'},{'L','\0'},{'l','\0'},{'L','\0'}},
+{{'l','\0'},{'L','\0'},{'l','\0'},{'N','\0'},{'n','\0'},{'N','\0'},{'n','\0'},{'N','\0'},{'n','\0'},{'n','\0'},{'N','\0'},{'n','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'Ö','\0'},{'ö','\0'},{'O','E'},{'o','e'},{'R','\0'},{'r','\0'},{'R','\0'},{'r','\0'},{'R','\0'},{'r','\0'},{'S','\0'},{'s','\0'},{'S','\0'},{'s','\0'},{'S','\0'},{'s','\0'},{'S','\0'},{'s','\0'},{'T','\0'},{'t','\0'},{'T','\0'},{'t','\0'},{'T','\0'},{'t','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'Ü','\0'},{'ü','\0'},{'U','\0'},{'u','\0'},{'W','\0'},{'w','\0'},{'Y','\0'},{'y','\0'},{'Y','\0'},{'Z','\0'},{'z','\0'},{'Z','\0'},{'z','\0'},{'Z','\0'},{'z','\0'},{'s','\0'}},
+{{'b','\0'},{'B','\0'},{'B','\0'},{'b','\0'},{'b','\0'},{'b','\0'},{'O','\0'},{'C','\0'},{'c','\0'},{'D','\0'},{'D','\0'},{'D','\0'},{'d','\0'},{'d','\0'},{'E','\0'},{'E','\0'},{'E','\0'},{'F','\0'},{'f','\0'},{'G','\0'},{'G','\0'},{'h','v'},{'I','\0'},{'I','\0'},{'K','\0'},{'k','\0'},{'l','\0'},{'l','\0'},{'M','\0'},{'N','\0'},{'n','\0'},{'O','\0'},{'O','\0'},{'o','\0'},{'O','I'},{'o','i'},{'P','\0'},{'p','\0'},{'Y','R'},{'S','\0'},{'s','\0'},{'S','\0'},{'s','\0'},{'t','\0'},{'T','\0'},{'t','\0'},{'T','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'V','\0'},{'Y','\0'},{'y','\0'},{'Z','\0'},{'z','\0'},{'Z','\0'},{'Z','\0'},{'z','\0'},{'z','\0'},{'Z','\0'},{'Z','\0'},{'z','\0'},{'z','\0'},{'p','\0'}},
+{{'c','l'},{'c','l'},{'c','l'},{'c','l'},{'D','Z'},{'D','Z'},{'d','z'},{'L','J'},{'L','j'},{'l','j'},{'N','J'},{'N','j'},{'n','j'},{'A','\0'},{'a','\0'},{'I','\0'},{'i','\0'},{'O','\0'},{'o','\0'},{'U','\0'},{'u','\0'},{'Ü','\0'},{'ü','\0'},{'Ü','\0'},{'ü','\0'},{'Ü','\0'},{'ü','\0'},{'Ü','\0'},{'ü','\0'},{'e','\0'},{'Ä','\0'},{'ä','\0'},{'A','\0'},{'a','\0'},{'A','E'},{'a','e'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'K','\0'},{'k','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'Z','\0'},{'z','\0'},{'j','\0'},{'D','Z'},{'D','Z'},{'d','z'},{'G','\0'},{'g','\0'},{'H','\0'},{'P','\0'},{'N','\0'},{'n','\0'},{'A','\0'},{'a','\0'},{'A','E'},{'a','e'},{'O','\0'},{'o','\0'}},
+{{'Ä','\0'},{'ä','\0'},{'A','\0'},{'a','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'Ö','\0'},{'ö','\0'},{'O','\0'},{'o','\0'},{'R','\0'},{'r','\0'},{'R','\0'},{'r','\0'},{'Ü','\0'},{'ü','\0'},{'U','\0'},{'u','\0'},{'S','\0'},{'s','\0'},{'T','\0'},{'t','\0'},{'Y','\0'},{'y','\0'},{'H','\0'},{'h','\0'},{'N','\0'},{'d','\0'},{'O','U'},{'o','u'},{'Z','\0'},{'z','\0'},{'A','\0'},{'a','\0'},{'E','\0'},{'e','\0'},{'Ö','\0'},{'ö','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'Y','\0'},{'y','\0'},{'l','\0'},{'n','\0'},{'t','\0'},{'j','\0'},{'d','b'},{'q','p'},{'A','\0'},{'C','\0'},{'c','\0'},{'L','\0'},{'T','\0'},{'s','\0'}},
+{{'z','\0'},{'H','\0'},{'h','\0'},{'B','\0'},{'U','\0'},{'V','\0'},{'E','\0'},{'e','\0'},{'J','\0'},{'j','\0'},{'Q','\0'},{'q','\0'},{'R','\0'},{'r','\0'},{'Y','\0'},{'y','\0'},{'a','\0'},{'a','\0'},{'a','\0'},{'b','\0'},{'o','\0'},{'c','\0'},{'d','\0'},{'d','\0'},{'e','\0'},{'e','\0'},{'e','\0'},{'e','\0'},{'e','\0'},{'e','\0'},{'e','\0'},{'j','\0'},{'g','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'h','\0'},{'h','\0'},{'h','\0'},{'h','\0'},{'i','\0'},{'i','\0'},{'I','\0'},{'l','\0'},{'l','\0'},{'l','\0'},{'l','\0'},{'m','\0'},{'m','\0'},{'m','\0'},{'n','\0'},{'n','\0'},{'N','\0'},{'o','\0'},{'O','E'},{'o','\0'},{'p','\0'},{'r','\0'},{'r','\0'},{'r','\0'},{'r','\0'},{'r','\0'},{'r','\0'},{'r','\0'}},
+{{'R','\0'},{'R','\0'},{'s','\0'},{'s','\0'},{'s','\0'},{'s','\0'},{'s','\0'},{'t','\0'},{'t','\0'},{'u','\0'},{'u','\0'},{'v','\0'},{'v','\0'},{'w','\0'},{'y','\0'},{'Y','\0'},{'z','\0'},{'z','\0'},{'s','\0'},{'s','\0'},{'h','\0'},{'h','\0'},{'h','\0'},{'c','\0'},{'c','\0'},{'b','\0'},{'e','\0'},{'G','\0'},{'H','\0'},{'j','\0'},{'k','\0'},{'L','\0'},{'q','\0'},{'h','\0'},{'h','\0'},{'d','z'},{'d','z'},{'d','z'},{'t','s'},{'t','s'},{'t','c'},{'f','n'},{'l','s'},{'l','z'},{'w','\0'},{'n','\0'},{'h','\0'},{'h','\0'},{'h','\0'},{'h','\0'},{'j','\0'},{'r','\0'},{'r','\0'},{'r','\0'},{'R','\0'},{'w','\0'},{'y','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'}},
+{{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'l','\0'},{'s','\0'},{'x','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'}},
+{{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'A','\0'},{' ','\0'},{'E','\0'},{'I','\0'},{'I','\0'},{' ','\0'},{'O','\0'},{' ','\0'},{'Y','\0'},{'O','\0'},{'i','\0'},{'A','\0'},{'B','\0'},{'G','\0'},{'D','\0'},{'E','\0'},{'Z','\0'},{'I','\0'},{'T','H'},{'I','\0'},{'K','\0'},{'L','\0'},{'M','\0'},{'N','\0'},{'X','\0'},{'O','\0'},{'P','\0'},{'R','\0'},{' ','\0'},{'S','\0'},{'T','\0'},{'Y','\0'},{'F','\0'},{'C','H'},{'P','S'},{'O','\0'},{'I','\0'},{'Y','\0'},{'a','\0'},{'e','\0'},{'i','\0'},{'i','\0'},{'y','\0'},{'a','\0'},{'b','\0'},{'g','\0'},{'d','\0'},{'e','\0'},{'z','\0'},{'i','\0'},{'t','h'},{'i','\0'},{'k','\0'},{'l','\0'},{'m','\0'},{'n','\0'},{'x','\0'},{'o','\0'}},
+{{'p','\0'},{'r','\0'},{'s','\0'},{'s','\0'},{'t','\0'},{'y','\0'},{'f','\0'},{'c','h'},{'p','s'},{'o','\0'},{'i','\0'},{'y','\0'},{'o','\0'},{'y','\0'},{'o','\0'},{' ','\0'},{'b','\0'},{'t','\0'},{'y','\0'},{'y','\0'},{'y','\0'},{'f','\0'},{'p','\0'},{' ','\0'},{'K','\0'},{'k','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'K','\0'},{'k','\0'},{' ','\0'},{' ','\0'},{'S','\0'},{'s','\0'},{'F','\0'},{'f','\0'},{'X','\0'},{'x','\0'},{'H','\0'},{'h','\0'},{'C','\0'},{'c','\0'},{'K','\0'},{'k','\0'},{'T','I'},{'t','i'},{'k','\0'},{'r','\0'},{'s','\0'},{'j','\0'},{'T','\0'},{'e','\0'},{'e','\0'},{' ','\0'},{' ','\0'},{'S','\0'},{' ','\0'},{' ','\0'},{'r','\0'},{'S','\0'},{'s','\0'},{'s','\0'}},
+{{'E','\0'},{'Y','O'},{'D','J'},{'G','J'},{'E','\0'},{'D','Z'},{'I','\0'},{'J','I'},{'J','\0'},{'L','J'},{'N','J'},{'C','\0'},{'K','J'},{'I','\0'},{'U','\0'},{'D','Z'},{'A','\0'},{'B','\0'},{'V','\0'},{'G','\0'},{'D','\0'},{'E','\0'},{'Z','\0'},{'Z','\0'},{'I','\0'},{'I','\0'},{'K','\0'},{'L','\0'},{'M','\0'},{'N','\0'},{'O','\0'},{'P','\0'},{'R','\0'},{'S','\0'},{'T','\0'},{'U','\0'},{'F','\0'},{'H','\0'},{'C','\0'},{'C','\0'},{'S','\0'},{'S','C'},{'H','\0'},{'Y','\0'},{'J','\0'},{'E','\0'},{'J','U'},{'J','A'},{'a','\0'},{'b','\0'},{'v','\0'},{'g','\0'},{'d','\0'},{'e','\0'},{'z','\0'},{'z','\0'},{'i','\0'},{'i','\0'},{'k','\0'},{'l','\0'},{'m','\0'},{'n','\0'},{'o','\0'},{'p','\0'}},
+{{'r','\0'},{'s','\0'},{'t','\0'},{'u','\0'},{'f','\0'},{'h','\0'},{'c','\0'},{'c','\0'},{'s','\0'},{'s','c'},{'h','\0'},{'y','\0'},{'j','\0'},{'e','\0'},{'j','u'},{'j','a'},{'e','\0'},{'j','o'},{'d','j'},{'g','j'},{'e','\0'},{'d','z'},{'i','\0'},{'j','i'},{'j','\0'},{'l','j'},{'n','j'},{'c','\0'},{'k','j'},{'i','\0'},{'u','\0'},{'d','z'},{'O','\0'},{'o','\0'},{'J','\0'},{'j','\0'},{'E','\0'},{'e','\0'},{'Y','\0'},{'y','\0'},{'Y','\0'},{'y','\0'},{'Y','\0'},{'y','\0'},{'Y','\0'},{'y','\0'},{'C','H'},{'c','h'},{'P','S'},{'p','s'},{'T','H'},{'t','h'},{'Y','\0'},{'y','\0'},{'Y','\0'},{'y','\0'},{'O','Y'},{'o','y'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'}},
+{{'K','\0'},{'k','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{'I','\0'},{'i','\0'},{'J','\0'},{'j','\0'},{'R','\0'},{'r','\0'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'G','\0'},{'g','\0'},{'Z','\0'},{'z','\0'},{'Z','\0'},{'z','\0'},{'K','\0'},{'k','\0'},{'K','\0'},{'k','\0'},{'K','\0'},{'k','\0'},{'K','\0'},{'k','\0'},{'N','\0'},{'n','\0'},{'N','\0'},{'n','\0'},{'P','\0'},{'p','\0'},{'H','\0'},{'h','\0'},{'S','\0'},{'s','\0'},{'T','\0'},{'t','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'H','\0'},{'h','\0'},{'T','\0'},{'t','\0'},{'C','\0'},{'c','\0'},{'C','\0'},{'c','\0'},{'H','\0'},{'h','\0'},{'C','\0'},{'c','\0'},{'C','\0'},{'c','\0'}},
+{{' ','\0'},{'Z','\0'},{'z','\0'},{'K','\0'},{'k','\0'},{'L','\0'},{'l','\0'},{'N','\0'},{'n','\0'},{'N','\0'},{'n','\0'},{'C','\0'},{'c','\0'},{'M','\0'},{'m','\0'},{' ','\0'},{'A','\0'},{'a','\0'},{'A','\0'},{'a','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'E','\0'},{'e','\0'},{'Z','\0'},{'z','\0'},{'Z','\0'},{'z','\0'},{'D','Z'},{'d','z'},{'I','\0'},{'i','\0'},{'I','\0'},{'i','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'O','\0'},{'o','\0'},{'E','\0'},{'e','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'U','\0'},{'u','\0'},{'C','\0'},{'c','\0'},{'G','\0'},{'g','\0'},{'Y','\0'},{'y','\0'},{'G','\0'},{'g','\0'},{'H','\0'},{'h','\0'},{'H','\0'},{'h','\0'}},
+{{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'},{' ','\0'}}};
 
 void FAR FoxproVersion(ParamBlk FAR *parm)
 {	_RetInt(101,10);
@@ -598,6 +620,411 @@ void FAR Invert(ParamBlk FAR *parm)
 	_RetChar(buffer);
 }
 
+// string Decode(utf_8_string)
+// deodes UTF-8 string returning latin1 (extended ascii) strings
+void FAR Decode(ParamBlk FAR *parm)
+{	unsigned char FAR *str;
+	unsigned char chr;
+	long len1, len, i, j, pos;
+	int page, asc;
+
+	len1 = parm->p[0].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	pos = 0;
+	len = len1-1;
+	for (i=0; i < len && pos < BUFFERSIZE; i++)
+	{	chr = str[i];
+		page = byte1[chr];
+		if (page == 0)
+		{	buffer[pos++] = chr;
+			continue;
+		}
+		page--;
+		j = i+1;
+		asc = str[j] - 128;
+		if (asc < 0 || asc > 63)
+		{	buffer[pos++] = chr;
+			continue;
+		}
+		i = j;
+		buffer[pos++] = byte2[page][asc][0];
+		if (byte2[page][asc][1] != '\0')
+		{	buffer[pos++] = byte2[page][asc][1];
+		}
+	}
+	if (i < len1) buffer[pos++] = str[i];
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string Normize(extended_ascii_string)
+// returns a normalized string into upper case removing accents, transforming umlauts and compressing blanks
+void FAR Normize(ParamBlk FAR *parm)
+{	unsigned char FAR *str;
+	long len1, i, pos;
+	int blank;
+	unsigned char chr;
+
+	len1 = parm->p[0].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	pos = 0;
+	blank = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		if (anorm[chr][0] == ' ')
+		{	if (blank) continue;
+			blank = 1;
+		}
+		else blank = 0;
+		buffer[pos++] = anorm[chr][0];
+		if (anorm[chr][1] != '\0') buffer[pos++] = anorm[chr][1];
+		if (pos >= BUFFERSIZE) break;
+	}
+	if (blank) buffer[pos-1] = '\0';
+	else buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string NormizeKeep(extended_ascii_string, keep_string)
+// returns a normalized string (see Normalize()) but keeps specific characters occuring in the keep_string
+void FAR NormizeKeep(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *keep;
+	unsigned char chr;
+	long len1, len2, i, j, pos;
+	int blank;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	keep = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	pos = 0;
+	blank = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		for (j = 0; j < len2; j++)
+		{	if (chr == keep[j])
+			{	break;
+			}
+		}
+		if (j < len2)
+		{	blank = 0;
+			buffer[pos++] = chr;
+			if (pos >= BUFFERSIZE) break;
+			continue;
+		}
+		if (anorm[chr][0] == ' ')
+		{	if (blank) continue;
+			blank = 1;
+		}
+		else blank = 0;
+		buffer[pos++] = anorm[chr][0];
+		if (anorm[chr][1] != '\0') buffer[pos++] = anorm[chr][1];
+		if (pos >= BUFFERSIZE) break;
+	}
+	if (blank) buffer[pos-1] = '\0';
+	else buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string NormizeKeepPos(extended_ascii_string, keep_string)
+// returns a normalized string but keeps the position of the original characters (umlaut transformations will be truncated)
+void FAR NormizeKeepPos(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *keep;
+	unsigned char chr;
+	long len1, len2, i, j, pos;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	keep = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	pos = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		for (j = 0; j < len2; j++)
+		{	if (chr == keep[j])
+			{	break;
+			}
+		}
+		if (chr == ' ' || j < len2)
+		{	buffer[pos++] = chr;
+			if (pos > BUFFERSIZE) break;
+			continue;
+		}
+		buffer[pos++] = anorm[chr][0];
+		if (pos >= BUFFERSIZE) break;
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string BlankChars(string, template_string)
+// replaces all characters of the string found in the template_string with blanks
+void FAR BlankChars(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *blank;
+	unsigned char chr;
+	long len1, len2, i, j, pos;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	blank = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	if (len1 > BUFFERSIZE)
+	{	len1 = BUFFERSIZE;
+	}
+	pos = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		for (j = 0; j < len2; j++)
+		{	if (chr == blank[j]) 
+			{	chr = ' ';
+				break;
+			}
+		}
+		if (chr == '\0') continue;
+		buffer[pos++] = chr;
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string KeepChars(string, template_string)
+// replaces all characters of the string not found in the template_string with blanks
+void FAR KeepChars(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *keep;
+	unsigned char chr;
+	long len1, len2, i, j, pos;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	keep = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	if (len1 > BUFFERSIZE)
+	{	len1 = BUFFERSIZE;
+	}
+	pos = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		for (j = 0; j < len2; j++)
+		{	if (chr == keep[j]) break;
+		}
+		if (j >= len2) chr = ' ';
+		if (chr == '\0') continue;
+		buffer[pos++] = chr;
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string SwapChars(string, from_template_string, to_template_string)
+// swaps all characters of the string found in the from_template_string with the corresponding character in the to_template_string
+// if the character in the to_template_string does not exist (because it is shorter) the character will be removed
+void FAR SwapChars(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *from, *to;
+	unsigned char chr;
+	long len1, len2, len3, i, j, pos;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	len3 = parm->p[2].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	_HLock(parm->p[2].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	from = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	to = (unsigned char FAR *) _HandToPtr(parm->p[2].val.ev_handle);
+	if (len1 > BUFFERSIZE)
+	{	len1 = BUFFERSIZE;
+	}
+	pos = 0;
+	for (i = 0; i < len1; i++)
+	{	chr = str[i];
+		for (j = 0; j < len2; j++)
+		{	if (chr == from[j]) 
+			{	if (j < len3) chr = to[j];
+				else chr = '\0';
+				break;
+			}
+		}
+		if (chr == '\0') continue;
+		buffer[pos++] = chr;
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_HUnLock(parm->p[2].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string ReplaceChars(string, from_template_string, to_char, inverse_boolean)
+// replaces all characters of the string found in the from_template_string or not found, in case of inverse, with the to_char
+// if to_char is empty the character will be removed
+void FAR ReplaceChars(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *from, *to;
+	unsigned char chr, rep;
+	long len1, len2, len3, i, j, pos;
+	int inverse;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	len3 = parm->p[2].val.ev_length;
+	inverse = parm->p[3].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	_HLock(parm->p[2].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	from = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	to = (unsigned char FAR *) _HandToPtr(parm->p[2].val.ev_handle);
+	if (len1 > BUFFERSIZE)
+	{	len1 = BUFFERSIZE;
+	}
+	if (len3 == 0) rep = '\0';
+	else rep = to[0];
+	pos = 0;
+	if (inverse)
+	{	for (i = 0; i < len1; i++)
+		{	chr = str[i];
+			for (j = 0; j < len2; j++)
+			{	if (chr == from[j]) break;
+			}
+			if (j >= len2) chr = rep;
+			if (chr == '\0') continue;
+			buffer[pos++] = chr;
+		}
+	}
+	else
+	{	for (i = 0; i < len1; i++)
+		{	chr = str[i];
+			for (j = 0; j < len2; j++)
+			{	if (chr == from[j]) 
+				{	chr = rep;
+					break;
+				}
+			}
+			if (chr == '\0') continue;
+			buffer[pos++] = chr;
+		}
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_HUnLock(parm->p[2].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string Squeeze(string, template_string)
+// removes subsequent repetions of the template_string from the string, i.e. muliple blanks become one
+void FAR Squeeze(ParamBlk FAR *parm)
+{	unsigned char FAR *str, *comp;
+	long len1, len2, len, i, j, pos;
+	int first;
+
+	len1 = parm->p[0].val.ev_length;
+	len2 = parm->p[1].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	_HLock(parm->p[1].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	comp = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
+	i = 0;
+	pos = 0;
+	if (len2 > 0)
+	{	len = len1 - len2 + 1;
+		first = 1;
+		while (i < len)
+		{	for (j = 0; j < len2; j++)
+			{	if (str[i+j] != comp[j]) break;
+			}
+			if (j < len2)
+			{	buffer[pos++] = str[i];
+				if (pos >= BUFFERSIZE) break;
+				first = 1;
+				i++;
+				continue;
+			}
+			if (first)
+			{	if (pos+len2 >= BUFFERSIZE) 
+				{	len2 = BUFFERSIZE - pos;
+					for (j = 0; j < len2; j++) buffer[pos++] = comp[j];
+					break;
+				}
+				else
+				{	for (j = 0; j < len2; j++) buffer[pos++] = comp[j];
+				}
+			}
+			i += len2;
+			first = 0;
+		}
+	}
+	if (pos + (len1 - i) >= BUFFERSIZE) len1 = i + (BUFFERSIZE - pos);
+	for (; i < len1; i++) buffer[pos++] = str[i];
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_HUnLock(parm->p[1].val.ev_handle);
+	_RetChar(buffer);
+}
+
+// string Gram(string, gram_size_int)
+// returns a string containing the grams of string separated by blanks
+// grams are confined within word boundarys (blank spearated)  
+void FAR Gram(ParamBlk FAR *parm)
+{	unsigned char FAR *str;
+	long gram, len1, i, j, pos, end, reset;
+	int go;
+
+	len1 = parm->p[0].val.ev_length;
+	gram = parm->p[1].val.ev_long;
+	_HLock(parm->p[0].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	pos = 0;
+	go = 2;
+	for (i = 0; i < len1; i++)
+	{	if (str[i] == ' ') // looking for start of word
+		{	go = 2;
+			continue;
+		}		
+		if (go > 0)
+		{	end = i + gram;
+			reset = pos;
+			if (pos > 0) buffer[pos++] = ' ';
+			for (j = i; j < end && pos < BUFFERSIZE; j++)
+			{	if (j >= len1 || str[j] == ' ')
+				{	if (go < 2) pos = reset; // reseting last incomplete gram
+					go = 0;
+					break;
+				}
+				buffer[pos++] = str[j];
+			}
+			if (pos >= BUFFERSIZE) 
+			{	if (buffer[pos-1] == ' ') pos--; // no closing blank
+				break;
+			}
+			go = 1;
+		}
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_RetChar(buffer);
+}
+
 void FAR CollectSumArray(ParamBlk FAR *parm)
 {	AHandle FAR *ah;
 	double FAR *array;
@@ -1176,6 +1603,16 @@ FoxInfo myFoxInfo[] =
 	{"FilterNoise", (FPFI) FilterNoise, 4, "IIII"},
 	{"Compare", (FPFI) Compare, 3, "CCI"},
 	{"Invert", (FPFI) Invert, 1, "C"},
+	{"Decode", (FPFI) Decode, 1, "C"},
+	{"Normize", (FPFI) Normize, 1, "C"},
+	{"NormizeKeep", (FPFI) NormizeKeep, 2, "CC"},
+	{"NormizeKeepPos", (FPFI) NormizeKeepPos, 2, "CC"},
+	{"BlankChars", (FPFI) BlankChars, 2, "CC"},
+	{"KeepChars", (FPFI) KeepChars, 2, "CC"},
+	{"SwapChars", (FPFI) ReplaceChars, 3, "CCC"},
+	{"ReplaceChars", (FPFI) ReplaceChars, 4, "CCCL"},
+	{"Squeeze", (FPFI) Squeeze, 2, "CC"},
+	{"Gram", (FPFI) Gram, 2, "CI"},
 	{"CollectSumArray", (FPFI) CollectSumArray, 5, "IIIIN"},
 	{"LimitDescArray", (FPFI) LimitDescArray, 6, "INIIII"},
 	{"BinarySearchAscArray", (FPFI) BinarySearchAscArray, 5, "INIII"},
