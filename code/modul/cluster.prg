@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      cluster.prg
-*   Date:       2022.11.09
+*   Date:       2023.04.12
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *   Function:   A TableCluster is group of table with compatible
@@ -439,33 +439,46 @@ define class TableCluster as Custom
 		return m.sum
 	endfunc
 
-	function preserveKeys()
+	function preserveKeys(stored_keys as Collection)
 	local i, j, key, table
-		this.preserve.remove(-1)
+		if not vartype(m.stored_keys) == "O"
+			m.stored_keys = this.preserve
+		endif
+		m.stored_keys.remove(-1)
 		for m.i = 1 to this.cluster.count
 			m.table = this.cluster.item(m.i)
 			m.j = 1
 			m.key = m.table.getKey(m.j)
 			do while not empty(m.key)
-				if this.preserve.getKey(m.key) == 0
-					this.preserve.add(m.key,m.key)
+				if m.stored_keys.getKey(m.key) == 0
+					m.stored_keys.add(m.key,m.key)
 				endif
 				m.j = m.j+1
 				m.key = m.table.getKey(m.j)
 			enddo
 		endfor
-		return this.preserve.count
+		return m.stored_keys.count
 	endfunc
 
-	function restoreKeys()
+	function restoreKeys(stored_keys as Collection)
 	local i, cnt
+		if not vartype(m.stored_keys) == "O"
+			m.stored_keys = this.preserve
+		endif
 		m.cnt = 0
-		for m.i = 1 to this.preserve.count
-			if this.forceKey(this.preserve.item(m.i))
+		for m.i = 1 to m.stored_keys.count
+			if this.forceKey(m.stored_keys.item(m.i))
 				m.cnt = m.cnt+1
 			endif
 		endfor
 		return m.cnt
+	endfunc
+	
+	function copyKeys(cluster as Object)
+	local stored_keys
+		m.stored_keys = createobject("Collection")
+		m.cluster.preserveKeys(m.stored_keys)
+		return this.restoreKeys(m.stored_keys)
 	endfunc
 	
 	function select(select as String, targetAlias as String)
@@ -598,8 +611,12 @@ define class TableCluster as Custom
 			endif
 		endfor
 		if m.combination.count == 0
-			this.messenger.errorMessage("No valid clusters detected.")
-			return .f.
+			if pcount() == 1
+				m.combination.add("")
+			else
+				this.messenger.errorMessage("No valid clusters detected.")
+				return .f.
+			endif
 		endif
 		m.combo = m.combination.item(1)
 		m.combo = getwordcount(m.combo)
@@ -1588,7 +1605,7 @@ define class TableCluster as Custom
 		m.end = len(m.usql)+1
 		m.end = min(evl(at(" GROUP ", m.usql),m.end),evl(at(" ORDER ", m.usql),m.end))
 		m.usql = left(m.usql,m.end-1)
-		m.end = m.start+m.end+5
+		m.end = m.start+m.end+4
 		m.where = ""
 		m.usql = strtran(m.usql," AND ", "&")
 		m.usql = strtran(m.usql,"==", "=")

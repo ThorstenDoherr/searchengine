@@ -1,8 +1,8 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2023.02.16
+*   Date:       2023.10.09
 *   Author:     Thorsten Doherr
-*   Required:   none
+*   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
 *=========================================================================*
 #DEFINE HKEY_CLASSES_ROOT  -2147483648  && BITSET(0,31)
@@ -474,7 +474,6 @@ define class ParallelFoxWrapper as Custom
 		if not vartype(m.proc) == "C" or empty(m.proc)
 			m.proc = sys(16,0)
 		endif
-		m.debug = this.debug or this.safemode or m.debug
 		this.stopWorkers()
 		m.proc = alltrim(m.proc)
 		if this.isSequential()
@@ -526,7 +525,10 @@ define class ParallelFoxWrapper as Custom
 		enddo
 		m.proc = fullpath(m.proc)
 		this.adjustDefault()
-		this.parallel.startWorkers(m.proc,,m.debug)
+		this.parallel.startWorkers(m.proc,,(this.debug or this.safemode or m.debug))
+		if (this.safemode or this.debug) and not m.debug
+			this.doWorkers("_screen.hide()")
+		endif
 		this.resetDefault()
 		m.procedure = set("procedure")
 		if not empty(m.procedure)
@@ -1741,7 +1743,6 @@ define class Time as Custom
 	endfunc
 	
 	function passed(threshold)
-	local s
 		if abs(seconds()-this.s) >= m.threshold
 			this.dt = datetime()
 			this.s = seconds()
@@ -2132,19 +2133,7 @@ define class String as custom
 	endfunc
 
 	function getBlankInversePattern(pat)
-		local i, len, str, chr, pos
-		m.str = ""
-		m.pos = 1
-		m.len = len(this.string)
-		for m.i = 1 to m.len
-			m.chr = substr(this.string, m.i, 1)
-			if not m.chr $ m.pat
-				m.str = m.str+" "
-			else
-				m.str = m.str+m.chr
-			endif
-		endfor
-		return m.str
+		return KeepChars(this.string, m.pat)
 	endfunc
 
 	function blankInversePattern(pat)
@@ -2153,7 +2142,7 @@ define class String as custom
 	endfunc
 
 	function getBlankPattern(pat)
-		return chrtran(this.string,m.pat,padl("",len(m.pat)," "))
+		return BlankChars(this.string, m.pat)
 	endfunc
 
 	function blankPattern(pat)
@@ -2162,12 +2151,7 @@ define class String as custom
 	endfunc
 
 	function getCompress()
-		local str
-		m.str = this.string
-		do while "  " $ m.str
-			m.str = strtran(m.str,"  "," ")
-		enddo
-		return m.str
+		return Squeeze(this.string, " ")
 	endfunc
 
 	function compress()
@@ -3125,12 +3109,14 @@ define class CFieldStructure as FieldStructure
 		return this.keyConverter(this.fname)
 	endfunc
 	
-	function exportConverter()
-		return 'STRTRAN(STRTRAN(STRTRAN(STRTRAN('+this.blankConverter()+',CHR(9),"_"),CHR(13),"_"),CHR(10),"_"),CHR(26),"_")'
+	function exportConverter() && uses foxpro.fll functions
+		return 'REPLACECHARS('+this.blankConverter()+',CHR(9)+CHR(13)+CHR(10)+CHR(26)," ",.f.)'
+*		return 'STRTRAN(STRTRAN(STRTRAN(STRTRAN('+this.blankConverter()+',CHR(9)," "),CHR(13)," "),CHR(10)," "),CHR(26)," ")'
 	endfunc
 	
-	function quotedConverter()
-		return 'CHR(34)+STRTRAN('+this.exportConverter()+',CHR(34),CHR(39))+CHR(34)'
+	function quotedConverter() && uses foxpro.fll functions
+		return 'CHR(34)+SWAPCHARS('+this.blankConverter()+',chr(34)+chr(9)+chr(13)+chr(10)+chr(26),chr(39)+"    ")+CHR(34)'
+*		return 'CHR(34)+STRTRAN('+this.exportConverter()+',CHR(34),CHR(39))+CHR(34)'
 	endfunc
 enddefine
 
@@ -3440,7 +3426,7 @@ define class ComposedKey as custom
 	endfunc
 
 	function getexp(keyList)
-		local exp, i, f, item
+	local exp, i, f, item, desc
 		if parameters() > 0
 			if vartype(m.keyList) == "C"
 				m.keyList = createobject("StringList",m.keyList,",")
@@ -3476,7 +3462,7 @@ define class TableStructure as custom
 	compatible = .f.
 
 	function init(struc, alias as Boolean)
-		local cursor, pa, ps, str, lex, err
+	local cursor, pa, ps, str, lex, err
 		this.tstruct[1,1] = ""
 		this.tstruct[1,2] = ""
 		this.tstruct[1,3] = 0
@@ -3484,8 +3470,12 @@ define class TableStructure as custom
 		this.tstruct[1,5] = .f.
 		this.compatible = .f.
 		if vartype(m.struc) == "O"
-			m.struc = m.struc.getAlias()
-			m.alias = .t.
+			if m.alias or pcount() < 2 and type("m.struc.alias") == "C"
+				m.struc = m.struc.alias
+				m.alias = .t.
+			else
+				m.struc = m.struc.toString()
+			endif
 		endif
 		if not vartype(m.struc) == "C" or empty(m.struc)
 			return
@@ -3839,7 +3829,7 @@ define class TableStructure as custom
 	endfunc
 	
 	function getStructureByType(type as Character)
-		local i, str
+	local i, str, f
 		m.type = ltrim(upper(m.type))
 		m.str = ""
 		for m.i = 1 to this.getFieldCount()
@@ -5155,6 +5145,14 @@ define class BaseTable as custom
 		return .t.
 	endfunc
 
+	function selectRecord(rec)
+		if this.goRecord(m.rec)
+			select (this.alias)
+			return .t.
+		endif
+		return .f.
+	endfunc
+
 	function skip(n)
 		if parameters() == 0
 			m.n = 1
@@ -5591,11 +5589,11 @@ enddefine
 
 define class BaseCursor as BaseTable
 	function init(struc,path) && can be swapped, last omitted
-	local i, swap, dir, file
-		dimension m.dir[1]
+	local i, swap, file
+	local array dir[1]
 		this.initObjects()
 		this.setHandle("")
-		if vartype(m.struc) == "O" and not lower(m.struc.class) == "tablestructure"
+		if vartype(m.struc) == "O" and not lower(m.struc.class) == "tablestructure" && struc is basecursor object
 			BaseTable::init(m.struc)
 			return
 		endif
@@ -5612,14 +5610,14 @@ define class BaseCursor as BaseTable
 			m.struc = createobject("TableStructure","dummy c(1)")
 		endif
 		if vartype(m.path) == "C"
-			m.path = justpath(m.path)
+			m.path = rtrim(fullpath(m.path), "\") + "\"
+			if adir(m.dir, m.path, "D") == 0 && invalid path
+				this.setHandle("")
+				return
+			endif
 		else
-			m.path = sys(2023)
+			m.path = rtrim(sys(2023), "\") + "\"
 		endif
-		if adir(m.dir, m.path) == 0
-			this.setHandle("")
-		endif
-		m.path = m.path+"\"
 		for m.i = 1 to 1000
 			m.file = m.path+sys(3)
 			if file(m.file,1)
@@ -5990,12 +5988,12 @@ define class HashTree as Custom
 		enddo
 	endfunc
 enddefine
-				
+
 define class CollectionStorage as Custom
 	storage = .f.
 		
 	function init(size)
-	local i, col
+	local i
 		this.storage = createobject("Collection")
 		for m.i = 1 to m.size
 			this.storage.add(createobject("Collection"))
@@ -6015,7 +6013,7 @@ define class CollectionStorage as Custom
 	endfunc
 enddefine
 
-define class StringNormizer as Custom
+define class StringNormizerFoxpro as Custom
 	dimension anorm[255]
 
 	function init()
@@ -6173,6 +6171,36 @@ define class StringNormizer as Custom
 	endfunc	
 enddefine
 
+define class StringNormizer as Custom
+	function normize(str, keep)
+		if vartype(m.keep) == "C"
+			return NormizeKeep(m.str, m.keep)
+		endif
+		return Normize(m.str)
+	endfunc
+
+	function normizePositional(str, keep)
+		if not vartype(m.keep) == "C"
+			m.keep = ""
+		endif
+		return NormizeKeepPos(m.str, m.keep)
+	endfunc
+	
+	function truncate(str as String, size as Integer)
+	local pos
+		m.str = rtrim(m.str)
+		if len(m.str) <= m.size
+			return m.str
+		endif
+		m.str = left(m.str, m.size)
+		m.pos = rat(" ", NormizeKeepPos(m.str, ""))
+		if m.pos/len(m.str) <= 0.5
+			return m.str
+		endif
+		return rtrim(left(m.str,m.pos))
+	endfunc	
+enddefine
+
 define class MultiPurpose2 as Custom
 	value1 = .f.
 	value2 = .f.
@@ -6211,9 +6239,8 @@ define class UniDecoder as Custom
 	dimension byte2[16,64]
 	
 	function decode(str as String)
-	local i, j, len, newstr, chr, asc, page1, page2
+	local i, j, last, len, newstr, chr, asc, page1, page2
 		m.last = 0
-		m.buf = ""
 		m.len = len(m.str)
 		m.newstr = ""
 		for m.i = 1 to m.len

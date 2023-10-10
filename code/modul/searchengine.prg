@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2022.12.06
+*    Date:       2023.10.09
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -2195,28 +2195,7 @@ define class Gram as Com
 	endfunc
 	
 	function execute(str)
-	local len, gram, subgram, pos, new, blank
-		m.str = m.str+" "
-		m.len = len(m.str)
-		m.gram = ""
-		m.new = .t.
-		m.pos = 1
-		do while m.pos <= m.len
-			m.subgram = substr(m.str,m.pos,this.parax[1])
-			m.blank = at(" ",m.subgram)
-			if m.blank <= 0
-				m.gram = m.gram+" "+m.subgram
-				m.new = .f.
-				m.pos = m.pos+1
-			else
-				m.pos = m.pos + m.blank
-				if m.new
-					m.gram = m.gram+" "+left(m.subgram,m.blank-1)
-				endif
-				m.new = .t.
-			endif
-		enddo
-		return ltrim(m.gram)
+		return gram(str, this.parax[1])
 	endfunc
 enddefine
 
@@ -3223,6 +3202,7 @@ define class ResultTable as BaseTable
 		index on run tag run
 		m.sql = "update "+this.alias+" set run = "+m.run.alias+".newrun from "+m.run.alias+" where "+this.alias+".run == "+m.run.alias+".run"
 		&sql
+		this.setRun(reccount(m.run.alias))
 		return .t.
 	endfunc
 	
@@ -5722,7 +5702,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, copy, para
 	hidden version
 	hidden pfw
-	version = "20.22.1"
+	version = "20.23.1"
 	tag = ""
 
 	protected function init(path, slot)
@@ -6709,7 +6689,7 @@ define class SearchEngine as custom
 			m.str = m.str+"Depth: "+ltrim(str(this.depth,18))+chr(10)
 		endif
 		if this.limit > 0 and this.limit <= 100
-			m.str = m.str+"Limit: "+ltrim(str(this.limit,6,2))+"%"+chr(10)
+			m.str = m.str+"Threshold: "+ltrim(str(this.limit,6,2))+"%"+chr(10)
 		endif
 		if this.cutoff > 0
 			m.str = m.str+"Cutoff: "+ltrim(str(this.cutoff,18))+chr(10)
@@ -6978,6 +6958,12 @@ define class SearchEngine as custom
 						m.lex = m.str.getLexem()
 						if isdigit(m.lex)
 							this.setLimit(val(m.lex))
+							m.lex = m.str.getLexem()
+						endif
+					case m.lex == "THRESHOLD:"
+						m.lex = m.str.getLexem()
+						if isdigit(m.lex)
+							this.setThreshold(val(m.lex))
 							m.lex = m.str.getLexem()
 						endif
 					case m.lex == "DEPTH:"
@@ -10315,23 +10301,23 @@ define class SearchEngine as custom
 		FileWriteCRLF(OUTHANDLE,m.text)
 	endfunc
 
-	function importBase(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
-		this.setBaseCluster(this.import(m.file, m.decode, m.nomemos, m.fast))
+	function importBase(file as String, nomemos as Boolean)
+		this.setBaseCluster(this.import(m.file, m.nomemos))
 		if this.BaseCluster.getTableCount() <= 0 and not this.messenger.isError()
 			this.messenger.errorMessage("BaseTable invalid.")
 		endif
 		return not this.messenger.isError()
 	endfunc
 	
-	function importSearch(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
-		this.setSearchCluster(this.import(m.file, m.decode, m.nomemos, m.fast))
+	function importSearch(file as String, nomemos as Boolean)
+		this.setSearchCluster(this.import(m.file, m.nomemos))
 		if this.SearchCluster.getTableCount() <= 0 and not this.messenger.isError()
 			this.messenger.errorMessage("SearchTable invalid.")
 		endif
 		return not this.messenger.isError()
 	endfunc
 	
-	hidden function import(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
+	hidden function import(file as String, nomemos as Boolean)
 	local cluster, table, txt, ps
 		m.ps = createobject("PreservedSetting","exclusive","off")
 		this.messenger.clearMessage()
@@ -10368,8 +10354,7 @@ define class SearchEngine as custom
 		m.table = m.file.getFileExtensionChange("dbf")
 		m.cluster = createobject("InsheetTableCluster",m.table)
 		m.cluster.setNomemos(m.nomemos)
-		m.cluster.setDecode(m.decode)
-		m.cluster.setFast(m.fast)
+		m.cluster.setDecode(.t.)
 		m.cluster.setFoxpro(.t.)
 		m.cluster.setNoblank(.t.)
 		m.cluster.setPFW(this.pfw)
@@ -10411,12 +10396,12 @@ define class SearchEngine as custom
 		return this.setConfig("tmpfiles", m.path)
 	endfunc
 
-	hidden function _importBase(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
-		return this.importBase(m.file, m.decode, m.nomemos, m.fast)
+	hidden function _importBase(file as String, nomemos as Boolean)
+		return this.importBase(m.file, m.nomemos)
 	endfunc
 	
-	hidden function _importSearch(file as String, decode as Boolean, nomemos as Boolean, fast as Boolean)
-		return this.importSearch(m.file, m.decode, m.nomemos, m.fast)
+	hidden function _importSearch(file as String, nomemos as Boolean)
+		return this.importSearch(m.file, m.nomemos)
 	endfunc
 
 	hidden function _result(result)

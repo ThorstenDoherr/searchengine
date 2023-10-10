@@ -1,6 +1,6 @@
 *==========================================================================
 *	Modul: 		sheet.prg
-*	Date:		2022.08.10
+*	Date:		2023.08.30
 *	Author:		Thorsten Doherr
 *	Procedure: 	custom.prg
 *	Library:	foxpro.fll
@@ -10,9 +10,9 @@
 *==========================================================================
 #define SHEETHANDLE 17
 
-function mp_parse(separator as String, nonames as String, crlf as Boolean, fast as Boolean)
+function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)
 	_screen.local1.useExclusive()
-	_screen.main.parsing(_screen.global1.from(_screen.worker), _screen.global1.to(_screen.worker), _screen.global2, _screen.local1, m.separator, m.nonames, m.crlf, m.fast, _screen.messenger)
+	_screen.main.parsing(_screen.global1.from(_screen.worker), _screen.global1.to(_screen.worker), _screen.global2, _screen.local1, m.separator, m.nonames, m.crlf, m.columns, _screen.messenger)
 	_screen.local1.close()
 	_screen.main.close()
 endfunc
@@ -26,8 +26,6 @@ endfunc
 
 define class InsheetTableCluster as TableCluster
 	protected hardSeparators, potentialSeparators, invalidNames
-	hardSeparators = chr(9)+"|"
-	potentialSeparators = chr(9)+"|,;"
 	invalidNames = "FOREIGN"
 	original = ""
 	nonames = .f.
@@ -35,7 +33,6 @@ define class InsheetTableCluster as TableCluster
 	decode = .f.
 	memoloss = 0.1
 	foxpro = .f.
-	fast = .f.
 	drop = ""
 	keep = ""
 	noblank = .f.
@@ -49,7 +46,6 @@ define class InsheetTableCluster as TableCluster
 			this.decode = m.firsttable.decode
 			this.memoloss = m.firsttable.memoloss
 			this.foxpro = m.firsttable.foxpro
-			this.fast = m.firsttable.fast
 			this.drop = m.firsttable.drop
 			this.keep = m.firsttable.keep
 			this.noblank = m.firsttable.noblank
@@ -112,10 +108,6 @@ define class InsheetTableCluster as TableCluster
 		this.decode = m.decode
 	endfunc
 	
-	function setFast(fast as Boolean)
-		this.fast = m.fast
-	endfunc
-
 	function getDrop()
 		return this.drop
 	endfunc
@@ -144,10 +136,6 @@ define class InsheetTableCluster as TableCluster
 		return this.foxpro
 	endfunc
 	
-	function getFast()
-		return this.fast
-	endfunc
-
 	function getNoblank()
 		return this.noblank
 	endfunc
@@ -156,7 +144,7 @@ define class InsheetTableCluster as TableCluster
 	local i, j, k, wc, psl, pa, lm
 	local chr, structure, local, global
 	local separator, firstline, forcenames, sql 
-	local basecnt, cnt, linecnt, filesize, decoder, norm
+	local basecnt, cnt, linecnt, filesize
 	local crlf, table, itemcnt, nonames, memos
 	local array dir[1], struc[1], items[1], hist[1], namehist[1], namestruc[1]
 		m.psl = createobject("PreservedSettingList")
@@ -164,7 +152,7 @@ define class InsheetTableCluster as TableCluster
 		m.psl.set("safety","off")
 		m.psl.set("talk","off")
 		m.psl.set("blocksize","64")
-		m.psl.set("compatible","on")
+		m.psl.set("compatible","off") && otherwise resizing of arrays kills content
 		m.psl.set("exclusive","off")
 		m.lm = createobject("LastMessage",this.messenger)
 		m.pa = createobject("PreservedAlias")
@@ -198,10 +186,14 @@ define class InsheetTableCluster as TableCluster
 		adir(m.dir,fullpath(m.file))
 		m.filesize = int(m.dir[1,2])
 		m.crlf = this.scanCRLF()
-		m.decoder = createobject("UniDecoder")
-		m.norm = createobject("StringNormizer")
 		m.nonames = this.nonames
-		m.separator = this.scanSeparator(m.crlf)
+		m.separator = chr(9)+",;|#"
+		m.columns = this.scout_separator(@m.separator, m.crlf)
+		if m.columns <= 0
+			FileClose(SHEETHANDLE)
+			this.messenger.errormessage("Text file is empty.")
+			return .f.
+		endif
 		this.readline(m.crlf, @m.firstline)
 		m.firstline = this.skipByteOrderMark(m.firstline)
 		FileRewind(SHEETHANDLE)
@@ -224,7 +216,7 @@ define class InsheetTableCluster as TableCluster
 			this.pfw.startWorkers()
 			this.pfw.callWorkers("mp_open", this, m.psl, m.local, m.global)
 			this.pfw.wait() && make sure all workers are idle to maintain batch sequence
-			this.pfw.callWorkers("mp_parse", m.separator, m.nonames, m.crlf, this.fast)
+			this.pfw.callWorkers("mp_parse", m.separator, m.nonames, m.crlf, m.columns)
 			this.pfw.wait(.t.)
 			this.pfw.stopWorkers()
 			if this.messenger.wasCanceled()
@@ -255,7 +247,7 @@ define class InsheetTableCluster as TableCluster
 				m.table.erase()
 			endfor
 		else
-			m.linecnt = this.parsing(1, m.filesize, SHEETHANDLE, @m.hist, m.separator, m.nonames, m.crlf, this.fast, this.messenger)
+			m.linecnt = this.parsing(1, m.filesize, SHEETHANDLE, @m.hist, m.separator, m.nonames, m.crlf, m.columns, this.messenger)
 			FileClose(SHEETHANDLE)
 			if this.messenger.wasCanceled()
 				return .f.
@@ -271,7 +263,7 @@ define class InsheetTableCluster as TableCluster
 				this.messenger.errormessage("Empty file.")
 				return .f.
 			endif
-			m.itemcnt = this.separate(@m.items, m.firstline, m.separator)
+			m.itemcnt = this.separate(@m.items, m.firstline, m.separator, m.columns)
 			if not this.collectHistogram(@m.hist, @m.items, m.itemcnt)
 				this.messenger.errormessage("Invalid structure.")
 				return .f.
@@ -284,7 +276,7 @@ define class InsheetTableCluster as TableCluster
 		if m.nonames == .f.
 			dimension m.namestruc[1,4]
 			this.initHistogram(@m.namehist)
-			m.itemcnt = this.separate(@m.items, m.firstline, m.separator)
+			m.itemcnt = this.separate(@m.items, m.firstline, m.separator, m.columns)
 			this.collectHistogram(@m.namehist, @m.items, m.itemcnt)
 			this.parseHistogram(@m.namehist, @m.namestruc)
 			this.dropHistogram(@m.namehist)
@@ -302,7 +294,7 @@ define class InsheetTableCluster as TableCluster
 					endif
 				endif
 			endfor
-			if m.nonames or not this.parseNames(@m.struc, @m.items, m.forcenames, m.norm, m.decoder)
+			if m.nonames or not this.parseNames(@m.struc, @m.items, m.forcenames)
 				this.collectHistogram(@m.hist, @m.items, m.itemcnt)
 				this.parseHistogram(@m.hist, @m.struc, m.linecnt+1, iif(this.nomemos, this.memoloss, 0), this.foxpro)
 				m.basecnt = alen(m.struc,1)
@@ -416,8 +408,8 @@ define class InsheetTableCluster as TableCluster
 		return .t.
 	endfunc
 	
-	function parsing(from as Integer, to as Integer, file as String, histogram as Object, separator as String, nonames as boolean, crlf as boolean, fast as boolean, messenger as Object)
-	local i, j, line, linecnt, modulo, maxlen, parse, items, hist, linebreak, cr, len, itemcnt
+	function parsing(from as Integer, to as Integer, file as String, histogram as Object, separator as String, nonames as boolean, crlf as boolean, columns as Integer, messenger as Object)
+	local i, j, line, linecnt, items, hist, linebreak, itemcnt
 		if m.to < m.from
 			return
 		endif
@@ -427,50 +419,14 @@ define class InsheetTableCluster as TableCluster
 			endif
 		endif
 		m.linebreak = iif(m.crlf,2,1)
-		m.line = ""
-		m.cr = .f.
-		if m.from > 1 or not m.nonames
-			if m.crlf
-				if not FileGo(SHEETHANDLE,m.from-2)
-					return
-				endif
-				m.line = FileRead(SHEETHANDLE,2)
-				m.cr = right(m.line,1) == chr(13)
-				if not m.line == chr(13)+chr(10)
-					m.line = FileReadCRLF(SHEETHANDLE) && skipping partial record
-					m.from = m.from+len(m.line)+2
-				endif
-			else
-				if not FileGo(SHEETHANDLE,m.from-1)
-					return
-				endif
-				m.line = FileRead(SHEETHANDLE,1)
-				if not m.line == chr(10)
-					m.line = FileReadLF(SHEETHANDLE) && skipping partial record				
-					m.from = m.from+len(m.line)+1
-				endif
-			endif
-		endif
-		if m.from > m.to
+		m.line = this.adjust_from_range(@m.from, m.to, m.crlf, m.nonames)
+		if m.from <= 0
 			FileClose(SHEETHANDLE)
 			return 0
-		endif
-		if m.crlf
-			if left(m.line,1) == chr(10) and m.cr && jumped right between cr and lf
-				m.line = substr(m.line,2)
-			else
-				m.line = FileReadCRLF(SHEETHANDLE)
-				m.from = m.from+len(m.line)+2
-			endif
-		else
-			m.line = FileReadLF(SHEETHANDLE)				
-			m.from = m.from+len(m.line)+1
 		endif
 		dimension m.items[1]
 		this.initHistogram(@m.hist)
 		m.linecnt = 0
-		m.modulo = 1
-		m.maxlen = 0
 		do while not (FileEOF(SHEETHANDLE) and empty(m.line))
 			m.messenger.incProgress(len(m.line)+m.linebreak,1)
 			m.messenger.postProgress()
@@ -479,28 +435,11 @@ define class InsheetTableCluster as TableCluster
 				return 0
 			endif
 			m.linecnt = m.linecnt+1
-			if m.fast
-				m.parse = .f.
-				m.len = len(rtrim(m.line))
-				if m.len > m.maxlen
-					m.maxlen = m.len
-					m.parse = .t.
-				endif
-				if mod(m.linecnt,m.modulo) == 0
-					m.parse = .t.
-					if m.linecnt > 10000
-						m.modulo = 10+int(rand()*100)+1
-					endif
-				endif
-			else
-				m.parse = .t.
-			endif
-			if m.parse
-				m.itemcnt = this.separate(@m.items, m.line, m.separator)
-				if not this.collectHistogram(@m.hist, @m.items, m.itemcnt)
-					FileClose(SHEETHANDLE)
-					return -1
-				endif
+			m.itemcnt = this.separate(@m.items, m.line, m.separator, m.columns)
+			m.columns = max(m.itemcnt, m.columns)
+			if not this.collectHistogram(@m.hist, @m.items, m.itemcnt)
+				FileClose(SHEETHANDLE)
+				return -1
 			endif
 			if m.from > m.to
 				exit
@@ -530,8 +469,8 @@ define class InsheetTableCluster as TableCluster
 	endfunc	
 
 	function appending(from as Integer, to as Integer, file as String, structure as Object, separator as String, nonames as Boolean, crlf as Boolean, messenger as Object)
-	local i, line, linebreak, cr, worker, ind, ins, cnt, val, item, len
-	local table, struct, blocksize, sizerec, size, datasize, sizememo, sizelimit, basecnt, norm, decoder, bom
+	local i, line, linebreak, worker, ind, ins, cnt, val, item, len
+	local table, struct, blocksize, sizerec, size, datasize, sizememo, sizelimit, basecnt
 	local array struc[1], items[1], values[1]
 		m.struct = this.getTableStructure()
 		if vartype(_screen.worker) == "N" and _screen.worker > 0
@@ -572,8 +511,6 @@ define class InsheetTableCluster as TableCluster
 		m.sizememo = 0
 		m.sizelimit = 1024 * 1024 * 1024 * 2 - 100 * 1024 * 1024
 		m.basecnt = alen(m.struc,1)
-		m.norm = createobject("StringNormizer")
-		m.decoder = createobject("UniDecoder")
 		if this.noblank
 			dimension m.values[m.struct.getFieldCount()]
 		endif
@@ -583,47 +520,12 @@ define class InsheetTableCluster as TableCluster
 			endif
 		endif
 		m.linebreak = iif(m.crlf,2,1)
-		m.line = ""
-		m.cr = .f.
-		if m.from > 1 or not m.nonames
-			if m.crlf
-				if not FileGo(SHEETHANDLE,m.from-2)
-					return
-				endif
-				m.line = FileRead(SHEETHANDLE,2)
-				m.cr = right(m.line,1) == chr(13)
-				if not m.line == chr(13)+chr(10)
-					m.line = FileReadCRLF(SHEETHANDLE) && skipping partial record
-					m.from = m.from+len(m.line)+2
-				endif
-			else
-				if not FileGo(SHEETHANDLE,m.from-1)
-					return
-				endif
-				m.line = FileRead(SHEETHANDLE,1)
-				if not m.line == chr(10)
-					m.line = FileReadLF(SHEETHANDLE) && skipping partial record				
-					m.from = m.from+len(m.line)+1
-				endif
-			endif
-		endif
-		if m.from > m.to
+		m.line = this.adjust_from_range(@m.from, m.to, m.crlf, m.nonames)
+		if m.from <= 0
 			FileClose(SHEETHANDLE)
-			return
+			return 0
 		endif
-		m.bom = (m.from == 1)
-		if m.crlf
-			if left(m.line,1) == chr(10) and m.cr && jumped right between cr and lf
-				m.line = substr(m.line,2)
-			else
-				m.line = FileReadCRLF(SHEETHANDLE)
-				m.from = m.from+len(m.line)+2
-			endif
-		else
-			m.line = FileReadLF(SHEETHANDLE)				
-			m.from = m.from+len(m.line)+1
-		endif
-		if m.bom
+		if m.from == 1
 			m.line = this.skipByteOrderMark(m.line)
 		endif
 		dimension m.items[1]
@@ -634,7 +536,7 @@ define class InsheetTableCluster as TableCluster
 			if m.messenger.queryCancel()
 				exit
 			endif
-			m.cnt = this.separate(@m.items, m.line, m.separator)
+			m.cnt = this.separate(@m.items, m.line, m.separator, m.basecnt)
 			m.cnt = min(m.basecnt, m.cnt)
 			if this.noblank
 				m.ind = 0
@@ -654,17 +556,17 @@ define class InsheetTableCluster as TableCluster
 					endif
 					if m.struc[m.i,2] == "C"
 						if this.decode
-							m.item = m.decoder.decode(m.item)
+							m.item = Decode(m.item)
 						endif
 						if len(m.item) > m.struc[m.i,3]
-							m.item = this.truncate(m.item, m.struc[m.i,3], m.norm)
+							m.item = this.truncate(m.item, m.struc[m.i,3])
 						endif 
 						m.values[m.ind] = m.item
 						loop
 					endif
 					if m.struc[m.i,2] == "M"
 						if this.decode
-							m.item = m.decoder.decode(m.item)
+							m.item = Decode(m.item)
 						endif
 						m.len = len(m.item)
 						if m.len > 0
@@ -695,16 +597,16 @@ define class InsheetTableCluster as TableCluster
 					else
 						if m.struc[m.i,2] == "C"
 							if this.decode
-								m.item = m.decoder.decode(m.item)
+								m.item = Decode(m.item)
 							endif
 							if len(m.item) > m.struc[m.i,3]
-								m.item = this.truncate(m.item, m.struc[m.i,3], m.norm)
+								m.item = this.truncate(m.item, m.struc[m.i,3])
 							endif 
 							m.items[m.i] = m.item
 						else
 							if m.struc[m.i,2] == "M"
 								if this.decode
-									m.item = m.decoder.decode(m.item)
+									m.item =Decode(m.item)
 								endif
 								m.len = len(m.item)
 								if m.len > 0
@@ -733,7 +635,7 @@ define class InsheetTableCluster as TableCluster
 				m.table.useExclusive()
 				m.size = 0
 				m.sizememo = 0
-				m.table.select()
+				select (m.table.alias)
 			endif
 			if this.noblank
 				append blank
@@ -976,7 +878,7 @@ define class InsheetTableCluster as TableCluster
 		endfor
 	endfunc
 	
-	hidden function parseNames(struc, items, forcenames as Boolean, norm as Object, decoder as Object)
+	hidden function parseNames(struc, items, forcenames as Boolean)
 	local cnt, basecnt, i, j, names, str, item, val, lex, lexcnt
 		m.basecnt = alen(m.struc,1)
 		m.cnt = min(alen(m.items),m.basecnt)
@@ -1029,7 +931,7 @@ define class InsheetTableCluster as TableCluster
 			if m.i > m.cnt
 				m.item = ""
 			else
-				m.item = left(strtran(alltrim(m.norm.normize(m.decoder.decode(m.items[m.i]),"_"))," ","_"),10)
+				m.item = left(strtran(alltrim(NormizeKeep(Decode(m.items[m.i]),"_"))," ","_"),10)
 			endif
 			if not (left(m.item,1) == "_" or isalpha(m.item))
 				if m.forcenames
@@ -1066,56 +968,116 @@ define class InsheetTableCluster as TableCluster
 		return .t.
 	endfunc
 
-	hidden function separate(itemarray, line as String, separator as String)
-	local items, cnt, open, i, str, ind, item, quote
-		dimension m.items[1]
+	&& Separates the string line according to the separator and stores the items in the target array
+	&& the optional parameter columns designates the target number of columns
+	&& if the separated string has more columns, quotes become relevant to obtain the specified column number 
+	hidden function separate(target as Array_reference, line as String, separator as String, columns as Integer)
+	local cnt, i, j, t, quote, skip, str, stop
+	local array items[1]
 		m.cnt = alines(m.items, m.line, 2, m.separator)
-		dimension m.itemarray[m.cnt]
-		if m.separator $ this.hardSeparators
+		m.columns = evl(m.columns, m.cnt)
+		if alen(m.target) != m.cnt
+			dimension m.target[m.cnt]
+		endif
+		if m.cnt <= m.columns
 			for m.i = 1 to m.cnt
-				m.item = m.items[m.i]
-				m.quote = left(m.item,1)
-				if inlist(m.quote,'"',"'") and right(m.item,1) == m.quote and len(m.item) > 1
-					m.itemarray[m.i] = alltrim(substr(m.item,2,len(m.item)-2))
+				m.quote = left(m.items[m.i], 1) 
+				if m.quote = "'" or m.quote = '"' and right(m.items[m.i], 1) == m.quote
+					m.target[m.i] = substr(m.items[m.i], 2, len(m.items[m.i])-2)
 				else
-					m.itemarray[m.i] = m.item
+					m.target[m.i] = m.items[m.i]
 				endif
 			endfor
 			return m.cnt
 		endif
-		m.str = ""
-		m.open = .f.
-		m.ind = 0
-		for m.i = 1 to m.cnt
-			m.item = m.items[m.i]
-			if m.open
-				m.str = m.str+m.separator+m.item
-				if right(m.item,1) == m.quote and mod(occurs(m.quote,m.item),2) == 1
-					m.open = .f.
-					m.ind = m.ind+1
-					m.itemarray[m.ind] = alltrim(left(m.str,len(m.str)-1))
+		m.skip = m.cnt - m.columns && column overhead 
+		m.i = 1
+		m.t = 0
+		do while m.i <= m.cnt
+			m.quote = left(m.items[m.i], 1) 
+			if m.quote = "'" or m.quote = '"' 
+				if right(m.items[m.i], 1) == m.quote
+					m.t = m.t+1
+					m.target[m.t] = substr(m.items[m.i], 2, len(m.items[m.i])-2)
+					m.i = m.i+1
+				else
+					m.str = m.items[m.i]
+					m.stop = m.i+m.skip
+					for m.j = m.i+1 to m.stop
+						m.str = m.str+" "+m.items[m.j]
+						if right(m.items[m.j], 1) == m.quote and not left(m.items[m.j], 1) == m.quote
+							exit
+						endif
+					endfor
+					if m.j <= m.stop
+						m.t = m.t+1
+						m.target[m.t] = substr(m.str, 2, len(m.str)-2)
+						m.skip = m.skip - m.j + m.i
+						m.i = m.j+1
+					else
+						m.t = m.t+1
+						m.target[m.t] = m.items[m.i]
+						m.i = m.i+1
+					endif
 				endif
 			else
-				m.quote = left(m.item,1)
-				if m.quote == '"' or m.quote == "'"
-					if mod(occurs(m.quote,m.item),2) == 0
-						m.ind = m.ind+1
-						m.itemarray[m.ind] = alltrim(substr(m.item,2,len(m.item)-2))
-					else
-						m.str = substr(m.item,2)
-						m.open = .t.
-					endif
-				else
-					m.ind = m.ind+1
-					m.itemarray[m.ind] = m.item
+				m.t = m.t+1
+				m.target[m.t] = m.items[m.i]
+				m.i = m.i+1
+			endif
+		enddo
+		if m.t != m.cnt
+			dimension m.target[m.t]
+		endif
+		return m.t
+	endfunc
+	
+	&& selects the appropriate separator from a string of separators by browsing through the top records
+	&& the parameter has to be a reference and will be replaced by the best separator
+	&& the function returns the (average) number of columns based on the best separator
+	hidden function scout_separator(separators as String_reference, crlf as Boolean)
+	local i, j, n, line, sep, mean, cv, sd, best_mean, best_cv, best_sep
+	local array m.stat[100], m.items[1]
+		m.best_cv = -1
+		m.best_mean = 0
+		m.best_sep = ""
+		for m.i = 1 to len(m.separators)
+			FileRewind(SHEETHANDLE)
+			m.sep = substr(m.separators, m.i, 1)
+			for m.j = 1 to alen(m.stat)
+				this.readline(m.crlf, @m.line)
+				if FileEOF(SHEETHANDLE)
+					exit
 				endif
+				this.separate(@m.items, m.line, m.sep)
+				m.stat[m.j] = alen(m.items)
+			endfor
+			m.n = m.j - 1
+			if m.n <= 0
+				m.best_sep = ""
+				m.best_mean = 0
+				exit
+			endif
+			m.mean = 0
+			for m.j = 1 to m.n
+				m.mean = m.mean + m.stat[m.j]
+			endfor
+			m.mean = m.mean / m.n
+			m.sd = 0
+			for m.j = 1 to m.n
+				m.sd = m.sd + (m.stat[m.j]-m.mean)^2
+			endfor
+			m.sd = sqrt(m.sd / m.n)
+			m.cv = m.sd / m.mean
+			if m.best_cv < 0 or m.cv < m.best_cv and m.mean > 1 or m.best_cv == m.cv and m.mean > m.best_mean
+				m.best_cv = m.cv
+				m.best_mean = m.mean
+				m.best_sep = m.sep
 			endif
 		endfor
-		if m.open 
-			m.ind = m.ind+1
-			m.itemarray[m.ind] = m.str
-		endif
-		return m.ind
+		FileRewind(SHEETHANDLE)
+		m.separators = m.best_sep
+		return int(m.best_mean+0.5)
 	endfunc
 	
 	hidden function skipByteOrderMark(str as String)
@@ -1130,25 +1092,15 @@ define class InsheetTableCluster as TableCluster
 		endif
 		return m.str
 	endfunc
-
-	hidden function rtrimEmptyElements(itemarray)
-	local cnt
-		for m.cnt = alen(m.itemarray) to 2 step -1
-			if not empty(m.itemarray[m.cnt])
-				return m.cnt
-			endif
-		endfor
-		return m.cnt
-	endfunc
 	
-	hidden function truncate(str as String, size as Integer, norm as Object)
+	hidden function truncate(str as String, size as Integer)
 	local pos
 		m.str = rtrim(m.str)
 		if len(m.str) <= m.size
 			return m.str
 		endif
 		m.str = left(m.str, m.size)
-		m.pos = rat(" ",m.norm.normizePositional(m.str))
+		m.pos = rat(" ", NormizeKeepPos(m.str, ""))
 		if m.pos/len(m.str) <= 0.5
 			return m.str
 		endif
@@ -1170,74 +1122,12 @@ define class InsheetTableCluster as TableCluster
 				FileRewind(SHEETHANDLE)
 				return .f.
 			endif
+			m.line = FileReadLF(SHEETHANDLE)
 		enddo
 		FileRewind(SHEETHANDLE)
 		return .f.
 	endfunc
 	
-	hidden function scanSeparator(crlf)
-	local dif, separator, basecnt, i, col, sep
-		m.dif = -1
-		m.separator = ""
-		m.basecnt = 0
-		for m.i = 1 to len(this.potentialSeparators)
-			m.sep = substr(this.potentialSeparators,m.i,1)
-			m.col = this.evaluateSeparator(m.sep, m.crlf)
-			if m.col.count != 3
-				loop
-			endif
-			if m.col.item(2) > 1
-				if m.dif < 0 or m.col.item(3) < m.dif
-					m.dif = m.col.item(3)
-					m.basecnt = m.col.item(1)
-					m.separator = m.sep
-				endif
-			endif
-		endfor
-		if len(m.separator) == 0 or inlist(m.separator,",",";") and m.dif > 0.05
-			m.separator = chr(13)
-		endif
-		return m.separator
-	endfunc
-	
-	hidden function evaluateSeparator(sep, crlf)
-	local i, sepcnt, items, cnt, avg, sum, dif, col, line, max
-		dimension m.sepcnt[100]
-		dimension m.items[1]
-		m.cnt = 0
-		m.avg = 0
-		m.sum = 0
-		m.dif = 0
-		m.max = 0
-		m.col = createobject("Collection")
-		FileRewind(SHEETHANDLE)
-		for m.i = 1 to 100
-			this.readline(m.crlf, @m.line)
-			if FileEOF(SHEETHANDLE)
-				exit
-			endif
-			m.cnt = this.separate(@m.items, m.line, m.sep)
-			m.sum = m.sum+m.cnt
-			m.sepcnt[m.i] = m.cnt
-			if m.cnt > m.max
-				m.max = m.cnt
-			endif
-		endfor
-		FileRewind(SHEETHANDLE)
-		if m.sum == 0 
-			return m.col
-		endif
-		m.cnt = m.i-1
-		m.avg = m.sum/m.cnt
-		for m.i = 1 to m.cnt
-			m.dif = m.dif+abs(m.sepcnt[m.i]-m.avg)
-		endfor
-		m.col.add(m.max)
-		m.col.add(m.avg)
-		m.col.add(m.dif/m.sum)
-		return m.col
-	endfunc
-
 	hidden function readline(crlf as Boolean, line)  && line by reference: @m.line
 		if m.crlf
 			m.line = FileReadCRLF(SHEETHANDLE)
@@ -1245,7 +1135,37 @@ define class InsheetTableCluster as TableCluster
 			m.line = FileReadLF(SHEETHANDLE)
 		endif
 	endfunc
-
+	
+	&& adjusts the from range and returns the first line within the range
+	&& if from is within the middle of a line, the partial line will be skipped
+	&& if from == 1, the header will be skipped if applicable 
+	hidden function adjust_from_range(from as Integer_reference, to as Integer, crlf as Boolean, noheader as Boolean)
+	local linebreak, line, cr
+		m.linebreak = iif(m.crlf, chr(13)+chr(10), chr(10))
+		m.line = ""
+		m.cr = .f.
+		if m.from > 1 or m.noheader == .f. && from == 1 and header
+			if not FileGo(SHEETHANDLE, m.from-len(m.linebreak))
+				return -1
+			endif
+			m.line = FileRead(SHEETHANDLE, len(m.linebreak))
+			m.cr = right(m.line, 1) == chr(13)
+			if not m.line == m.linebreak
+				this.readline(m.crlf, @m.line) && skipping partial record
+				m.from = m.from + len(m.line) + len(m.linebreak)
+				if m.crlf and m.cr and left(m.line,1) == chr(10) && jumped right between cr and lf
+					return substr(m.line,2)
+				endif
+				if m.from > m.to && to within partial line
+					m.from = -1
+					return ""
+				endif
+			endif
+		endif
+		this.readline(m.crlf, @m.line)
+		m.from = m.from + len(m.line) + len(m.linebreak) + 1		
+		return m.line
+	endfunc
 enddefine
 
 define class OutSheetTableCluster as TableCluster
