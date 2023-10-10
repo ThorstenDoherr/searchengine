@@ -22,6 +22,12 @@ The SearchEngine already includes all necessary preparer but some languages or c
 You can also create your own special preparer using the existing one(s) as templates.
 
 ## Version history
+2023.10.10 SearchEngine 20.23.1
+- changed import function for base and search table to always decode utf-8 characters in GUI and script language
+- normalization, gram and utf-8 decoding are faster because they are now part of the foxpro.fll library (C implementation)
+- a new presentation with a new structure and less verbose slides replaces the old one, which can still be found under searchengine_old
+- SEML script seml_train.do has now a built-in option to aggregate search runs in case of under-specifications (see commentary section of the script) 
+
 2023.03.21 SearchEngine 20.22.2
 - removed remnants of the deprecated "fast parsing" option of the import routines
 
