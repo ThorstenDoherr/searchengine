@@ -32,7 +32,7 @@ You can also create your own special preparer using the existing one(s) as templ
 - cleaned up SE directory by removing unnecessary libraries (DLLs) to the dll directory (in case Windows complains, this is where you can find the missing libraries)
 - ParallelFox 2.0 is now using the parallelfoxa.exe (start SearchEngine.exe as Administrator to install necessary registry entries)
 - File->Command window allows to issue script commands and manage script files (marked selections can be executed)
-- SearchEngine recognises multiple preparer XMLs in its directory that match the file template searchengine\*.xml 
+- SearchEngine recognises multiple preparer XMLs in its directory matching the file template searchengine\*.xml 
 - reorganised the search call to establish consistency for the last run replacement call
 - fixed a bug in the meta export that messed up the candidate count parameter cnt (trailing zeroes were truncated)
 
