@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2023.10.09
+*    Date:       2024.06.06
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -28,11 +28,19 @@
 #define ENTRYLENGTH 30
 #define MAXTYPEWORDS 1024
 #define MAXWORDCOUNT 4096
-#define MINCREATEBATCH  25000
-#define MAXCREATEBATCH 500000
-#define SEARCHBATCH 100000
-#define SORTLIMIT 100000000
+#define SORTLIMIT_VFPA 400000000
+#define SORTLIMIT_VFP9 100000000
+#define MINCREATEBATCH_VFP9  25000
+#define MINCREATEBATCH_VFPA 100000
+#define MAXCREATEBATCH_VFP9 500000
+#define MAXCREATEBATCH_VFPA 2000000
+#define SEARCHBATCH_VFP9 100000
+#define SEARCHBATCH_VFPA -1
 #define BENCHBATCH 200000
+
+function version_of_searchengine()
+	return "2024.06.06"
+endfunc
 
 function mp_export(from as Integer, to as Integer)
 	mp_bracket(@m.from, @m.to)
@@ -1592,16 +1600,13 @@ define class SearchTypes as Custom
 enddefine
 
 define class Preparer as Custom
-	hidden normizer, types, metaphone, soundex, cologne
+	hidden normizer, types, metaphone, soundex, cologne, default_from, default_to
 	xmlerror = ""
-	function init(xml)
-		local tmp1, tmp2, tmp3, err, type, com, key, pa, i, j, default
-		m.pa = createobject("PreservedAlias")
+	
+	function init()
+	local default
 		this.types = createobject("Collection")
 		this.normizer = createobject("StringNormizer")
-		m.tmp1 = createobject("UniqueAlias",.t.)
-		m.tmp2 = createobject("UniqueAlias",.t.)
-		m.tmp3 = createobject("UniqueAlias",.t.)
 		m.default = "<SearchEngine>"
 		m.default = m.default+"<line><type>NOABBREV</type><com>cockle</com></line>"
 		m.default = m.default+"<line><type>NOUMLAUT</type><com>replace</com><para1></para1><para2>UE</para2><para3>U</para3></line>"
@@ -1659,82 +1664,68 @@ define class Preparer as Custom
 		m.default = m.default+"<line><type>SKIPWORDS9</type><com>limit</com><para1>COUNT</para1><para2>9</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS10</type><com>limit</com><para1>COUNT</para1><para2>10</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"</SearchEngine>"
-		xmltocursor(m.default,m.tmp2.alias)
-		if vartype(m.xml) == "C" and not empty(m.xml)
-			m.xml = proper(alltrim(m.xml))
-			m.err = .f.
-			try
-				xmltocursor(m.xml,m.tmp1.alias,512)
-			catch to m.err
-			endtry
-			if vartype(m.err) == "O"
-				this.xmlerror = m.xml+" is not a valid XML file."
-				if not empty(m.err.message)
-					this.xmlerror = this.xmlerror+chr(10)+m.err.message
-				endif
-				m.tmp1 = createobject("UniqueAlias",.t.)
-			else
-				m.err = .f.
-				try
-					update (m.tmp1.alias) set type = upper(alltrim(type))
-				catch
-					m.err = .t.
-				endtry
-				if m.err
-					this.xmlerror = m.xml+" has invalid structure."
-					m.tmp1 = createobject("UniqueAlias",.t.)
-				else
-					select distinct a.type from (m.tmp1.alias) a, (m.tmp2.alias) b where a.type == b.type into cursor (m.tmp3.alias)
-					if _tally > 0
-						select (m.tmp3.alias)
-						this.xmlerror = ""
-						scan
-							this.xmlerror = this.xmlerror + alltrim(type) + " "
-						endscan
-						this.xmlerror = "Conflicts with default preparer names: "+rtrim(this.xmlerror)
-						select * from (m.tmp1.alias) a where not exists (select * from (m.tmp2.alias) b where a.type == b.type) into cursor (m.tmp1.alias)
-					endif
-				endif
-			endif
+		this.addXML(m.default, .t.)
+	endfunc
+	
+	function addXML(file as String, default as Boolean)
+	local tmp, err, flag, pa
+		m.pa = createobject("PreservedAlias")
+		if lower(left(m.file,14)) == "<searchengine>"
+			m.flag = 0
+		else
+			m.flag = 512
 		endif
-		for m.i = 1 to 2
-			if m.i = 1
-				select (m.tmp1.alias)
+		m.tmp = createobject("TempAlias")
+		m.err = .f.
+		try
+			xmltocursor(m.file, m.tmp.alias, m.flag)
+		catch to m.err
+		endtry
+		if vartype(m.err) == "O"
+			this.xmlError = "Invalid XML"
+			if not empty(m.err.message)
+				this.xmlerror = this.xmlerror+chr(10)+m.err.message
+			endif
+			return .f.
+		endif
+		if field(1, m.tmp.alias) == "TYPE" and field(2, m.tmp.alias) == "COM" and type(m.tmp.alias+".type") == "C" and type(m.tmp.alias+".com") == "C"
+			return this.addXMLCursor(m.tmp, m.default)
+		endif
+		this.xmlerror = "Invalid XML structure:"+chr(10)+"Tags <type> and <com> not found"
+		return .f.
+	endfunc
+	
+	&& Re-arranges the preparer list with the bespoke preparer on top and default preparer at the end 
+	&& Activates references between preparer types using referential com(mmands), i.e. com_Call
+	&& Checks validity of com(mmands) within preparer
+	&& Removes declarative com(mmands), i.e. com_Destructive
+	function consolidate()
+	local i, j, type, key, com, bespoke, default, rearrange
+		m.bespoke = createobject("Collection")
+		m.default = createobject("Collection")
+		m.rearrange = .f.
+		for m.i = 1 to this.types.count
+			m.type = this.types.item(m.i)
+			if not m.type.default
+				m.rearrange = m.default.count > 0
+				m.bespoke.add(m.type)
 			else
-				select (m.tmp2.alias)
+				m.default.add(m.type)
 			endif
-			if reccount() == 0
-				loop
-			endif
-			scan
-				m.key = this.normizer.normize(type,"_")
-				if " " $ m.key or isdigit(m.key)
-					this.xmlerror = "Invalid preparer name: "+type
-					return
-				endif
-				m.err = .f.
-				try
-					m.type = this.types.item(m.key)
-				catch
-					m.err = .t.
-				endtry
-				if m.err
-					m.type = createobject("PreparerType", m.key)
-					this.types.add(m.type,m.type.getType())
-				endif
-				m.err = .f.
-				try
-					m.com = createobject(alltrim(com), this)
-				catch
-					m.err = .t.
-				endtry
-				if m.err or not this.isComClass(m.com)
-					this.xmlerror = "Invalid XML block: "+chr(10)+this.lineToXML()
-					return
-				endif
-				m.type.addCom(m.com)
-			endscan
 		endfor
+		if m.rearrange
+			this.types.remove(-1)
+			for m.i = 1 to m.bespoke.count
+				m.type = m.bespoke.item(m.i)
+				this.types.add(m.type, m.type.type)
+			endfor
+			for m.i = 1 to m.default.count
+				m.type = m.default.item(m.i)
+				this.types.add(m.type, m.type.type)
+			endfor
+		endif
+		m.bespoke.remove(-1)
+		m.default.remove(-1)
 		for m.i = 1 to this.types.count
 			m.type = this.types.item(m.i)
 			m.type.activate(this)
@@ -1746,11 +1737,12 @@ define class Preparer as Custom
 				m.com = m.type.getCom(m.j)
 				if not m.com.isValid()
 					this.xmlerror = "Invalid XML block: "+chr(10)+"<type>"+m.key+"</type>"+chr(10)+m.com.toString()
-					return
+					return .f.
 				endif
 			endfor
 			m.type.removePassive()
 		endfor
+		return .t.
 	endfunc
 
 	function getKey(type)
@@ -1809,6 +1801,10 @@ define class Preparer as Custom
 	function closePrepare(str)
 		return strtran(strtran(m.str,"[",""),"]","")
 	endfunc
+	
+	function isValid()
+		return empty(this.xmlerror)
+	endfunc
 
 	hidden function lineToXML()
 		local str, i, field
@@ -1840,15 +1836,62 @@ define class Preparer as Custom
 		endfor
 		return .f.
 	endfunc
+
+	hidden function addXMLCursor(cursor as Object, default as Boolean)
+	local i, types, key, type, err, com, index
+		m.types = createobject("Collection")
+		select (m.cursor.alias)
+		scan
+			m.key = this.normizer.normize(type, "_")
+			if empty(m.key)
+				this.xmlerror = "Empty preparer name"
+				return .f.
+			endif
+			m.index = m.types.getKey(m.key)
+			if m.index == 0
+				m.type = createobject("PreparerType", m.key, m.default)
+				m.types.add(m.type, m.key)
+			else
+				m.type = m.types.item(m.index)
+			endif
+			m.err = .f.
+			try
+				m.com = createobject("com_"+alltrim(com), this)
+			catch
+				m.err = .t.
+			endtry
+			if m.err or not this.isComClass(m.com)
+				this.xmlerror = "Invalid XML block: "+chr(10)+this.lineToXML()
+				return .f.
+			endif
+			m.type.addCom(m.com)
+		endscan
+		for m.i = 1 to m.types.count
+			m.key = m.types.getKey(m.i)
+			m.type = m.types.item(m.i)
+			m.index = this.types.getKey(m.key)
+			if m.index > 0
+				this.xmlerror = "Preparer name is already in use: "+m.key
+				return .f.
+			else
+				this.types.add(m.type, m.key)
+			endif
+		endfor
+		return .t.
+	endfunc
 enddefine
 
 define class PreparerType as Custom
-	hidden coms, type, destructive
+	coms = .f.
+	type = ""
+	destructive = .f.
+	default = .f.
 	
-	function init(type)
+	function init(type, default)
 		this.coms = createobject("Collection")
 		this.type = alltrim(upper(m.type))
 		this.destructive = .f.
+		this.default = m.default
 	endfunc
 	
 	function getType()
@@ -1901,6 +1944,10 @@ define class PreparerType as Custom
 		enddo
 	endfunc
 	
+	function isDefault()
+		return this.default
+	endfunc
+	
 	function isDestructive()
 		return this.destructive
 	endfunc
@@ -1918,6 +1965,7 @@ define class Com as Custom
 	protected paracnt
 	paracnt = 0
 	dimension parax[1]
+	
 	function init(preparer)
 	local i
 		if this.paracnt > 0
@@ -1951,7 +1999,11 @@ define class Com as Custom
 	
 	function toString()
 		local str, i
-		m.str = "<com>"+upper(this.Class)+"</com>"+chr(10)
+		m.str = upper(this.Class)
+		if left(m.str,4) == "COM_"
+			m.str = substr(m.str,5)
+		endif
+		m.str = "<com>"+m.str+"</com>"+chr(10)
 		for m.i = 1 to this.paracnt
 			m.str = m.str+"<para"+ltrim(str(m.i,18))+">"+this.parax[m.i]+"</para"+ltrim(str(m.i,18))+">"+chr(10)
 		endfor
@@ -1959,20 +2011,30 @@ define class Com as Custom
 	endfunc
 enddefine
 
-define class Call as Com
+define class com_Call as Com
 	protected preparerType
 	paracnt = 1
+
 	function init(preparer)
 		Com::init(m.preparer)
 		this.preparerType = this.parax[1]
 	endfunc
 	
 	function execute(str)
-		return this.preparerType.execute(m.str)
+		if vartype(this.preparerType) == "O"
+			return this.preparerType.execute(m.str)
+		endif
+		return m.str
 	endfunc
 	
 	function activate(preparer, preparerType)
-		this.preparerType = m.preparer.getPreparerType(this.preparerType)
+	local pt
+		if vartype(this.preparerType) == "C"
+			m.pt = m.preparer.getPreparerType(this.preparerType)
+			if vartype(m.pt) == "O"
+				this.preparerType = m.pt
+			endif
+		endif
 	endfunc
 	
 	function isValid()
@@ -1980,7 +2042,7 @@ define class Call as Com
 	endfunc
 enddefine
 
-define class Replace as Com
+define class com_Replace as Com
 	paracnt = 3
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2009,7 +2071,7 @@ define class Replace as Com
 	endfunc
 enddefine
 
-define class Change as Com
+define class com_Change as Com
 	paracnt = 3
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2040,13 +2102,13 @@ define class Change as Com
 	endfunc
 enddefine
 
-define class Reset as Com
+define class com_Reset as Com
 	function execute(str)
 		return strtran(strtran(m.str,"[",""),"]","")
 	endfunc
 enddefine
 
-define class Cockle as Com
+define class com_Cockle as Com
 	function execute(str)
 		local cockle
 		m.cockle = createobject("String",m.str)
@@ -2054,7 +2116,7 @@ define class Cockle as Com
 	endfunc
 enddefine
 
-define class Split as Com
+define class com_Split as Com
 	paracnt = 2
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2081,7 +2143,7 @@ define class Split as Com
 	endfunc
 enddefine
 
-define class Cut as Com
+define class com_Cut as Com
 	hidden paralen, mode
 	paracnt = 2
 	function init(preparer)
@@ -2134,7 +2196,7 @@ define class Cut as Com
 	endfunc
 enddefine
 	
-define class Separate as Com
+define class com_Separate as Com
 	paracnt = 2
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2161,7 +2223,7 @@ define class Separate as Com
 	endfunc
 enddefine
 
-define class Blank as Com
+define class com_Blank as Com
 	paracnt = 1
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2181,7 +2243,7 @@ define class Blank as Com
 	endfunc
 enddefine
 
-define class Gram as Com
+define class com_Gram as Com
 	paracnt = 1
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2199,7 +2261,7 @@ define class Gram as Com
 	endfunc
 enddefine
 
-define class Encode as Com
+define class com_Encode as Com
 	hidden phono
 	paracnt = 1
 	function init(preparer)
@@ -2233,7 +2295,7 @@ define class Encode as Com
 	endfunc
 enddefine
 
-define class Limit as Com
+define class com_Limit as Com
 	hidden mode, skip
 	paracnt = 3
 	function init(preparer)
@@ -2300,7 +2362,7 @@ define class Limit as Com
 	endfunc
 enddefine
 
-define class Destructive as Com
+define class com_Destructive as Com
 	function activate(preparer, preparerType)
 		m.preparerType.setDestructive(.t.)
 	endfunc
@@ -2312,7 +2374,11 @@ enddefine
 
 define class CollectorCursor as BaseCursor
 	protected function init(path)
-		BaseCursor::init(m.path, "base i, reg i")
+		if vartype(m.path) == "O"
+			BaseCursor::init(m.path)
+		else
+			BaseCursor::init(m.path, "base i, reg i")
+		endif
 		this.setRequiredTableStructure("base i, reg i")
 	endfunc
 enddefine
@@ -3138,7 +3204,7 @@ define class ResultTable as BaseTable
 	endfunc
 
 	function setRun(run as Integer)
-	local pos, pk
+	local pos
 		if not this.isValid()
 			return .f.
 		endif
@@ -3148,10 +3214,8 @@ define class ResultTable as BaseTable
 		if this.reccount() == 0
 			return .f.
 		endif
-		m.pk = createobject("PreservedKey",this)		
 		m.pos = this.getPosition()
-		this.setKey()
-		this.goTop()
+		go 1 in (this.alias)
 		if this.getValue("searched") > 0
 			this.setPosition(m.pos)
 			return .f.
@@ -3162,7 +3226,7 @@ define class ResultTable as BaseTable
 	endfunc
 		
 	function getRun()
-	local pos, run, pk
+	local pos, run
 		if not this.isValid()
 			if this.isCreatable()
 				return 0
@@ -3173,10 +3237,8 @@ define class ResultTable as BaseTable
 		if this.reccount() == 0
 			return -1
 		endif
-		m.pk = createobject("PreservedKey",this)
 		m.pos = this.getPosition()
-		this.setKey()
-		this.goTop()
+		go 1 in (this.alias)
 		if this.getValue("searched") <= 0
 			m.run = asc(this.getValue("run"))
 		else
@@ -5633,7 +5695,7 @@ define class MetaExportTable as mp_ExportTable
 				m.f = m.f+1
 			enddo
 			asort(m.mx,4,m.mxcnt)
-			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+rtrim(rtrim(ltrim(str(m.identity,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.score,18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.cnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.icnt,10)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.pos,18,9)),"0"),".")
+			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+transform(m.identity)+m.chr9+transform(m.score)+m.chr9+transform(m.cnt)+m.chr9+transform(m.icnt)+m.chr9+transform(m.pos)
 			for m.i = 1 to m.runmax
 				if m.i = m.run
 					m.line = m.line+m.chr9+"1"
@@ -5644,12 +5706,12 @@ define class MetaExportTable as mp_ExportTable
 				endif
 			endfor
 			for m.i = 1 to this.compare
-				m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.cx[m.i,1],18,9)),"0"),".")+m.chr9+rtrim(rtrim(ltrim(str(m.cx[m.i,2],18,9)),"0"),".")
+				m.line = m.line+m.chr9+transform(m.cx[m.i,1])+m.chr9+transform(m.cx[m.i,2])
 			endfor
 			if this.rep > 0
-				m.line = m.line+m.chr9+ltrim(str(m.scnt))+m.chr9+ltrim(str(m.rcnt))
+				m.line = m.line+m.chr9+transform(m.scnt)+m.chr9+transform(m.rcnt)
 				for m.i = 1 to this.rep
-					m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.rx[m.i],18,9)),"0"),".")
+					m.line = m.line+m.chr9+transform(m.rx[m.i])
 				endfor
 			endif
 			m.m = 1
@@ -5659,7 +5721,7 @@ define class MetaExportTable as mp_ExportTable
 					for m.k = 1 to this.meta.meta[m.i]
 						if m.m <= m.mxcnt and m.mx[m.m,1] == m.f and m.mx[m.m,2] == m.i
 							m.val = m.mx[m.m,3]
-							m.line = m.line+m.chr9+rtrim(rtrim(ltrim(str(m.val,18,9)),"0"),".")
+							m.line = m.line+m.chr9+transform(m.val)
 							m.m = m.m+1
 						else
 							m.line = m.line+m.chr9+"0"
@@ -5682,7 +5744,6 @@ define class MetaExportTable as mp_ExportTable
 		endif
 		m.messenger.forceProgress()
 	endfunc
-
 enddefine
 
 define class SearchEngine as custom
@@ -5699,16 +5760,17 @@ define class SearchEngine as custom
 	hidden preparer, preparermsg
 	hidden searchTable, baseTable
 	hidden logfile, notcaring
-	hidden txt, timerlog, copy, para
-	hidden version
+	hidden txt, timerlog, logheader, copy, para, output
+	hidden advanced
 	hidden pfw
-	version = "20.23.1"
 	tag = ""
 
 	protected function init(path, slot)
-		local progpath, err, se
+	local progpath, err, se, i, dircnt
+	local array dir[1]
 		set exclusive off
 		set reprocess to -1
+		this.advanced = version(5) >= 1001
 		if vartype(m.path) == "O"
 			this.copy = .t.
 			m.se = m.path
@@ -5782,14 +5844,20 @@ define class SearchEngine as custom
 		this.searchTypes = createobject("SearchTypes")
 		this.searchFieldJoin = createobject("TableStructureJoin")
 		this.logfile = m.path+"SearchEngine.log"
-		if file(m.path+"SearchEngine.xml",1)
-			this.preparer = createobject("Preparer",m.path+"SearchEngine.xml")
-		else
-			if not file(m.progpath+"SearchEngine.xml",1)
-				this.preparer = createobject("Preparer")
-			else
-				this.preparer = createobject("Preparer",m.progpath+"SearchEngine.xml")
+		this.preparer = createobject("Preparer")
+		this.para = createobject("Collection")
+		m.dircnt = adir(m.dir, m.path+"SearchEngine*.xml") 
+		if m.dircnt == 0
+			m.dircnt = adir(m.dir, m.progpath+"SearchEngine*.xml")
+		endif
+		for m.i = 1 to m.dircnt
+			if not this.preparer.addXML(m.dir[m.i, 1])
+				this.preparer.xmlerror = "Error in "+m.dir[m.i,1]+iif(not empty(this.preparer.xmlerror),chr(10)+this.preparer.xmlerror, "")
+				exit
 			endif
+		endfor
+		if this.preparer.isValid()
+			this.preparer.consolidate()
 		endif
 		if this.copy and vartype(m.se) == "O"
 			this.messenger = createobject("Messenger",m.se.getMessenger())
@@ -5810,10 +5878,6 @@ define class SearchEngine as custom
 		endif
 	endfunc
 	
-	function getVersion()
-		return this.version
-	endfunc
-	
 	function isTxtDefault()
 		return this.txt
 	endfunc
@@ -5829,6 +5893,14 @@ define class SearchEngine as custom
 	function setTimer(timer)
 		this.timerlog = m.timer
 	endfunc
+	
+	function setLogHeader(line as String)
+		this.logHeader = m.line
+	endfun
+
+	function getLogHeader()
+		return this.logHeader
+	endfun
 
 	function getTmpPath()
 		return sys(2023)
@@ -5928,6 +6000,10 @@ define class SearchEngine as custom
 		return this.messenger
 	endfunc
 
+	function getPara()
+		return this.para
+	endfunc
+	
 	function getControlTable()
 		return this.controlTable
 	endfunc
@@ -6441,11 +6517,11 @@ define class SearchEngine as custom
 	endfunc
 
 	function isValid()
-		return this.controlTable.isValid() and this.reg2base.isValid() and this.base2reg.isValid() and this.registry.isValid()
+		return this.preparer.isValid() and this.controlTable.isValid() and this.reg2base.isValid() and this.base2reg.isValid() and this.registry.isValid()
 	endfunc
 
 	function isCreatable()
-		return this.baseCluster.callAnd("hasValidAlias()") and this.ControlTable.isCreatable() and this.base2reg.isCreatable() and this.reg2base.isCreatable() and this.registry.isCreatable()
+		return this.preparer.isValid() and this.baseCluster.callAnd("hasValidAlias()") and this.ControlTable.isCreatable() and this.base2reg.isCreatable() and this.reg2base.isCreatable() and this.registry.isCreatable()
 	endfunc
 
 	function isSearchReady()
@@ -6644,7 +6720,7 @@ define class SearchEngine as custom
 		this.confirmChanges()
 		m.str = "[Engine]"+chr(10)
 		m.str = m.str+"Class: "+proper(this.class)+chr(10)
-		m.str = m.str+"Version: "+this.getVersion()+chr(10)
+		m.str = m.str+"Version: "+version_of_searchengine()+iif(this.advanced, " [advanced]", "")+chr(10)
 		m.str = m.str+"EnginePath: "+lower(this.engine.getPath())+chr(10)
 		m.str = m.str+"Slot: "+this.getSlot()+chr(10)
 		m.str = m.str+"Flags: "
@@ -6703,15 +6779,6 @@ define class SearchEngine as custom
 		if this.lrcpdscope != DEFLRCPDSCOPE
 			m.str = m.str+"LrcpdScope: "+ltrim(str(this.lrcpdscope,18))+chr(10)
 		endif
-		if not (empty(this.preparer.xmlerror) and empty(this.preparermsg))
-			m.str = m.str+"PreparerMessage: "+chr(10)
-			if not empty(this.preparer.xmlerror)
-				m.str = m.str+this.preparer.xmlerror+chr(10)
-			endif
-			if not empty(this.preparermsg)
-				m.str = m.str+this.preparermsg+chr(10)
-			endif
-		endif
 		if not this.copy 
 			m.str = m.str+"MP: "
 			if not this.pfw.isParallel()
@@ -6720,6 +6787,15 @@ define class SearchEngine as custom
 				m.str = m.str+ltrim(str(this.mp(),12))+"/"+ltrim(str(this.pfw.getCPUcount(),12))+" CPU"+iif(this.getSafeMode()," (safe mode)","")
 			endif
 			m.str = m.str+chr(10)
+		endif
+		if not (empty(this.preparer.xmlerror) and empty(this.preparermsg))
+			m.str = m.str+chr(10)+"PreparerMessage: "+chr(10)
+			if not empty(this.preparer.xmlerror)
+				m.str = m.str+this.preparer.xmlerror+chr(10)
+			endif
+			if not empty(this.preparermsg)
+				m.str = m.str+this.preparermsg+chr(10)
+			endif
 		endif
 		m.str = m.str+chr(10)+"[ResultTable]"+chr(10)
 		m.str = m.str+this.result.toString()
@@ -6794,16 +6870,16 @@ define class SearchEngine as custom
 		m.psl.set("exclusive","off")
 		m.psl.set("reprocess",1)
 		m.path = this.engine.getPath()
-		this.limit = 90
-		this.zealous = .f.
-		this.depth = 0
-		this.relative = .f.
-		this.darwin = .f.
-		this.ignorant = .f.
-		this.feedback = 0
-		this.activation = 0
-		this.cutoff = 0
-		this.info = ""
+		this.setLimit(90)
+		this.setZealous(.f.)
+		this.setDepth(0)
+		this.setRelative(.f.)
+		this.setDarwinian(.f.)
+		this.setIgnorant(.f.)
+		this.setFeedback(0)
+		this.setActivation(0)
+		this.setCutoff(0)
+		this.setInfo("")
 		this.expanded = .f.
 		this.changed = .t.
 		this.lrcpdscope = 12
@@ -7344,6 +7420,7 @@ define class SearchEngine as custom
 		local newreg, oldreg, reg
 		local type, occurs, entry
 		local toArray, fromArray, engine
+		local sortlimit
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Collecting...")
@@ -7393,13 +7470,19 @@ define class SearchEngine as custom
 		m.tmp = createobject("TempAlias")
 		this.baseCluster.setKey()
 		m.col = this.searchTypes.drawWordCountSample(this.baseCluster, max(this.baseCluster.getTableCount()*250,1000))
-		m.wc = 0
+		m.wc = 0  && now word count, later worker count (sorry)
 		for m.i = int(m.col.count*0.95) to m.col.count
 			m.wc = m.wc + min(m.col.item(m.i),MAXWORDCOUNT)
 		endfor
-		m.wc = m.wc/(m.col.count-int(m.col.count*0.95)+1)
+		m.wc = m.wc/(m.col.count-int(m.col.count*0.95)+1)  && average worst case number of words per base record
 		m.col.remove(-1)
-		m.batch = max(min(int(SORTLIMIT/m.wc/4),MAXCREATEBATCH),MINCREATEBATCH)
+		if this.advanced
+			m.batch = max(min(int(SORTLIMIT_VFPA/m.wc/4),MAXCREATEBATCH_VFPA),MINCREATEBATCH_VFPA)
+			m.sortlimit = SORTLIMIT_VFPA
+		else
+			m.batch = max(min(int(SORTLIMIT_VFP9/m.wc/4),MAXCREATEBATCH_VFP9),MINCREATEBATCH_VFP9)
+			m.sortlimit = SORTLIMIT_VFP9
+		endif
 		m.basecnt = this.baseCluster.reccount()
 		m.wc = this.pfw.setOptimalWorkerCount(min(m.basecnt,m.batch),500)
 		this.messenger.startProgress("Collecting <<0>>/"+transform(m.basecnt))
@@ -7472,7 +7555,7 @@ define class SearchEngine as custom
 					m.gatherer.zap()
 					m.registry.close()
 					m.gatherer.close()
-					if reccount(m.collector.alias) > SORTLIMIT
+					if reccount(m.collector.alias) > m.sortlimit
 						m.collector = createobject("CollectorCursor",this.getEnginePath())
 						if not m.collector.isValid()
 							this.messenger.errormessage("Unable to create the collector.")
@@ -7488,7 +7571,7 @@ define class SearchEngine as custom
 					this.messenger.sneakMessage("Canceling...")
 					exit
 				endif
-				if reccount(m.collector.alias) > SORTLIMIT
+				if reccount(m.collector.alias) > m.sortlimit
 					m.collector = createobject("CollectorCursor",this.getEnginePath())
 					if not m.collector.isValid()
 						this.messenger.errormessage("Unable to create the collector.")
@@ -8156,6 +8239,7 @@ define class SearchEngine as custom
 		local activeJoin, cleaning, research
 		local result, col, resultcnt
 		local found, engine, lastProgress, mess, messenger
+		local batch, advanced
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Searching...")
@@ -8229,16 +8313,19 @@ define class SearchEngine as custom
 			m.increment = abs(m.increment)
 			this.result.setKey()
 			delete from (this.result.alias) where run == m.runchr
-			go top in (this.result.alias)
+			go 1 in (this.result.alias)
 			recall in (this.result.alias)
 			this.result.pack()
 			m.run = m.run-1
+			m.runchr = chr(m.run)
 			this.result.setRun(m.run)
 			this.messenger.forceMessage("Searching...")
 		endif
 		dimension m.tmp[1]
+		m.advanced = this.advanced && potentially optional
 		m.lastProgress = 0
 		m.searchcnt = this.searchCluster.reccount()
+		m.batch = iif(m.advanced, m.searchcnt, SEARCHBATCH_VFP9)
 		m.searchrec = 1
 		m.found = 0
 		do case
@@ -8248,19 +8335,21 @@ define class SearchEngine as custom
 					return .f.
 				endif
 				m.run = m.run+1
-			case m.increment = 2 && merge
+			case m.increment == 2 && merge
 				if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
 					this.messenger.errormessage("Unable to increment ResultTable.")
 					return .f.
 				endif
 				m.run = m.run+1
-			case m.increment = 3 && continue
+			case m.increment == 3 or m.increment == 4 && resume by complete or merge
+				this.messenger.forceMessage("Resuming...")
 				if not this.result.forceKey("searched")
 					this.messenger.errormessage("Unable to increment ResultTable.")
 					return .f.
 				endif
-				select max(searched) from (this.result.alias) where run = m.runchr into array tmp
+				select max(searched), count(*) from (this.result.alias) where run = m.runchr into array tmp
 				m.searchrec = m.tmp[1]
+				m.found = max(m.tmp[2]-1, 0)  && excluding control header record
 				if m.searchrec == m.searchcnt
 					return .t.
 				endif
@@ -8269,8 +8358,14 @@ define class SearchEngine as custom
 					return .f.
 				endif
 				m.searchrec = m.searchrec+1
-				this.result.deleteKey()
-				m.found = reccount(this.result.alias)
+				if m.increment == 4
+					if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
+						this.messenger.errormessage("Unable to increment ResultTable.")
+						return .f.
+					endif
+				endif
+				m.increment = m.increment - 2
+				this.messenger.forceMessage("Searching...")
 			otherwise && new result table
 				m.increment = 0
 				this.result.erase()
@@ -8286,10 +8381,10 @@ define class SearchEngine as custom
 		this.result.setRun(m.run)
 		this.registry.forceRegistryKey()
 		m.messenger = createobject("Messenger", this.messenger) && copy without linkage (same main process)
-		m.messenger.stopCancel()
-		this.messenger.startProgress("Searching <<0>>/"+transform(m.searchcnt)+" (<<0>>)")
-		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")		
-		this.pfw.setWorkerCount(min(min(m.searchcnt-m.searchrec+1,SEARCHBATCH),this.pfw.getMaxWorkerCount()))
+		m.messenger.startCancel("Cancel operation?"+chr(10)+"You will lose "+iif(m.advanced,"all","some")+" progress of this run.", "Searching", "Canceling...")
+		this.messenger.startProgress("Searching <<0>>/"+transform(m.searchcnt)+" (<<"+transform(m.found)+">>)")
+		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")
+		this.pfw.setWorkerCount(min(min(m.searchcnt-m.searchrec+1,m.batch),this.pfw.getMaxWorkerCount()))
 		m.wc = max(this.pfw.getWorkerCount(),1)
 		m.col = createobject("Collection")
 		for m.i = 1 to m.wc
@@ -8304,35 +8399,39 @@ define class SearchEngine as custom
 			this.pfw.callWorkers("mp_open",m.engine, m.psl, m.col, .f.)
 			this.pfw.wait() && make sure all workers are idle, to maintain batch sequence
 		else
-			this.result.useExclusive() && only for emphasis, result is already exclusive
+			this.result.useExclusive() && only for clarity, result is already exclusive
 		endif
-		for m.from = m.searchrec to m.searchcnt step SEARCHBATCH
-			m.to = min(m.from+SEARCHBATCH-1,m.searchcnt)
+		for m.from = m.searchrec to m.searchcnt step m.batch
+			m.to = min(m.from+m.batch-1,m.searchcnt)
 			if m.wc > 1
 				this.pfw.callWorkers("mp_search", m.from, m.to, m.increment)
 				this.pfw.wait(.t.)
-				if this.messenger.wasCanceled()
-					m.wc = 1
-					this.result.useExclusive()
-				endif
 			else
 				m.result = m.col.item(1)
 				m.result.useExclusive()
 				this.searching(m.from, m.to, m.result, m.increment, this.messenger)
 				m.result.close()
 			endif
+			if this.messenger.wasCanceled()
+				m.wc = 1
+				this.result.useExclusive()
+			endif
 			if m.cleaning
 				if this.messenger.wasCanceled()
-					m.mess = ""
+					m.mess = "(cleanup) "
 				else
-					m.mess = "("+transform(this.messenger.getProgress(1))+"/"+transform(m.searchcnt)+") "
+					if m.advanced
+						m.mess = ""
+					else
+						m.mess = "("+transform(this.messenger.getProgress(1))+"/"+transform(m.searchcnt)+") "
+					endif
 				endif
 				if m.wc > 1
  					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(int(this.messenger.getProgress(2)-m.lastProgress)))
 					this.pfw.linkMessenger(m.messenger)
 					this.pfw.callWorkers("mp_searchrefine", 1, -1, m.research, 1, m.refineMode)
 					this.pfw.wait(.t.)
-					if m.research
+					if m.research and not m.messenger.wasCanceled()
 						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(int(this.messenger.getProgress(2)-m.lastProgress)))
 						this.pfw.linkMessenger(m.messenger)
 						this.pfw.callWorkers("mp_searchresearch", 1, -1, .t., 4, 0)
@@ -8344,7 +8443,7 @@ define class SearchEngine as custom
 					m.result.useExclusive()
 					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(int(m.result.reccount())))
 					this.refining(1, -1, m.result, m.research, 1, m.refineMode, .f., m.messenger)
-					if m.research
+					if m.research and not m.messenger.wasCanceled()
 						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(int(m.result.reccount())))
 						this.researching(1, -1, m.result, .t., 4, 0, .f., m.messenger)
 					endif
@@ -8353,24 +8452,29 @@ define class SearchEngine as custom
 			if m.wc > 1
 				this.result.useExclusive()
 			endif
-			this.messenger.sneakMessage("Consolidating"+substr(this.messenger.message,at(" ",this.messenger.message)))
-			for m.i = 1 to m.wc 
-				m.result = m.col.item(m.i)
-				m.result.useExclusive()
-				if m.cleaning
-					delete from (m.result.alias) where identity < m.refineLimit
+			if not m.messenger.wasCanceled() && interrupted cleaning causes inconsitent batch | will never be canceled without cleaning mode
+				if m.wc > 1
+					this.result.useExclusive()
 				endif
-				select (this.result.alias)
-				append from (m.result.dbf)
-				m.result.zap()
-				m.result.close()
-			endfor
-			m.lastProgress = this.result.reccount()-m.resultcnt
-			this.messenger.setProgress(m.lastProgress,2)
-			if m.wc > 1
-				this.result.useShared()
+				this.messenger.sneakMessage("Consolidating"+substr(this.messenger.message,at(" ",this.messenger.message)))
+				for m.i = 1 to m.wc 
+					m.result = m.col.item(m.i)
+					m.result.useExclusive()
+					if m.cleaning
+						delete from (m.result.alias) where identity < m.refineLimit
+					endif
+					select (this.result.alias)
+					append from (m.result.dbf)
+					m.result.zap()
+					m.result.close()
+				endfor
+				m.lastProgress = this.result.reccount()-m.resultcnt
+				this.messenger.setProgress(m.lastProgress,2)
+				if m.wc > 1
+					this.result.useShared()
+				endif
 			endif
-			if this.messenger.wasCanceled()
+			if this.messenger.wasCanceled() or m.messenger.wasCanceled()
 				exit
 			endif
 		endfor
@@ -8381,23 +8485,23 @@ define class SearchEngine as custom
 		this.result.deleteIndex()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
-		if this.messenger.wasCanceled()
+		if this.messenger.wasCanceled() or m.messenger.wasCanceled()
 			this.messenger.cancelMessage("Canceled.")
 		endif
-		return not this.messenger.wasCanceled()
+		return not (this.messenger.wasCanceled() or m.messenger.wasCanceled())
 	endfunc
 	
 	function searching(from as Integer, to as Integer, result as Object, increment as Integer, messenger as Object)
 		local limit, invlimit, depth
 		local i, j, k, type, fback, fbackinv, start, end
 		local sum, sharesum, lorange, hirange
-		local searchrec, score, found, share
+		local searchrec, score, share
 		local searchTable, reccount, dynamicDepth
 		local tmp1rows, tmp2rows
 		local typxrows, log, searchType, index, target
 		local cluster, tar, run, activeJoin
 		local array tmp1[MAXWORDCOUNT,7], tmp2[MAXWORDCOUNT,2], typx[256,4]
-		m.to = iif(m.to < 0, m.result.reccount(), m.to)
+		m.to = iif(m.to < 0, this.searchCluster.reccount(), m.to)
 		if m.from > m.to or m.to <= 0
 			return
 		endif
@@ -8432,7 +8536,6 @@ define class SearchEngine as custom
 		m.invlimit = 100-this.threshold
 		this.searchCluster.call("setKey()")
 		m.reccount = "/"+ltrim(str(m.to,18,0))
-		m.found = 0
 		for m.searchrec = m.from to m.to
 			if m.messenger.queryCancel()
 				exit
@@ -10045,6 +10148,10 @@ define class SearchEngine as custom
 	function execute(method as String, force as Boolean, catch as Boolean)
 	local return, t
 		m.method = alltrim(m.method)
+		if not empty(this.logHeader)
+			this.writelog(this.logHeader)
+			this.logHeader = .f.
+		endif
 		this.writeLog(iif(m.catch,"catch ","")+iif(m.force,"force ","")+m.method)
 		if m.force
 			this.dontcare()
@@ -10064,13 +10171,13 @@ define class SearchEngine as custom
 		this.idontcare()
 		return m.return
 	endfunc
-		
+	
 	function run(file, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17, para18, para19, para20, para21, para22, para23, para24)
-	local line, quiet, force, catch, silent, loud, word, rc, rec, t, tt, return, para, i, val, key, pos, append, output
+	local output, append, i, val, pos, key, scriptText, return 
+		this.output = _screen
 		m.file = fullpath(m.file)
 		m.output = ""
 		m.append = .f.
-		this.para = createobject("Collection")
 		for m.i = 0 to 24
 			m.val = evaluate("m.para"+transform(m.i))
 			if not vartype(m.val) == "C"
@@ -10098,7 +10205,7 @@ define class SearchEngine as custom
 			m.val = substr(m.val,m.pos+1)
 			this.para.add(m.val,m.key)
 		endfor
-		?? m.file+" "+m.output+" "+iif(m.append,"append","")
+		this.shout(m.file+" "+m.output+" "+iif(m.append,"append",""), .t.)
 		if not empty(m.output)
 			if m.append
 				if FileOpenAppend(OUTHANDLE, m.output) <= 0
@@ -10112,24 +10219,34 @@ define class SearchEngine as custom
 				endif
 			endif
 		endif
-		if FileOpenRead(RUNHANDLE, m.file) <= 0
+		m.scriptText = this.loadScript(m.file)
+		if not vartype(m.scriptText) == "C"
 			this.messenger.errormessage("Unable to open file: "+m.file)
 			return .f.
 		endif
-		m.quiet = .f.
-		m.line = alltrim(strtran(FileReadLF(RUNHANDLE),chr(13),""))
+		return this.runScript(m.scriptText)  && always closes OUTHANDLE
+	endfunc
+
+	function runScript(scriptText as String, output as Object)
+	local line, cmd, quiet, force, catch, silent, loud, word, rc, rec, t, tt, return
+	local array script[1]
+		if vartype(m.output) == "O"
+			this.output = m.output
+		else
+			this.output = _screen
+		endif
+		alines(m.script, m.scriptText, 1+4)
 		m.rec = 1
+		m.quiet = .f.
 		m.t = createobject("Time")
-		do while not FileEOF(RUNHANDLE)
+		for m.rec = 1 to alen(m.script)
+			m.rc = .t.
+			m.line = m.script[m.rec]
 			if left(m.line,1) == "*" or empty(m.line)
-				m.line = alltrim(strtran(FileReadLF(RUNHANDLE),chr(13),""))
-				m.rec = m.rec+1
 				loop
 			endif
 			m.line = this.substitute(m.line)
 			if left(m.line,1) == "*" or empty(m.line)
-				m.line = alltrim(strtran(FileReadLF(RUNHANDLE),chr(13),""))
-				m.rec = m.rec+1
 				loop
 			endif
 			m.line = m.line+" "
@@ -10139,9 +10256,7 @@ define class SearchEngine as custom
 			m.loud = .f.
 			m.word = lower(getwordnum(m.line,1))
 			if m.word = "exit"
-				FileClose(RUNHANDLE)
-				FileClose(OUTHANDLE)
-				return .t.
+				exit
 			endif
 			if m.word == "force"
 				m.force = .t.
@@ -10205,21 +10320,18 @@ define class SearchEngine as custom
 			endif
 			this.shout(". "+iif(m.silent,"silent ","")+iif(m.loud,"loud ","")+iif(m.catch,"catch ","")+iif(m.force,"force ","")+m.line, (m.quiet or m.silent) and not m.loud)
 			if empty(m.line)
-				m.line = alltrim(strtran(FileReadLF(RUNHANDLE),chr(13),""))
-				m.rec = m.rec+1
 				loop
 			endif
 			m.return = .f.
-			m.line = "m.return = this._"+m.line
+			m.cmd = "m.return = this._"+m.line
 			this.messenger.clearMessage()
-			m.rc = .t.
 			if m.force
 				this.dontcare()
 			endif
 			if this.timerlog
 				m.t.start()
 				try
-					&line
+					&cmd
 				catch
 					m.rc = .f.
 				endtry
@@ -10229,18 +10341,21 @@ define class SearchEngine as custom
 				endif
 			else
 				try
-					&line
+					&cmd
 				catch
 					m.rc = .f.
 				endtry
 			endif
 			this.idontcare()
 			if this.messenger.wasCanceled()
-				this.messenger.errorMessage("Canceled in line "+ltrim(str(m.rec,18))+".")
+				if this.output == _screen
+					this.messenger.errorMessage("Canceled in line "+transform(m.rec)+".")
+				else
+					this.messenger.errorMessage("Canceled command: "+m.line)
+				endif
 				this.shout(this.messenger.getErrorMessage())
-				FileClose(RUNHANDLE)
-				FileClose(OUTHANDLE)
-				return .f.
+				m.rc = .f.
+				exit
 			endif
 			if m.rc == .f. or this.messenger.isError()
 				if m.catch
@@ -10248,53 +10363,125 @@ define class SearchEngine as custom
 						this.shout(this.messenger.getErrorMessage())
 					endif
 				else
-					this.messenger.errorMessage(ltrim(this.messenger.getErrorMessage()+chr(13)+chr(10)+"Error in line "+ltrim(str(m.rec,18))+".",chr(13)+chr(10)))
+					if this.output == _screen
+						this.messenger.errorMessage(ltrim(this.messenger.getErrorMessage()+chr(13)+chr(10)+"Error in line "+transform(m.rec)+".",chr(13),chr(10)))
+					else
+						this.messenger.errorMessage(ltrim(this.messenger.getErrorMessage()+chr(13)+chr(10)+"Error in command: "+m.line,chr(13),chr(10)))
+					endif
 					this.shout(this.messenger.getErrorMessage())
-					FileClose(RUNHANDLE)
-					FileClose(OUTHANDLE)
-					return .f.
+					m.rc = .f.
+					exit
 				endif
 			endif
 			if vartype(m.return) == "C"
 				this.shout(m.return)
 			endif
-			m.line = alltrim(strtran(FileReadLF(RUNHANDLE),chr(13),""))
-			m.rec = m.rec+1
+		endfor
+		FileClose(OUTHANDLE)
+		this.output = _screen
+		return m.rc
+	endfunc
+	
+	function loadScript(file as String)
+	local script
+		if not vartype(m.file) == "C" or FileOpenRead(RUNHANDLE, m.file) <= 0
+			return .f.
+		endif
+		m.script = rtrim(FileReadLF(RUNHANDLE), chr(13))
+		do while not FileEOF(RUNHANDLE)
+			m.script = m.script + chr(13) + chr(10) + rtrim(FileReadLF(RUNHANDLE), chr(13))
 		enddo
 		FileClose(RUNHANDLE)
-		FileClose(OUTHANDLE)
+		return m.script
+	endfunc
+	
+	function saveScript(file as String, script as String)
+	local script, line
+		if not vartype(m.file) == "C" or FileOpenWrite(RUNHANDLE, m.file) <= 0
+			return .f.
+		endif
+		FileWrite(RUNHANDLE, m.script)
+		FileClose(RUNHANDLE)
 		return .t.
+	endfunc
+
+	function collectSubstitutes(file as String)
+	local col, line, csubs, subs
+		if FileOpenRead(RUNHANDLE, m.file) <= 0
+			return .f.
+		endif
+		m.col = createobject("Collection")
+		m.line = alltrim(rtrim(FileReadLF(RUNHANDLE), chr(13)))
+		do while not FileEOF(RUNHANDLE)
+			if left(m.line,1) == "*"
+				loop
+			endif
+			m.csubs = this.collectSubs(m.line)
+			for each m.subs in m.csubs
+				if m.col.getKey(m.subs) <= 0
+					m.col.add(m.subs, m.subs)
+				endif
+			endfor
+			m.line = alltrim(rtrim(FileReadLF(RUNHANDLE), chr(13)))
+		enddo
+		FileClose(RUNHANDLE)
+		return m.col
+	endfunc
+	
+	hidden function collectSubs(line as String)
+	local i, cnt, subs
+	local array sub[1]
+		m.col = createobject("Collection")
+		m.cnt = alines(m.sub, m.line, 16, "[", "]")
+		for m.i = 1 to m.cnt-1
+			if right(m.sub[m.i],1) == "[" and right(m.sub[m.i+1],1) == "]"
+				m.subs = alltrim(rtrim(m.sub[m.i+1],"]"))
+				if not empty(m.subs) and m.col.getKey(m.subs) <= 0
+					m.col.add(m.subs, m.subs)
+				endif
+				m.i = m.i+1
+			endif
+		endfor
+		return m.col
 	endfunc
 	
 	hidden function substitute(line as String)
-	local p1, p2, pos1, pos2, ind, val
-		m.p1 = 1
-		m.p2 = 1
-		m.pos1 = at("[",m.line,m.p1)
-		do while m.pos1 > 0
-			m.pos2 = at("]",m.line,m.p2)
-			do while m.pos2 > 0 and m.pos2 < m.pos1
-				m.p2 = m.p2+1
-				m.pos2 = at("]",m.line,m.p2)
-			enddo
-			if m.pos2 <= 0
-				exit
-			endif
-			m.ind = substr(m.line,m.pos1+1,m.pos2-m.pos1-1)
-			m.ind = this.para.getkey(m.ind)
-			if m.ind > 0
-				m.val = this.para.Item(m.ind)
-				m.line = left(m.line,m.pos1-1)+m.val+substr(m.line,m.pos2+1)
-			else
-				m.p1 = m.p1+1
-			endif
-			m.pos1 = at("[",m.line,m.p1)
-		enddo
+	local subs, i, val, swap
+		m.col = this.collectSubs(m.line)
+		m.swap = .f.
+		for m.i = 1 to m.col.count
+			m.subs = m.col.item(m.i)
+			m.val = this.para.getkey(m.subs)
+ 			if m.val > 0
+ 				m.val = this.para.item(m.val)
+ 				if "[" $ m.val or "]" $ m.val
+ 					m.swap = .t.
+ 					m.val = swapchars(m.val,"[]",chr(10)+chr(13))  && cannot be in the line string
+ 				endif
+ 				m.line = strtran(m.line, "["+m.subs+"]", m.val)
+ 			endif
+		endfor
+		if m.swap
+			m.line = swapchars(m.line, chr(10)+chr(13), "[]")
+		endif
 		return m.line
 	endfunc
 
-	hidden function shout(text, quiet)
-		? m.text
+	hidden function shout(text as String, quiet as Boolean)
+		if not this.output == _screen
+			if empty(this.output.value)
+				this.output.value = m.text
+			else
+				this.output.value = this.output.value+chr(13)+chr(10)+m.text
+			endif
+			try
+				this.output.selstart = len(this.output.value)
+			catch
+			endtry
+			this.output.refresh()
+		else
+			? m.text
+		endif
 		if m.quiet
 			return
 		endif
@@ -10548,7 +10735,7 @@ define class SearchEngine as custom
 	
 	hidden function _wait(seconds)
 		m.seconds = evl(m.seconds,0)
-		wait "Waiting..." timeout m.seconds
+		wait "" timeout m.seconds
 	endfunc
 
 	hidden function _message(text)
@@ -10581,7 +10768,7 @@ define class SearchEngine as custom
 	endfunc
 
 	hidden function _version()
-		return this.getVersion()
+		return version_of_searchengine()
 	endfunc
 	
 	hidden function _output(output, append)
@@ -10600,7 +10787,7 @@ define class SearchEngine as custom
 		endif
 	endfunc
 	
-	hidden function _setPara(para,value,keep)
+	hidden function _setPara(para, value, keep)
 	local ind
 		if not vartype(this.para) == "O"
 			return
@@ -10652,39 +10839,66 @@ define class SearchEngine as custom
 		m.property = alltrim(lower(m.property))
 		do case
 			case m.property = "width"
-				_screen.width = m.value
+				if this.output == _screen
+					this.output.width = m.value
+				endif
 			case m.property = "height"
-				_screen.height = m.value
+				if this.output == _screen
+					this.output.height = m.value
+				endif
 			case m.property = "left"
-				_screen.left = m.value
+				if this.output == _screen
+					this.output.left = m.value
+				endif
 			case m.property = "top"
-				_screen.top = m.value
+				if this.output == _screen
+					this.output.top = m.value
+				endif
 			case m.property = "show"
-				_screen.visible = .t.	
+				if this.output == _screen
+					this.output.visible = .t.	
+				endif
 			case m.property = "hide"
-				_screen.visible = .f.
+				if this.output == _screen
+					this.output.visible = .f.
+				endif
 			case m.property = "maximize"
-				_screen.windowstate = 2
+				if this.output == _screen
+					this.output.windowstate = 2
+				endif
 			case m.property = "minimize"
-				_screen.windowstate = 1
+				if this.output == _screen
+					this.output.windowstate = 1
+				endif
 			case m.property = "normal"
-				_screen.windowstate = 0
+				if this.output == _screen
+					this.output.windowstate = 0
+				endif
 			case m.property = "backcolor"
 				m.value = strtran(m.value, ",", " ")
-				_screen.backcolor = rgb(val(getwordnum(m.value,1)),val(getwordnum(m.value,2)),val(getwordnum(m.value,3)))
+				this.output.backcolor = rgb(val(getwordnum(m.value,1)),val(getwordnum(m.value,2)),val(getwordnum(m.value,3)))
 			case m.property = "forecolor"
 				m.value = strtran(m.value, ",", " ")
-				_screen.forecolor = rgb(val(getwordnum(m.value,1)),val(getwordnum(m.value,2)),val(getwordnum(m.value,3)))
+				this.output.forecolor = rgb(val(getwordnum(m.value,1)),val(getwordnum(m.value,2)),val(getwordnum(m.value,3)))
 			case m.property = "font"
-				_screen.fontname = m.value
+				this.output.fontname = m.value
 			case m.property = "fontsize"
-				_screen.fontsize = m.value
+				this.output.fontsize = m.value
 			otherwise
 				this.messenger.errormessage("Invalid screen property.")
 				throw
 		endcase
+		this.output.refresh()
 	endfunc
-		
+
+	function _cls()
+		if this.output == _screen
+			this.output.cls()
+		else
+			this.output.value = ""
+			this.output.refresh()
+		endif
+	endfunc
 enddefine
 
 define class DummyEngine as SearchEngine

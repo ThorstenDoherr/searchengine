@@ -1,15 +1,19 @@
 *=========================================================================*
-*   Modul:      cluster.prg
-*   Date:       2023.04.12
-*   Author:     Thorsten Doherr
-*   Required:   custom.prg
-*   Function:   A TableCluster is group of table with compatible
-*               structures. All tables share the same name 
-*               followed by a sequential number (i.e.: tab001.dbf,
-*               tab002.dbf, tab003.dbf, ...). The first table in a
-*               cluster defines the starting number and the base
-*               structure.
-*   TODO:       adjust/spread on start name without numbers
+* Modul:      cluster.prg
+* Date:       2024.02.23
+* Author:     Thorsten Doherr
+* Required:   custom.prg
+* Function:   A TableCluster is group of table with compatible
+*             structures. All tables share the same name 
+*             followed by a sequential number (i.e.: tab001.dbf,
+*             tab002.dbf, tab003.dbf, ...). The first table in a
+*             cluster defines the starting number and the base
+*             structure.
+* VFPA:       TableCluster.adjust() always consolidates all cluster tables
+*             into one large table except for copies with size
+*             specification. All programs calling adjustment methods will
+*             automatically remove table clustering in favor of large
+*             tables.
 *=========================================================================*
 define class TableCluster as Custom
 	cluster = .f.
@@ -30,8 +34,10 @@ define class TableCluster as Custom
 	errorCancel = .f.
 	key = ""
 	keyexp = ""
+	advanced = .f.
 	
 	function init(startTable as String, tableCount as Integer, tolerant as boolean, careless as boolean)
+		this.advanced = version(5) >= 1001
 		this.messenger = createobject("Messenger", this.errorCancel)
 		this.messenger.setInterval(2)
 		this.preserve = createobject("Collection")
@@ -209,13 +215,22 @@ define class TableCluster as Custom
 		return this.path+strtran(this.trunc,"*",m.num)
 	endfunc
 	
-	function rebuild(tableCount as Integer)
+	function rebuild(tableCount as Integer, start as String)
+	local swap
+		if vartype(m.tableCount) == "C"
+			m.swap = m.tableCount
+			m.tableCount = m.start
+			m.start = m.swap
+		endif
 		if not vartype(m.tableCount) == "N"
 			m.tableCount = this.cluster.count
 		endif
+		if not vartype(m.start) == "C" or empty(m.start)
+			m.start = this.start
+		endif
 		this.close()
 		this.cluster.remove(-1)
-		this.build(this.path+this.start,m.tableCount,this.tolerant,this.careless)
+		this.build(this.path+m.start,m.tableCount,this.tolerant,this.careless)
 	endfunc
 	
 	function create(struc as Object)
@@ -1200,6 +1215,12 @@ define class TableCluster as Custom
 		return this.adjust(m.sizeMB, m.cluster)
 	endfunc
 
+
+	&& re-adjusts table size of a table cluster according to the sizeMB parameter
+	&& if source is specified a copy of an existing cluster will be created according to the new size
+	&& VFPA:
+	&& re-adjustments of the cluster are always without limitations forcing all cluster tables into a single table
+	&& size limitations are only considered if the source is a different cluster in order to split large tables for VFP  
 	function adjust(sizeMB as Integer, source as TableCluster)
 	local pa, ps1, ps2, ps3, ps4, ps5, swap
 	local limit, struc, buffer, target_cluster, target
@@ -1230,10 +1251,21 @@ define class TableCluster as Custom
 			this.messenger.errorMessage("Unable to get exclusive access on all tables.")
 			return .f.
 		endif
-		if vartype(m.sizeMB) == "N" and m.sizeMB > 0
-			m.limit = 1024 * 1024 * min(m.sizeMB, 2000)
+		if not vartype(m.sizeMB) == "N"
+			m.sizeMB = -1
+		endif
+		if m.sizeMB > 0
+			if this.advanced
+				m.limit = int(1048576 * m.sizeMB)
+			else
+				m.limit = int(1048576 * min(m.sizeMB, 2000))
+			endif
 		else
-			m.limit = 1000 * 1000 * 1000 * 2
+			if this.advanced
+				m.limit = 2147483648000 && almost 2TB
+			else
+				m.limit = 2000000000 && almost 2GB
+			endif
 		endif
 		m.source.setKey()
 		m.struc = m.source.getTableStructure()
@@ -1246,32 +1278,77 @@ define class TableCluster as Custom
 		endif
 		m.target_cluster.appendTable(m.struc)
 		m.target = m.target_cluster.table
-		m.rec_size = m.struc.getRecordSize()
-		m.empty_rec_size = m.target.getDBFsize()
-		m.empty_memo_size = m.target.getFPTsize()
-		m.memos = m.struc.getStructureByType("M")
-		if m.memos.getFieldCount() > 0
-			m.blocksize = int(val(sys(2012, m.target.alias)))
-			m.datasize = m.blocksize - 8
-			m.size = m.empty_rec_size
-			m.memo_size = m.empty_memo_size
+		if this.advanced and (m.source == this or m.sizeMB <= 0)
 			for m.i = 1 to m.source.cluster.count
 				m.table = m.source.cluster.item(m.i)
 				this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
-				m.start = 1
-				m.table.select()
-				scan
-					m.size = m.size+m.rec_size
-					m.bytes = 0
-					for m.j = 1 to m.memos.getFieldCount()
-						m.len = len(evaluate(m.memos.tstruct[m.j,1]))
-						if m.len > 0
-							m.bytes = m.bytes + (int((m.len - 1) / m.datasize) + 1)
+				select (m.target.alias)
+				append from (m.table.dbf)
+			endfor
+		else
+			m.rec_size = m.struc.getRecordSize()
+			m.empty_rec_size = m.target.getDBFsize()
+			m.empty_memo_size = m.target.getFPTsize()
+			m.memos = m.struc.getStructureByType("M")
+			if m.memos.getFieldCount() > 0
+				m.blocksize = int(val(sys(2012, m.target.alias)))
+				m.datasize = m.blocksize - 8
+				m.size = m.empty_rec_size
+				m.memo_size = m.empty_memo_size
+				for m.i = 1 to m.source.cluster.count
+					m.table = m.source.cluster.item(m.i)
+					this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
+					m.start = 1
+					m.table.select()
+					scan
+						m.size = m.size+m.rec_size
+						m.bytes = 0
+						for m.j = 1 to m.memos.getFieldCount()
+							m.len = len(evaluate(m.memos.tstruct[m.j,1]))
+							if m.len > 0
+								m.bytes = m.bytes + (int((m.len - 1) / m.datasize) + 1)
+							endif
+						endfor
+						m.memo_size = m.memo_size + m.bytes * blocksize
+						if m.size > m.limit or m.memo_size > m.limit
+							m.stop = recno()-1
+							if m.target.reccount() > 0
+								select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
+								select (m.target.alias)
+								append from dbf(m.buffer.alias)
+							else
+								select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
+								use
+								m.target.useExclusive()
+							endif
+							m.target_cluster.appendTable()
+							m.target = m.target_cluster.table
+							m.start = m.stop+1
+							m.size = m.empty_rec_size
+							m.memo_size = m.empty_memo_size
 						endif
-					endfor
-					m.memo_size = m.memo_size + m.bytes * blocksize
-					if m.size > m.limit or m.memo_size > m.limit
-						m.stop = recno()-1
+					endscan
+					if m.target.reccount() > 0
+						select * from (m.table.alias) where recno() >= m.start into cursor (m.buffer.alias) readwrite
+						select (m.target.alias)
+						append from dbf(m.buffer.alias)
+					else
+						select * from (m.table.alias) where recno() >= m.start into table (m.target.dbf)
+						use
+						m.target.useExclusive()
+					endif
+				endfor
+			else
+				m.max_records = int((m.limit-m.empty_rec_size)/m.rec_size)		
+				m.records_left = m.max_records
+				for m.i = 1 to m.source.cluster.count
+					m.table = m.source.cluster.item(m.i)
+					this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
+					m.start = 1
+					do while m.start <= m.table.reccount()
+						m.stop = min(m.table.reccount(),m.start+m.records_left-1)
+						this.messenger.incProgress(m.stop-m.start-1,1)
+						this.messenger.forceProgress()
 						if m.target.reccount() > 0
 							select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
 							select (m.target.alias)
@@ -1281,62 +1358,33 @@ define class TableCluster as Custom
 							use
 							m.target.useExclusive()
 						endif
-						m.target_cluster.appendTable()
-						m.target = m.target_cluster.table
+						m.records_left = m.max_records-m.target.reccount()
+						if m.records_left <= 0
+							m.target_cluster.appendTable()
+							m.target = m.target_cluster.table
+							m.records_left = m.max_records
+						endif
 						m.start = m.stop+1
-						m.size = m.empty_rec_size
-						m.memo_size = m.empty_memo_size
-					endif
-				endscan
-				if m.target.reccount() > 0
-					select * from (m.table.alias) where recno() >= m.start into cursor (m.buffer.alias) readwrite
-					select (m.target.alias)
-					append from dbf(m.buffer.alias)
-				else
-					select * from (m.table.alias) where recno() >= m.start into table (m.target.dbf)
-					use
-					m.target.useExclusive()
-				endif
-			endfor
-		else
-			m.max_records = int((m.limit-m.empty_rec_size)/m.rec_size)		
-			m.records_left = m.max_records
-			for m.i = 1 to m.source.cluster.count
-				m.table = m.source.cluster.item(m.i)
-				this.messenger.forceMessage("Adjusting "+proper(m.table.getPureName()))
-				m.start = 1
-				do while m.start <= m.table.reccount()
-					m.stop = min(m.table.reccount(),m.start+m.records_left-1)
-					this.messenger.incProgress(m.stop-m.start-1,1)
-					this.messenger.forceProgress()
-					if m.target.reccount() > 0
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into cursor (m.buffer.alias) readwrite
-						select (m.target.alias)
-						append from dbf(m.buffer.alias)
-					else
-						select * from (m.table.alias) where between(recno(),m.start,m.stop) into table (m.target.dbf)
-						use
-						m.target.useExclusive()
-					endif
-					m.records_left = m.max_records-m.target.reccount()
-					if m.records_left <= 0
-						m.target_cluster.appendTable()
-						m.target = m.target_cluster.table
-						m.records_left = m.max_records
-					endif
-					m.start = m.stop+1
-				enddo
-			endfor
+					enddo
+				endfor
+			endif
 		endif
 		this.messenger.forceMessage("Adjusting...")
 		if m.source == this
 			this.erase(.t.)
-			for m.i = 1 to m.target_cluster.cluster.count
-				m.table = m.target_cluster.cluster.item(m.i)
-				m.table.rename(this.createTableName(max(this.first,1)+m.i-1,.t.))
-			endfor
-			m.target_cluster.close()
-			this.rebuild(m.target_cluster.cluster.count)
+			if m.target_cluster.cluster.count == 1
+				m.target_cluster.table.rename(this.start)
+				m.target_cluster.close()
+				this.rebuild(1)
+			else	
+				for m.i = 1 to m.target_cluster.cluster.count
+					m.table = m.target_cluster.cluster.item(m.i)
+					m.table.rename(this.createTableName(max(this.first,1)+m.i-1,.t.))
+				endfor
+				m.target_cluster.close()
+				m.table = m.target_cluster.cluster.item(1)
+				this.rebuild(m.target_cluster.cluster.count, m.table.getPureName())
+			endif
 			m.target_cluster.cluster.remove(-1)
 		endif
 		this.messenger.clearMessage()

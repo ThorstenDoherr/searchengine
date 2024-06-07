@@ -1,14 +1,20 @@
 *==========================================================================
-*	Modul: 		sheet.prg
-*	Date:		2023.08.30
-*	Author:		Thorsten Doherr
-*	Procedure: 	custom.prg
-*	Library:	foxpro.fll
-*   Handles:	17
-*	Function:	Classes to import and export delimited text files
-*               in and out of foxpro tables.
+* Modul: 	 sheet.prg
+* Date:		 2024.05.08
+* Author:	 Thorsten Doherr
+* Procedure: custom.prg
+* Library:	 foxpro.fll
+* Handles:	 17
+* Function:	 Classes to import and export delimited text files in and out
+*            of foxpro tables.
+* VFPA:      Due to large table support table clusters will always have
+*            only one table.
 *==========================================================================
 #define SHEETHANDLE 17
+
+function version_of_sheet()
+	return "2024.05.08"
+endfunc
 
 function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)
 	_screen.local1.useExclusive()
@@ -17,15 +23,14 @@ function mp_parse(separator as String, nonames as String, crlf as Boolean, colum
 	_screen.main.close()
 endfunc
 
-function mp_append(separator as String, nonames as Boolean, crlf as Boolean)
+function mp_append(separator as String, nonames as Boolean, crlf as Boolean, advanced as Boolean)
 	_screen.global3.useShared()
-	_screen.main.appending(_screen.global1.from(_screen.worker), _screen.global1.to(_screen.worker), _screen.global2, _screen.global3, m.separator, m.nonames, m.crlf, _screen.messenger)
+	_screen.main.appending(_screen.global1.from(_screen.worker), _screen.global1.to(_screen.worker), _screen.global2, _screen.global3, m.separator, m.nonames, m.crlf, m.advanced, _screen.messenger)
 	_screen.global3.close()
 	_screen.main.close()
 endfunc
 
 define class InsheetTableCluster as TableCluster
-	protected hardSeparators, potentialSeparators, invalidNames
 	invalidNames = "FOREIGN"
 	original = ""
 	nonames = .f.
@@ -206,8 +211,11 @@ define class InsheetTableCluster as TableCluster
 			m.local = createobject("Collection")
 			for m.i = 1 to m.wc
 				m.table = createobject("BaseCursor", this.getPath(), "count b(0)")
-				m.table.close()
 				m.local.add(m.table)
+			endfor
+			for m.i = 1 to m.wc
+				m.table = m.local.item(m.i)
+				m.table.close()
 			endfor
 			m.global = createobject("Collection")
 			m.global.add(createobject("WorkerBracket", 1, m.filesize, m.wc, 0.07)) && skipping only takes 6% of parsing time
@@ -354,7 +362,7 @@ define class InsheetTableCluster as TableCluster
 			this.pfw.startWorkers()
 			this.pfw.callWorkers("mp_open", this, m.psl, .f., m.global)
 			this.pfw.wait() && make sure all workers are idle to maintain batch sequence
-			this.pfw.callWorkers("mp_append", m.separator, m.nonames, m.crlf)
+			this.pfw.callWorkers("mp_append", m.separator, m.nonames, m.crlf, this.advanced)
 			this.pfw.wait(.t.)
 			this.pfw.stopWorkers()
 			m.table.erase()
@@ -385,12 +393,12 @@ define class InsheetTableCluster as TableCluster
 			endfor
 			this.close()
 			this.rebuild(m.i)
-			if m.memos == .f. or m.i <= m.wc  && compressing memos is very slow and should be avoided for large clusters
+			if this.advanced or m.memos == .f. or m.i <= m.wc && compressing memos is very slow and should be avoided for large clusters unless VFPA
 				this.compress()
 			endif
 		else
 			this.rebuild(1)
-			this.appending(1, m.filesize, m.file, @m.struc, m.separator, m.nonames, m.crlf, this.messenger)
+			this.appending(1, m.filesize, m.file, @m.struc, m.separator, m.nonames, m.crlf, this.advanced, this.messenger)
 		endif
 		if this.getTableCount() == 1 and not this.original == this.start
 			m.table = this.getTable(1)
@@ -468,7 +476,7 @@ define class InsheetTableCluster as TableCluster
 		return m.linecnt
 	endfunc	
 
-	function appending(from as Integer, to as Integer, file as String, structure as Object, separator as String, nonames as Boolean, crlf as Boolean, messenger as Object)
+	function appending(from as Integer, to as Integer, file as String, structure as Object, separator as String, nonames as Boolean, crlf as Boolean, advanced as Boolean, messenger as Object)
 	local i, line, linebreak, worker, ind, ins, cnt, val, item, len
 	local table, struct, blocksize, sizerec, size, datasize, sizememo, sizelimit, basecnt
 	local array struc[1], items[1], values[1]
@@ -504,12 +512,14 @@ define class InsheetTableCluster as TableCluster
 		else
 			acopy(m.structure, m.struc)
 		endif
-		m.blocksize = val(sys(2012,m.table.alias))
-		m.datasize = m.blocksize - 8
-		m.sizerec = m.table.getRecordSize()
-		m.size = 0
-		m.sizememo = 0
-		m.sizelimit = 1024 * 1024 * 1024 * 2 - 100 * 1024 * 1024
+		if m.advanced == .f.
+			m.blocksize = val(sys(2012,m.table.alias))
+			m.datasize = m.blocksize - 8
+			m.sizerec = m.table.getRecordSize()
+			m.size = 0
+			m.sizememo = 0
+			m.sizelimit = 1024 * 1024 * 1024 * 2 - 100 * 1024 * 1024
+		endif
 		m.basecnt = alen(m.struc,1)
 		if this.noblank
 			dimension m.values[m.struct.getFieldCount()]
@@ -569,7 +579,7 @@ define class InsheetTableCluster as TableCluster
 							m.item = Decode(m.item)
 						endif
 						m.len = len(m.item)
-						if m.len > 0
+						if m.advanced == .f. and m.len > 0
 							m.sizememo = m.sizememo + (int((m.len-1) / m.datasize) + 1) * m.blocksize
 						endif
 						m.values[m.ind] = m.item
@@ -609,7 +619,7 @@ define class InsheetTableCluster as TableCluster
 									m.item =Decode(m.item)
 								endif
 								m.len = len(m.item)
-								if m.len > 0
+								if m.advanced == .f. and m.len > 0
 									m.sizememo = m.sizememo + (int((m.len-1) / m.datasize) + 1) * m.blocksize
 								endif
 								m.items[m.i] = m.item
@@ -626,16 +636,18 @@ define class InsheetTableCluster as TableCluster
 					endif
 				endfor
 			endif
-			m.size = m.size + m.sizerec
-			if m.size > m.sizelimit or m.sizememo > m.sizelimit
-				if not this.appendTable()
-					exit
+			if m.advanced == .f.
+				m.size = m.size + m.sizerec
+				if m.size > m.sizelimit or m.sizememo > m.sizelimit
+					if not this.appendTable()
+						exit
+					endif
+					m.table = this.getLastTable()
+					m.table.useExclusive()
+					m.size = 0
+					m.sizememo = 0
+					select (m.table.alias)
 				endif
-				m.table = this.getLastTable()
-				m.table.useExclusive()
-				m.size = 0
-				m.sizememo = 0
-				select (m.table.alias)
 			endif
 			if this.noblank
 				append blank
@@ -697,7 +709,7 @@ define class InsheetTableCluster as TableCluster
 	endfunc
 		
 	hidden function collectHistogram(hist, items, itemcnt)
-	local cnt, i, val, len, item, type
+	local cnt, i, val, len, item, type, corpus, e
 		m.cnt = min(m.itemcnt,alen(m.hist,1))
 		for m.i = 1 to m.cnt
 			m.type = m.hist[m.i,256]
@@ -722,27 +734,30 @@ define class InsheetTableCluster as TableCluster
 				loop
 			endif
 			m.item = strtran(strtran(m.item,",","."),";"," ")
-			m.val = val(m.item)
-			if m.val == 0 and not empty(ltrim(ltrim(ltrim(rtrim(rtrim(m.item,"0"),"."),"-")),"0"))
+			m.corpus = lower(Squeeze(ReplaceChars(m.item, "123456789", "0", .f.), "0"))
+			m.e = .f.
+			if "e" $ m.corpus
+				m.e = .t.
+				if not inlist(getwordnum(m.corpus, 2, "e"), "0", "+0", "-0")
+					m.hist[m.i,256] = "C"
+					loop
+				endif
+				m.corpus = getwordnum(m.corpus, 1, "e")
+			endif
+			if not inlist(m.corpus, "0", "0.0", ".0", "-0", "-0.0", "-.0", "+0", "+0.0", "+.0")
 				m.hist[m.i,256] = "C"
 				loop
 			endif
-			if "." $ m.item
-				if not rtrim(rtrim(str(abs(m.val),18,17),"0"),".") == ltrim(ltrim(rtrim(rtrim(m.item,"0"),"."),"-"))
-					m.hist[m.i,256] = "C"
-					loop
-				endif
-			else
-				if not ltrim(str(abs(m.val),18)) == ltrim(ltrim(m.item,"-"))
-					m.hist[m.i,256] = "C"
-					loop
-				endif
+			m.val = val(m.item)
+			if m.val == 0 and not inlist(Squeeze(iif(m.e, getwordnum(m.item, 1, "eE"), m.item), "0"), "0", "0.0", ".0", "-0", "-0.0", "-.0", "+0", "+0.0", "+.0")
+				m.hist[m.i,256] = "C"
+				loop
 			endif
-			if m.type == "N"
+			if m.type == "N" or m.type = "D" and not m.e
 				loop
 			endif
 			if not int(m.val) == m.val
-				if "e" $ m.item or "E" $ m.item
+				if m.e
 					m.hist[m.i,256] = "N"
 				else
 					m.hist[m.i,256] = "D"
@@ -1262,7 +1277,7 @@ define class OutSheetTable as Basetable
 	
 	function outsheet(file as String, fieldlist, append as Boolean, consecutive as Boolean)
 	local ps1, ps2, ps3, pa, pk, lm, header, struc, con
-	local converter, cnt, i, handle, f, sep, exp, line
+	local converter, i, handle, f, s, exp, line
 		m.ps1 = createobject("PreservedSetting","escape","off")
 		m.ps2 = createobject("PreservedSetting","safety","off")
 		m.ps3 = createobject("PreservedSetting","talk","off")
@@ -1318,33 +1333,31 @@ define class OutSheetTable as Basetable
 			this.messenger.errormessage("Unable to create export file.")
 			return .f.
 		endif
-		m.exp = ""
-		m.sep = this.separator
+		m.s = ""
+		m.exp = "m.line = "
 		m.line = ""
-		m.converter = createobject("Collection")
-		m.cnt = m.struc.getFieldCount()
-		for m.i = 1 to m.cnt
+		m.converter = ""
+		for m.i = 1 to m.struc.getFieldCount()
 			m.f = m.struc.getFieldStructure(m.i)
 			if this.quoted
 				m.con = m.f.quotedConverter()
 			else
 				m.con = m.f.exportConverter()
 			endif			
-			if len(m.exp)+len(m.con) > 4096
-				m.converter.add(substr(m.exp,8))
-				m.exp = ""
+			if len(m.exp)+len(m.s)+len(m.con) > 4095
+				m.converter = m.converter+m.exp+chr(13)+chr(10)
+				m.exp = "m.line = m.line+"
 			endif
-			m.exp = m.exp+'+m.sep+'+m.con
+			m.exp = m.exp+m.s+m.con
+			m.s = "+m.s+"
 			if m.header
-				m.line = m.line+m.sep+lower(m.f.getName())
+				m.line = m.line+this.separator+lower(m.f.getName())
 			endif
 		endfor
-		if not empty(m.exp)
-			m.converter.add(substr(m.exp,8))
-		endif
+		m.converter = m.converter+m.exp+chr(13)+chr(10)
 		m.exp = ""
 		if not empty(m.line)
-			m.line = substr(m.line,len(m.sep)+1)
+			m.line = substr(m.line,len(this.separator)+1)
 			FileWriteCRLF(m.handle,m.line)
 		endif
 		this.setKey()
@@ -1353,18 +1366,19 @@ define class OutSheetTable as Basetable
 			this.messenger.startProgress("Exporting <<0>>/"+transform(reccount()))
 			this.messenger.startCancel("Cancel Operation","Exporting","Canceled.")
 		endif
-		scan
-			this.messenger.incProgress(1,1)
-			this.messenger.postProgress()
-			if this.messenger.queryCancel()
-				exit
-			endif
-			m.line = evaluate(m.converter.item(1))
-			for m.i = 2 to m.converter.count
-				m.line = m.line+m.sep+evaluate(m.converter.item(m.i))
-			endfor		
-			FileWriteCRLF(m.handle, m.line)
-		endscan
+		text to m.converter textmerge noshow flags 1 pretext 3
+			parameters s, messenger
+			scan
+				m.messenger.incProgress(1,1)
+				m.messenger.postProgress()
+				if m.messenger.queryCancel()
+					exit
+				endif
+				<<m.converter>>
+				FileWriteCRLF(<<m.handle>>, m.line)
+			endscan
+		endtext
+		execscript(m.converter, this.separator, this.messenger)
 		this.messenger.forceProgress()
 		FileClose(m.handle)
 		if this.messenger.isCanceled()

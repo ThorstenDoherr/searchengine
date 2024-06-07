@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2023.10.09
+*   Date:       2024.05.14
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -9,6 +9,10 @@
 #DEFINE HKEY_CURRENT_USER  -2147483647  && BITSET(0,31)+1
 #DEFINE HKEY_LOCAL_MACHINE -2147483646  && BITSET(0,31)+2
 #DEFINE HKEY_USERS         -2147483645  && BITSET(0,31)+3
+
+function version_of_custom()
+	return "2024.05.08"
+endfunc
 
 function mp_bracket(from as Integer, to as Integer)
 local start, end, batch, i
@@ -219,8 +223,8 @@ define class Registry as Custom
 enddefine
 
 define class ParallelFoxWrapper as Custom
-	hidden wc, parallel, messenger, maxwc
 	parallel = .f.
+	parPoolMgr = .f.
 	wc = -1
 	maxwc = 1
 	path = ""
@@ -228,44 +232,60 @@ define class ParallelFoxWrapper as Custom
 	debug = .f.
 	safemode = .f.
 	messenger = .f.
+	advanced = .f.
+	exe = .f.
 	
 	function init()
+		this.advanced = version(5) >= 1000 && support for Foxpro Advanced
+		this.exe = lower(justext(sys(16,1))) == "exe"
 		declare Sleep in kernel32 integer millis
 	endfunc
 	
-	function install(parallelfox)
-	local clsid, localserver32, r
-		m.parallelfox = alltrim(evl(m.parallelfox,"parallelfox.exe"))
-		m.parallelfox = lower(fullpath(m.parallelfox))
-		m.r = createobject("Registry")
-		m.clsid = m.r.getRegValue("ParallelFox.Application\CLSID")
-		if empty(m.clsid)
-			m.r.shellExec(m.parallelfox,"RunAs","/regserver")
-			Sleep(1000)
-			return not empty(m.r.getRegValue("ParallelFox.Application"))
-		endif
-		m.localserver32 = m.r.getRegValue("WOW6432Node\CLSID\"+m.clsid+"\LocalServer32")
-		if empty(m.localserver32)
-			return .f.
-		endif
-		m.localserver32 = alltrim(strtran(lower(m.localserver32),"/automation",""))
-		if file(m.localserver32)
-			return .t.
-		endif
-		if not file(m.parallelfox)
-			return .f.
-		endif
-		m.r.shellExec(m.localserver32,"RunAs","/unregserver")
-		wait "" timeout 1
-		m.r.shellExec(m.parallelfox,"RunAs","/regserver")
-		wait "" timeout 1
-		return not empty(m.r.getRegValue("ParallelFox.Application"))
+	function getApplication()
+		return iif(this.advanced, "ParallelFoxa", "ParallelFox")
 	endfunc
-	
-	function parallelPath()
-	local r, clsid, localserver32
+
+	function install(path)
+	local appl, clsid, localserver32, r, force
+		m.appl = this.getApplication()
+		m.path = evl(m.path, "")
+		m.force = not empty(m.path)
+		m.path = lower(fullpath(alltrim(evl(m.path,""))))
+		m.path = rtrim(strtran(strtran(m.path+"?", "\parallelfox.exe?", "\"), "\parallelfoxa.exe?", "\"), "?")
+		m.path = m.path + iif(right(m.path,1) == "\", "", "\")
+		m.parallelfox = m.path+lower(m.appl)+".exe"
+		if m.force and not file(m.parallelfox)
+			return .f.
+		endif
 		m.r = createobject("Registry")
-		m.clsid = m.r.getRegValue("ParallelFox.Application\CLSID")
+		m.clsid = m.r.getRegValue(m.appl+".Application\CLSID")
+		if not empty(m.clsid)
+			m.localserver32 = m.r.getRegValue("WOW6432Node\CLSID\"+m.clsid+"\LocalServer32")
+			if not empty(m.localserver32)
+				m.localserver32 = rtrim(rtrim(strtran(lower(alltrim(m.localserver32))+"?", "/automation?", "")), "?")
+				if m.force 
+					if m.localserver32 == m.parallelfox  && already registered
+						return .t.
+					endif
+				else
+					if file(m.localserver32)
+						return .t.
+					endif
+				endif
+				m.r.shellExec(m.localserver32, "RunAs", "/unregserver") && unregister no matter what
+				Sleep(1000)
+			endif
+		endif
+		m.r.shellExec(m.parallelfox, "RunAs", "/regserver")
+		Sleep(1000)
+		return not empty(m.r.getRegValue(m.appl+".Application"))
+	endfunc
+
+	function parallelPath(incl_app as Boolean)
+	local appl, r, clsid, localserver32
+		m.r = createobject("Registry")
+		m.appl = this.getApplication()
+		m.clsid = m.r.getRegValue(m.appl+".Application\CLSID")
 		if empty(m.clsid)
 			return ""
 		endif
@@ -273,19 +293,22 @@ define class ParallelFoxWrapper as Custom
 		if empty(m.localserver32)
 			return ""
 		endif
-		m.localserver32 = alltrim(strtran(lower(m.localserver32),"/automation",""))
-		m.localserver32 = substr(m.localserver32,1,len(m.localserver32)-15)
-		if not right(m.localserver32,1) == "\"
-			return ""
+		m.localserver32 = rtrim(rtrim(strtran(lower(alltrim(m.localserver32))+"?", "/automation?", "")), "?")
+		if not m.incl_app
+			m.localserver32 = justpath(m.localserver32)
+			if not right(m.localserver32,1) == "\" and not empty(m.localserver32)
+				m.localserver32 = m.localserver32+"\"
+			endif
 		endif
 		return m.localserver32
 	endfunc
 	
 	function isInstalled()
-	local ok, app
+	local appl, ok, app
+		m.appl = this.getApplication()
 		m.ok = .t.
 		try
-			m.app = createobject("ParallelFox.Application")
+			m.app = createobject(m.appl+".Application")
 		catch
 			m.ok = .f.
 		endtry
@@ -293,7 +316,7 @@ define class ParallelFoxWrapper as Custom
 	endfunc
 	
 	function goParallel() && taps into global ParallelFox
-	local app, err, path, default
+	local appl, app, err, path, default
 		if this.isParallel()
 			return .t.
 		endif
@@ -302,14 +325,18 @@ define class ParallelFoxWrapper as Custom
 		this.wc = -1
 		this.path = ""
 		m.path = fullpath("")
+		m.appl = this.getApplication()
 		m.err = .f.
 		try
-			m.app = createobject("ParallelFox.Application")
+			m.app = createobject(m.appl+".Application")
 		catch
 			m.err = .t.
 		endtry
 		release m.app
 		if m.err
+			if this.exe  && not properly installed and no debug support
+				return .f.
+			endif
 			this.debug = .t.
 		endif
 		try
@@ -335,6 +362,11 @@ define class ParallelFoxWrapper as Custom
 				return .f.
 			endif
 		endif
+		if vartype(_screen.parPoolMgr) == "O"
+			this.parPoolMgr = _screen.parPoolMgr
+		else
+			this.parPoolMgr = _screen.ParPoolMgrs("DEFAULT")
+		endif
 		this.path = m.path
 		this.wc = 1 && otherwise isParallel() returns .f.
 		this.wc = this.getWorkerCount()
@@ -346,6 +378,7 @@ define class ParallelFoxWrapper as Custom
 			return .t.
 		endif
 		this.parallel = .f.
+		this.parPoolMgr = .f.
 		this.wc = -1
 		this.maxwc = -1
 		return .t.
@@ -407,7 +440,7 @@ define class ParallelFoxWrapper as Custom
 	
 	function getWorkerCount()
 		if this.isParallel()
-			this.wc = _Screen.ParPoolMgr.nWorkerCount
+			this.wc = this.ParPoolMgr.nWorkerCount
 			return this.wc
 		endif
 		return -1
@@ -415,21 +448,21 @@ define class ParallelFoxWrapper as Custom
 	
 	function getRunningWorkerCount()
 		if this.isParallel()
-			return _Screen.ParPoolMgr.workers.count
+			return this.ParPoolMgr.workers.count
 		endif
 		return 0
 	endfunc
 	
 	function getBusyWorkerCount()
 		if this.isParallel()
-			return _Screen.ParPoolMgr.nBusyWorkers
+			return this.ParPoolMgr.nBusyWorkers
 		endif
 		return 0
 	endfunc
 
 	function isBusy()
 		if this.isParallel()
-			return This.parallel._Events.nCommands > 0 and _Screen.ParPoolMgr.nBusyWorkers > 0
+			return This.parallel._Events.nCommands > 0 and this.ParPoolMgr.nBusyWorkers > 0
 		endif
 		return 0
 	endfunc
@@ -581,7 +614,7 @@ define class ParallelFoxWrapper as Custom
 			if m.useMessenger and vartype(this.messenger) == "O"
 				this.messenger.forceProgress()
 				this.messenger.start()
-				do while this.parallel._Events.nCommands > 0 or _Screen.ParPoolMgr.nBusyWorkers > 0
+				do while this.parallel._Events.nCommands > 0 or this.ParPoolMgr.nBusyWorkers > 0
 					if this.messenger.queryCancel(.t.)
 						this.parallel.wait()
 						exit
@@ -4851,60 +4884,61 @@ define class BaseTable as custom
 		return this.seekKey(m.key) > 0
 	endfunc
 	
-	function useIndex(IDXfile)
-		return this.forceIndex(.f., m.IDXfile)
+	function useIndex(IDXname, options)
+		return this.forceIndex(m.IDXname, .f., m.options)
 	endfunc
 	
-	function setIndex(IDXfile)
+	function setIndex(IDXname, options)
 	local pa
-		if not vartype(m.IDXfile) == "C" or empty(m.IDXfile)
+		if not vartype(m.IDXname) == "C" or empty(m.IDXname)
 			m.pa = createobject("PreservedAlias")
-			this.select()
-			set index to
-			return .t.
+			if this.select()
+				set index to
+				return .t.
+			endif
+			return .f.
 		endif
-		return this.forceIndex(.f., m.IDXfile)
+		return this.forceIndex(m.IDXname, .f., m.options)
 	endfunc
 	
-	function forceIndex(key, IDXfile, options)
-	local index, ok, pa
+	function forceIndex(IDXname, key, options)
+	local index1, index2, ok, pa
 		if not this.validAlias
 			return .f.
 		endif
 		m.pa = createobject("PreservedAlias")
 		this.select()
-		if not vartype(m.IDXfile) == "C"
-			m.IDXfile = this.dbf
+		m.IDXname = evl(m.IDXname,"")
+		if empty(m.IDXname)
+			m.IDXname = this.dbf
 		endif
-		m.IDXfile = forceext(m.IDXfile, "idx")
-		m.ok = .t.
-		try
-			set index to (m.IDXfile)
-		catch
-			m.ok = .f.
-		endtry
-		if m.ok
-			return .t.
+		m.IDXname = rtrim(justpath(this.dbf),"\","/")+"\"+forceext(justfname(m.IDXname), "idx")
+		m.options = strtran(strtran(" "+lower(evl(m.options, ""))+" ", " compact ", " "), " additive ", " ")
+		m.index2 = "set index to (m.IDXname) order 1 "+icase(" descending " $ m.options, "descending", " ascending " $ m.options, "ascending", "")+" additive"
+		if file(m.IDXname)
+			m.ok = .t.
+			try
+				&index2 
+			catch
+				m.ok = .f.
+			endtry
+			return m.ok
 		endif
 		if not vartype(m.key) == "C"
 			return .f.
 		endif
-		if not vartype(m.options) == "C"
-			m.options = ""
-		else
-			m.options = " "+m.options
-		endif
-		m.index = "index on "+m.key+" to "+m.IDXfile+m.options
+		m.options = strtran(m.options, " descending ", " ") && IDX files cannot be created in descending order
+		m.index1 = "index on "+m.key+" to (m.IDXname) compact"+m.options+" additive"
 		m.ok = .t.
 		try 
-			&index
-			set index to (m.IDXfile)
+			&index1
+			&index2
 		catch
 			m.ok = .f.
 		endtry
 		return m.ok
 	endfunc
-	
+
 	function deleteIndex(IDXfile)
 	local ok, pa
 		if not vartype(m.IDXfile) == "C"
@@ -5296,10 +5330,10 @@ define class BaseTable as custom
 
 	hidden function using(exclusive, wait)
 	local sel, err, cnt
-		m.sel = select(1)
-		m.err = .f.
 		m.cnt = iif(m.wait,0,99)
+		m.err = .f.
 		do while .t.
+			m.sel = select(1)
 			try
 				if m.exclusive
 					use (this.dbf) in (m.sel) exclusive again
@@ -5588,12 +5622,11 @@ define class BaseTable as custom
 enddefine
 
 define class BaseCursor as BaseTable
-	function init(struc,path) && can be swapped, last omitted
+	function init(struc, path) && can be swapped, last omitted
 	local i, swap, file
-	local array dir[1]
-		this.initObjects()
-		this.setHandle("")
-		if vartype(m.struc) == "O" and not lower(m.struc.class) == "tablestructure" && struc is basecursor object
+	local default_dir, err
+		BaseTable::init()
+		if pcount() == 1 and vartype(m.struc) == "O" and not lower(m.struc.class) == "tablestructure" && struc is basecursor object
 			BaseTable::init(m.struc)
 			return
 		endif
@@ -5611,7 +5644,15 @@ define class BaseCursor as BaseTable
 		endif
 		if vartype(m.path) == "C"
 			m.path = rtrim(fullpath(m.path), "\") + "\"
-			if adir(m.dir, m.path, "D") == 0 && invalid path
+			m.default_dir = sys(5)+curdir()
+			m.err = .f.
+			try
+				set default to (m.path)
+				set default to (m.default_dir)
+			catch
+				m.err = .t.
+			endtry
+			if m.err
 				this.setHandle("")
 				return
 			endif
@@ -5623,7 +5664,7 @@ define class BaseCursor as BaseTable
 			if file(m.file,1)
 				loop
 			endif
-			BaseTable::init(m.file)
+			this.setHandle(m.file)
 			if this.construct(m.struc)
 				exit
 			endif
