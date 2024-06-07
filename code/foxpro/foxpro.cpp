@@ -852,6 +852,7 @@ void FAR SwapChars(ParamBlk FAR *parm)
 	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
 	from = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
 	to = (unsigned char FAR *) _HandToPtr(parm->p[2].val.ev_handle);
+
 	if (len1 > BUFFERSIZE)
 	{	len1 = BUFFERSIZE;
 	}
@@ -1609,7 +1610,7 @@ FoxInfo myFoxInfo[] =
 	{"NormizeKeepPos", (FPFI) NormizeKeepPos, 2, "CC"},
 	{"BlankChars", (FPFI) BlankChars, 2, "CC"},
 	{"KeepChars", (FPFI) KeepChars, 2, "CC"},
-	{"SwapChars", (FPFI) ReplaceChars, 3, "CCC"},
+	{"SwapChars", (FPFI) SwapChars, 3, "CCC"},
 	{"ReplaceChars", (FPFI) ReplaceChars, 4, "CCCL"},
 	{"Squeeze", (FPFI) Squeeze, 2, "CC"},
 	{"Gram", (FPFI) Gram, 2, "CI"},
