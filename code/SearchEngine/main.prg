@@ -1,4 +1,4 @@
-lparameters script, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17
+lparameters script, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17, para18, para19, para20, para21, para22, para23, para24
 public engine, oldengine, engineChanged, mainForm
 local path, psl, mess 
 _screen.icon = "SearchFox.ico"
@@ -54,7 +54,7 @@ if vartype(m.script) == "C"
 	_screen.BackColor = 0
 	_screen.WindowType = 1
 	_screen.LockScreen = .f.
-	if not m.engine.run(m.script, m.para0, m.para1, m.para2, m.para3, m.para4, m.para5, m.para6, m.para7, m.para8, m.para9, m.para10, m.para11, m.para12, m.para13, m.para14, m.para15, m.para16, m.para17)
+	if not m.engine.run(m.script, m.para0, m.para1, m.para2, m.para3, m.para4, m.para5, m.para6, m.para7, m.para8, m.para9, m.para10, m.para11, m.para12, m.para13, m.para14, m.para15, m.para16, m.para17, m.para18, m.para19, m.para20, m.para21, m.para22, m.para23, m.para24)
 		m.mess = m.engine.getMessenger()
 		if m.mess.wasCanceled()
 			return
@@ -72,7 +72,7 @@ m.engine = createobject("SearchEngine",m.path)
 if not vartype(m.engine) == "O"
 	return
 endif
-m.engine.writeLog("* ["+m.engine.getVersion()+"]["+strtran(ttoc(datetime(),3),"T"," ")+"]["+m.engine.getSlot()+"]")
+m.engine.setLogHeader("* [version: "+version_of_searchengine()+"]["+strtran(ttoc(datetime(),3),"T"," ")+"]["+m.engine.getSlot()+"]")
 m.engine.tag = "NEW"
 m.oldengine = m.engine.toString()
 m.engineChanged = .F.

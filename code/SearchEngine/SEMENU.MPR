@@ -1,12 +1,12 @@
 *       *********************************************************
 *       *                                                         
-*       * 02/03/21             SEMENU.MPR               17:41:03  
+*       * 06/06/24             SEMENU.MPR               17:18:46  
 *       *                                                         
 *       *********************************************************
 *       *                                                         
 *       * Author's Name                                           
 *       *                                                         
-*       * Copyright (C) 2021 Company Name                         
+*       * Copyright (C) 2024 Company Name                         
 *       * Address                                                 
 *       * City,     Zip                                           
 *       *                                                         
@@ -126,22 +126,22 @@ ENDIF
 
 DEFINE MENU (m.cMenuName) IN (m.oFormRef.Name) BAR
 
-DEFINE PAD _5z111wj07 OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
+DEFINE PAD _6x2113vsp OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
 	KEY ALT+F, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5z111wj08 OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
+DEFINE PAD _6x2113vsq OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
 	KEY ALT+C, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5z111wj09 OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
+DEFINE PAD _6x2113vsr OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
 	KEY ALT+A, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _5z111wj0a OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
+DEFINE PAD _6x2113vss OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
 	KEY ALT+T, "" ;
 	SKIP FOR empty(m.engine.tag) 
-ON PAD _5z111wj07 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
-ON PAD _5z111wj08 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
-ON PAD _5z111wj09 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
-ON PAD _5z111wj0a OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
+ON PAD _6x2113vsp OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
+ON PAD _6x2113vsq OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
+ON PAD _6x2113vsr OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
+ON PAD _6x2113vss OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
 
 DEFINE POPUP (a_menupops[1]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
 DEFINE BAR 1 OF (a_menupops[1]) PROMPT "\<Save Settings"
@@ -150,16 +150,21 @@ DEFINE BAR 3 OF (a_menupops[1]) PROMPT "\-"
 DEFINE BAR 4 OF (a_menupops[1]) PROMPT "\<Export" ;
 	SKIP FOR not m.engine.isSearchedSynchronized() or not m.engine.isFoundSynchronized()
 DEFINE BAR 5 OF (a_menupops[1]) PROMPT "\-"
-DEFINE BAR 6 OF (a_menupops[1]) PROMPT "E\<xit"
+DEFINE BAR 6 OF (a_menupops[1]) PROMPT "\<Command"
+DEFINE BAR 7 OF (a_menupops[1]) PROMPT "\-"
+DEFINE BAR 8 OF (a_menupops[1]) PROMPT "E\<xit"
 ON SELECTION BAR 1 OF (a_menupops[1]) ;
-	DO _5z111wj0b ;
+	DO _6x2113vst ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[1]) ;
-	DO _5z111wj0c ;
+	DO _6x2113vsu ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON BAR 4 OF (a_menupops[1]) ACTIVATE POPUP (a_menupops[2])
 ON SELECTION BAR 6 OF (a_menupops[1]) ;
-	DO _5z111wj0d ;
+	DO _6x2113vsv ;
+	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
+ON SELECTION BAR 8 OF (a_menupops[1]) ;
+	DO _6x2113vsw ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[2]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -171,19 +176,19 @@ DEFINE BAR 4 OF (a_menupops[2]) PROMPT "\-"
 DEFINE BAR 5 OF (a_menupops[2]) PROMPT "\<Result Export"
 DEFINE BAR 6 OF (a_menupops[2]) PROMPT "\<Meta Export"
 ON SELECTION BAR 1 OF (a_menupops[2]) ;
-	DO _5z111wj0e ;
+	DO _6x2113vsx ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[2]) ;
-	DO _5z111wj0f ;
+	DO _6x2113vsy ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[2]) ;
-	DO _5z111wj0g ;
+	DO _6x2113vsz ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[2]) ;
-	DO _5z111wj0h ;
+	DO _6x2113vt0 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[2]) ;
-	DO _5z111wj0i ;
+	DO _6x2113vt1 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[3]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -197,19 +202,19 @@ DEFINE BAR 5 OF (a_menupops[3]) PROMPT "\<Settings"
 DEFINE BAR 6 OF (a_menupops[3]) PROMPT "\-"
 DEFINE BAR 7 OF (a_menupops[3]) PROMPT "\<Preferences"
 ON SELECTION BAR 1 OF (a_menupops[3]) ;
-	DO _5z111wj0j ;
+	DO _6x2113vt2 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[3]) ;
-	DO _5z111wj0k ;
+	DO _6x2113vt3 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 4 OF (a_menupops[3]) ;
-	DO _5z111wj0l ;
+	DO _6x2113vt4 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[3]) ;
-	DO _5z111wj0m ;
+	DO _6x2113vt5 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[3]) ;
-	DO _5z111wj0n ;
+	DO _6x2113vt6 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[4]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -229,25 +234,25 @@ DEFINE BAR 7 OF (a_menupops[4]) PROMPT "E\<xpand" ;
 DEFINE BAR 8 OF (a_menupops[4]) PROMPT "\<Mirror" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isResultTableValid() or not m.engine.isMono()
 ON SELECTION BAR 1 OF (a_menupops[4]) ;
-	DO _5z111wj0o ;
+	DO _6x2113vt7 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[4]) ;
-	DO _5z111wj0p ;
+	DO _6x2113vt8 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[4]) ;
-	DO _5z111wj0q ;
+	DO _6x2113vt9 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[4]) ;
-	DO _5z111wj0r ;
+	DO _6x2113vta ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[4]) ;
-	DO _5z111wj0s ;
+	DO _6x2113vtb ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[4]) ;
-	DO _5z111wj0t ;
+	DO _6x2113vtc ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 8 OF (a_menupops[4]) ;
-	DO _5z111wj0u ;
+	DO _6x2113vtd ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[5]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -262,19 +267,19 @@ DEFINE BAR 6 OF (a_menupops[5]) PROMPT "\<Browser"
 DEFINE BAR 7 OF (a_menupops[5]) PROMPT "\-"
 DEFINE BAR 8 OF (a_menupops[5]) PROMPT "\<About"
 ON SELECTION BAR 1 OF (a_menupops[5]) ;
-	DO _5z111wj0v ;
+	DO _6x2113vte ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[5]) ;
-	DO _5z111wj0w ;
+	DO _6x2113vtf ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 4 OF (a_menupops[5]) ;
-	DO _5z111wj0x ;
+	DO _6x2113vtg ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[5]) ;
-	DO _5z111wj0y ;
+	DO _6x2113vth ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 8 OF (a_menupops[5]) ;
-	DO _5z111wj0z ;
+	DO _6x2113vti ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 ACTIVATE MENU (m.cMenuName) NOWAIT
@@ -287,7 +292,7 @@ ENDIF
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0B  ON SELECTION BAR 1 OF POPUP file            
+*       * _6X2113VST  ON SELECTION BAR 1 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -298,7 +303,7 @@ ENDIF
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0b
+PROCEDURE _6x2113vst
 do form sesave
 m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine.")
 
@@ -306,7 +311,7 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0C  ON SELECTION BAR 2 OF POPUP file            
+*       * _6X2113VSU  ON SELECTION BAR 2 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -317,419 +322,437 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0c
+PROCEDURE _6x2113vsu
 do form seload
 m.mainForm.statusBar.setMessage("Load new settings for the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0D  ON SELECTION BAR 6 OF POPUP file            
+*       * _6X2113VSV  ON SELECTION BAR 6 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   20         
 *       * Called By:  ON SELECTION BAR 6 OF POPUP file            
-*       * Prompt:     Exit                                        
+*       * Prompt:     Command                                     
 *       * Snippet:    3                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0d
+PROCEDURE _6x2113vsv
+do form secomm with m.engine
+m.mainform.statusBar.setMessage("Execute selected code.")
+
+
+*       *********************************************************
+*       *                                                         
+*       * _6X2113VSW  ON SELECTION BAR 8 OF POPUP file            
+*       *                                                         
+*       * Procedure Origin:                                       
+*       *                                                         
+*       * From Menu:  SEMENU.MPR,            Record:   23         
+*       * Called By:  ON SELECTION BAR 8 OF POPUP file            
+*       * Prompt:     Exit                                        
+*       * Snippet:    4                                           
+*       *                                                         
+*       *********************************************************
+*
+PROCEDURE _6x2113vsw
 clear events
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0E  ON SELECTION BAR 1 OF POPUP export          
+*       * _6X2113VSX  ON SELECTION BAR 1 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   11         
 *       * Called By:  ON SELECTION BAR 1 OF POPUP export          
 *       * Prompt:     Export                                      
-*       * Snippet:    4                                           
+*       * Snippet:    5                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0e
+PROCEDURE _6x2113vsx
 do form seexpo with m.engine
 m.mainForm.statusBar.setMessage("Exports result data (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0F  ON SELECTION BAR 2 OF POPUP export          
+*       * _6X2113VSY  ON SELECTION BAR 2 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   12         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP export          
 *       * Prompt:     Extended Export                             
-*       * Snippet:    5                                           
+*       * Snippet:    6                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0f
+PROCEDURE _6x2113vsy
 do form seexte with m.engine
 m.mainForm.statusBar.setMessage("Exports result data into a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0G  ON SELECTION BAR 3 OF POPUP export          
+*       * _6X2113VSZ  ON SELECTION BAR 3 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   13         
 *       * Called By:  ON SELECTION BAR 3 OF POPUP export          
 *       * Prompt:     Grouped Export                              
-*       * Snippet:    6                                           
+*       * Snippet:    7                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0g
+PROCEDURE _6x2113vsz
 do form segrou with m.engine
 m.mainForm.statusBar.setMessage("Groups and exports self referenced result data (mono) to a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0H  ON SELECTION BAR 5 OF POPUP export          
+*       * _6X2113VT0  ON SELECTION BAR 5 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   16         
 *       * Called By:  ON SELECTION BAR 5 OF POPUP export          
 *       * Prompt:     Result Export                               
-*       * Snippet:    7                                           
+*       * Snippet:    8                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0h
+PROCEDURE _6x2113vt0
 do form seresu with m.engine
 m.mainForm.statusBar.setMessage("Creates a subset and/or random sample of the ResultTable.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0I  ON SELECTION BAR 6 OF POPUP export          
+*       * _6X2113VT1  ON SELECTION BAR 6 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
 *       * From Menu:  SEMENU.MPR,            Record:   17         
 *       * Called By:  ON SELECTION BAR 6 OF POPUP export          
 *       * Prompt:     Meta Export                                 
-*       * Snippet:    8                                           
+*       * Snippet:    9                                           
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0i
+PROCEDURE _6x2113vt1
 do form semeta with m.engine
 m.mainForm.statusBar.setMessage("Exports heuristic meta information for machine learning etc. (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0J  ON SELECTION BAR 1 OF POPUP config          
+*       * _6X2113VT2  ON SELECTION BAR 1 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   23         
+*       * From Menu:  SEMENU.MPR,            Record:   26         
 *       * Called By:  ON SELECTION BAR 1 OF POPUP config          
 *       * Prompt:     File Locations                              
-*       * Snippet:    9                                           
+*       * Snippet:    10                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0j
+PROCEDURE _6x2113vt2
 do form sefile with m.engine
 m.mainform.statusBar.setMessage("These file locations are used by the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0K  ON SELECTION BAR 2 OF POPUP config          
+*       * _6X2113VT3  ON SELECTION BAR 2 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   24         
+*       * From Menu:  SEMENU.MPR,            Record:   27         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP config          
 *       * Prompt:     Join Search Fields                          
-*       * Snippet:    10                                          
+*       * Snippet:    11                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0k
+PROCEDURE _6x2113vt3
 do form sejoin with m.engine
 m.mainform.statusBar.setMessage("Join fields of the SearchTable with the types of the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0L  ON SELECTION BAR 4 OF POPUP config          
+*       * _6X2113VT4  ON SELECTION BAR 4 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   27         
+*       * From Menu:  SEMENU.MPR,            Record:   30         
 *       * Called By:  ON SELECTION BAR 4 OF POPUP config          
 *       * Prompt:     Search Types                                
-*       * Snippet:    11                                          
+*       * Snippet:    12                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0l
+PROCEDURE _6x2113vt4
 do form setype with m.engine
 m.mainform.statusBar.setMessage("Change SearchType specific parameters.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0M  ON SELECTION BAR 5 OF POPUP config          
+*       * _6X2113VT5  ON SELECTION BAR 5 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   28         
+*       * From Menu:  SEMENU.MPR,            Record:   31         
 *       * Called By:  ON SELECTION BAR 5 OF POPUP config          
 *       * Prompt:     Settings                                    
-*       * Snippet:    12                                          
+*       * Snippet:    13                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0m
+PROCEDURE _6x2113vt5
 do form sesett with m.engine
 m.mainform.statusBar.setMessage("Search specific settings.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0N  ON SELECTION BAR 7 OF POPUP config          
+*       * _6X2113VT6  ON SELECTION BAR 7 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   31         
+*       * From Menu:  SEMENU.MPR,            Record:   34         
 *       * Called By:  ON SELECTION BAR 7 OF POPUP config          
 *       * Prompt:     Preferences                                 
-*       * Snippet:    13                                          
+*       * Snippet:    14                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0n
+PROCEDURE _6x2113vt6
 do form sepref with m.engine
 m.mainform.statusBar.setMessage("Adjust internal engine and performance preferences.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0O  ON SELECTION BAR 1 OF POPUP action          
+*       * _6X2113VT7  ON SELECTION BAR 1 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   34         
+*       * From Menu:  SEMENU.MPR,            Record:   37         
 *       * Called By:  ON SELECTION BAR 1 OF POPUP action          
 *       * Prompt:     Search                                      
-*       * Snippet:    14                                          
+*       * Snippet:    15                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0o
+PROCEDURE _6x2113vt7
 do form sesear with m.engine
 m.mainform.statusBar.setMessage("Starts the search on the SearchTable (ESC cancels search).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0P  ON SELECTION BAR 2 OF POPUP action          
+*       * _6X2113VT8  ON SELECTION BAR 2 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   35         
+*       * From Menu:  SEMENU.MPR,            Record:   38         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP action          
 *       * Prompt:     Research                                    
-*       * Snippet:    15                                          
+*       * Snippet:    16                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0p
+PROCEDURE _6x2113vt8
 do form serese with m.engine
 m.mainform.statusBar.setMessage("Researches the identities by applying other settings (ESC cancels research).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0Q  ON SELECTION BAR 3 OF POPUP action          
+*       * _6X2113VT9  ON SELECTION BAR 3 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   36         
+*       * From Menu:  SEMENU.MPR,            Record:   39         
 *       * Called By:  ON SELECTION BAR 3 OF POPUP action          
 *       * Prompt:     Refine                                      
-*       * Snippet:    16                                          
+*       * Snippet:    17                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0q
+PROCEDURE _6x2113vt9
 do form serefi with m.engine
 m.mainform.statusBar.setMessage("Refines the identities by applying fuzzy string comparisons (ESC cancels refine).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0R  ON SELECTION BAR 5 OF POPUP action          
+*       * _6X2113VTA  ON SELECTION BAR 5 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   38         
+*       * From Menu:  SEMENU.MPR,            Record:   41         
 *       * Called By:  ON SELECTION BAR 5 OF POPUP action          
 *       * Prompt:     Create                                      
-*       * Snippet:    17                                          
+*       * Snippet:    18                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0r
+PROCEDURE _6x2113vta
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Creates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0S  ON SELECTION BAR 6 OF POPUP action          
+*       * _6X2113VTB  ON SELECTION BAR 6 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   39         
+*       * From Menu:  SEMENU.MPR,            Record:   42         
 *       * Called By:  ON SELECTION BAR 6 OF POPUP action          
 *       * Prompt:     Recreate                                    
-*       * Snippet:    18                                          
+*       * Snippet:    19                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0s
+PROCEDURE _6x2113vtb
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Recreates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0T  ON SELECTION BAR 7 OF POPUP action          
+*       * _6X2113VTC  ON SELECTION BAR 7 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   40         
+*       * From Menu:  SEMENU.MPR,            Record:   43         
 *       * Called By:  ON SELECTION BAR 7 OF POPUP action          
 *       * Prompt:     Expand                                      
-*       * Snippet:    19                                          
+*       * Snippet:    20                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0t
+PROCEDURE _6x2113vtc
 do form seexpa with m.engine
 m.mainform.statusBar.setMessage("Expands the registry using the SearchTable (ESC cancels expansion).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0U  ON SELECTION BAR 8 OF POPUP action          
+*       * _6X2113VTD  ON SELECTION BAR 8 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   41         
+*       * From Menu:  SEMENU.MPR,            Record:   44         
 *       * Called By:  ON SELECTION BAR 8 OF POPUP action          
 *       * Prompt:     Mirror                                      
-*       * Snippet:    20                                          
+*       * Snippet:    21                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0u
+PROCEDURE _6x2113vtd
 do form semirr with m.engine
 m.mainform.statusBar.setMessage("Mirrors ResultTable by reflecting matches (ESC cancels mirror).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0V  ON SELECTION BAR 1 OF POPUP tools           
+*       * _6X2113VTE  ON SELECTION BAR 1 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   44         
+*       * From Menu:  SEMENU.MPR,            Record:   47         
 *       * Called By:  ON SELECTION BAR 1 OF POPUP tools           
 *       * Prompt:     Quick Search                                
-*       * Snippet:    21                                          
+*       * Snippet:    22                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0v
+PROCEDURE _6x2113vte
 do form seqsea with m.engine
 m.mainform.statusBar.setMessage("Right click on an entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0W  ON SELECTION BAR 2 OF POPUP tools           
+*       * _6X2113VTF  ON SELECTION BAR 2 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   45         
+*       * From Menu:  SEMENU.MPR,            Record:   48         
 *       * Called By:  ON SELECTION BAR 2 OF POPUP tools           
 *       * Prompt:     Result Checker                              
-*       * Snippet:    22                                          
+*       * Snippet:    23                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0w
+PROCEDURE _6x2113vtf
 do form sechec with m.engine
 m.mainform.statusBar.setMessage("Right click on a searched/found entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0X  ON SELECTION BAR 4 OF POPUP tools           
+*       * _6X2113VTG  ON SELECTION BAR 4 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   48         
+*       * From Menu:  SEMENU.MPR,            Record:   51         
 *       * Called By:  ON SELECTION BAR 4 OF POPUP tools           
 *       * Prompt:     Notes                                       
-*       * Snippet:    23                                          
+*       * Snippet:    24                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0x
+PROCEDURE _6x2113vtg
 do form seNote with m.engine
 m.mainform.statusBar.setMessage("Take notes to this SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0Y  ON SELECTION BAR 6 OF POPUP tools           
+*       * _6X2113VTH  ON SELECTION BAR 6 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   51         
+*       * From Menu:  SEMENU.MPR,            Record:   54         
 *       * Called By:  ON SELECTION BAR 6 OF POPUP tools           
 *       * Prompt:     Browser                                     
-*       * Snippet:    24                                          
+*       * Snippet:    25                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0y
+PROCEDURE _6x2113vth
 do form sebrow
 m.mainform.statusBar.setMessage("Browse Foxpro tables.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _5Z111WJ0Z  ON SELECTION BAR 8 OF POPUP tools           
+*       * _6X2113VTI  ON SELECTION BAR 8 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   54         
+*       * From Menu:  SEMENU.MPR,            Record:   57         
 *       * Called By:  ON SELECTION BAR 8 OF POPUP tools           
 *       * Prompt:     About                                       
-*       * Snippet:    25                                          
+*       * Snippet:    26                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _5z111wj0z
-do form about with m.engine
+PROCEDURE _6x2113vti
+do form about
 m.mainform.statusBar.setMessage("Legal Notice.")
