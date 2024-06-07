@@ -1,5 +1,5 @@
 {smcl}
-{* 19may2021}{...}
+{* 17may2024}{...}
 {hline}
 help for {hi:brain}
 {hline}
@@ -139,7 +139,7 @@ r({hi:N}) number of observations{break}
 r({hi:TP}) true positives{break}
 r({hi:FP}) false positives{break}
 r({hi:TN}) true negatives{break}
-r({hi:TP}) false negatives{break}
+r({hi:FN}) false negatives{break}
 r({hi:Trecall}) recall for true:  TP/(TP+FN){break}
 r({hi:Frecall}) recall for false: TN/(TN+FP){break}
 r({hi:Tprecision}) precision for true:  TP/(TP+FP){break}
@@ -188,23 +188,17 @@ between single- and multiprocessing (see Example 2).
     gen x2 = invnorm(uniform())
     gen y = x1 + x2 + x1^2 + x2^2 + x1*x2
 
-    sum y
-    scalar ymean = r(mean)
-    egen sst = sum((y-ymean)^2)
-
     reg y x1 x2
-
     predict yreg
-    egen rreg = sum((y-yreg)^2)
 
     brain define, input(x1 x2) output(y) hidden(10 10)
     brain train, iter(1000) eta(1) sp
     brain think ybrain
 
-    egen rbrain = sum((y-ybrain)^2)
-
-    di "R-squared reg: " 1-rreg/sst
-    di "R-sq.   brain: " 1-rbrain/sst
+    qui reg y yreg
+    di "R-squared reg: " e(r2)
+    qui reg y ybrain
+    di "R-sq.   brain: " e(r2)
 {text}
 
 {title:Example 2: Single- vs. muliprocessing}
@@ -317,14 +311,12 @@ between single- and multiprocessing (see Example 2).
 
     sum y
     scalar ymean = r(mean)
-    egen sst = sum((y-ymean)^2)
 
     reg y x1 x2
     predict yreg
-    egen rreg = sum((y-yreg)^2)
 
     brain define, input(x1 x2) output(y) hidden(10 10)
-    local eta = 20 // For demonstration only. If eta is too large, the training can freeze. Usually you start with 1.
+    local eta = 20 // For demonstration purposes only. If eta is too large, the training can freeze. Usually, you will start with 1.
     local half = 1
     local run = 1
     while `run' <= 50 & `half' <= 10  { // exit after 50 improving iteration cycles or after 10 eta halvings
@@ -339,10 +331,11 @@ between single- and multiprocessing (see Example 2).
         }
     }
     brain think ybrain
-    egen rbrain = sum((y-ybrain)^2)
 
-    di "R-squared reg: " 1-rreg/sst
-    di "R-sq.   brain: " 1-rbrain/sst
+    qui reg y yreg
+    di "R-squared reg: " e(r2)
+    qui reg y ybrain
+    di "R-sq.   brain: " e(r2)
 {text}
 
 {title:Update History}
