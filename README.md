@@ -25,6 +25,7 @@ You can also create your own special preparer using the existing one(s) as templ
 - Documentation of the preparer XML scripts
 - Documentation of the Command window
 - help() command to be issued in the Command window to get a list of all commands and further command details
+- search result statistics
 
 ## Version history
 2024.06.06
