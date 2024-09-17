@@ -671,7 +671,7 @@ void FAR Normize(ParamBlk FAR *parm)
 	_HLock(parm->p[0].val.ev_handle);
 	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
 	pos = 0;
-	blank = 0;
+	blank = 1;
 	for (i = 0; i < len1; i++)
 	{	chr = str[i];
 		if (anorm[chr][0] == ' ')
@@ -704,7 +704,7 @@ void FAR NormizeKeep(ParamBlk FAR *parm)
 	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
 	keep = (unsigned char FAR *) _HandToPtr(parm->p[1].val.ev_handle);
 	pos = 0;
-	blank = 0;
+	blank = 1;
 	for (i = 0; i < len1; i++)
 	{	chr = str[i];
 		for (j = 0; j < len2; j++)
