@@ -1,6 +1,6 @@
 *==========================================================================
 * Modul: 	 sheet.prg
-* Date:		 2024.05.08
+* Date:		 2024.08.14
 * Author:	 Thorsten Doherr
 * Procedure: custom.prg
 * Library:	 foxpro.fll
@@ -13,7 +13,7 @@
 #define SHEETHANDLE 17
 
 function version_of_sheet()
-	return "2024.05.08"
+	return "2024.08.14"
 endfunc
 
 function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)

@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2024.05.14
+*   Date:       2024.08.14
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -11,7 +11,7 @@
 #DEFINE HKEY_USERS         -2147483645  && BITSET(0,31)+3
 
 function version_of_custom()
-	return "2024.05.08"
+	return "2024.08.14"
 endfunc
 
 function mp_bracket(from as Integer, to as Integer)
@@ -2571,17 +2571,22 @@ define class String as custom
 	endfunc
 
 	function getFileExtensionChange(ext, complement)
-	local str, pos
-		m.str = this.string
+	local str, pos, extold
+		m.str = rtrim(this.string)
 		m.ext = ltrim(alltrim(m.ext),".")
 		m.pos = rat(".",m.str)
-		if m.pos = 0 or m.pos < rat("\",m.str) or m.pos < rat("/",m.str)
-			m.str = m.str+"."
-			m.pos = len(m.str)
-		else
-			if m.complement
-				return m.str
+		if m.pos == 0 or m.pos < rat("\",m.str) or m.pos < rat("/",m.str)
+			return m.str+"."+m.ext
+		endif
+		if m.complement
+			m.extold = substr(m.str, m.pos+1)
+			if len(m.extold) == 0
+				return m.str+m.ext
 			endif
+			if len(m.ext) > 8 or empty(replacechars(lower(m.extold), "abcdefghijklmnopqrstuvwxyz", "", .t.))
+				return m.str+"."+m.ext
+			endif
+			return m.str
 		endif
 		return rtrim(left(m.str, m.pos)+m.ext,".")
 	endfunc
@@ -4283,7 +4288,7 @@ define class BaseTable as custom
 		this.memos = createobject("TableStructure")
 		if not empty(m.handle)
 			this.dbf = createobject("String",fullpath(alltrim(m.handle)))
-			this.dbf = this.dbf.getFileExtensionChange("DBF",.t.)
+			this.dbf = this.dbf.getFileExtensionChange("DBF", .t.)
 		endif
 		return
 	endfunc
@@ -4581,29 +4586,29 @@ define class BaseTable as custom
 		endif
 		m.err = .f.
 		try
-			rename (this.dbf) to (m.newname.fileExtensionChange("dbf"))
+			rename (this.dbf) to (m.newname.fileExtensionChange("dbf", .t.))
 		catch
 			m.err = .t.
 		endtry
 		if m.err == .f.
 			try
-				rename (m.str.fileExtensionChange("cdx")) to (m.newname.fileExtensionChange("cdx"))
+				rename (m.str.getFileExtensionChange("cdx")) to (m.newname.getFileExtensionChange("cdx"))
 			catch
 			endtry
 			try
-				rename (m.str.fileExtensionChange("fpt")) to (m.newname.fileExtensionChange("fpt"))
+				rename (m.str.getFileExtensionChange("fpt")) to (m.newname.getFileExtensionChange("fpt"))
 			catch
 			endtry
 			try
-				rename (m.str.fileExtensionChange("idx")) to (m.newname.fileExtensionChange("idx"))
+				rename (m.str.getFileExtensionChange("idx")) to (m.newname.getFileExtensionChange("idx"))
 			catch
 			endtry
 			try
-				rename (m.str.fileExtensionChange("ndx")) to (m.newname.fileExtensionChange("ndx"))
+				rename (m.str.getFileExtensionChange("ndx")) to (m.newname.getFileExtensionChange("ndx"))
 			catch
 			endtry
 		endif
-		this.setHandle(m.newname.fileExtensionChange("dbf"))
+		this.setHandle(m.newname.toString())
 		if m.valid
 			if m.shared
 				this.useShared()

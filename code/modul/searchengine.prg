@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.06.06
+*    Date:       2024.09.16
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.06.06"
+	return "2024.09.16"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -341,65 +341,103 @@ define class RunFilter as Custom
 	dimension run[256]
 	valid =  .f.
 	filtering = .f.
+	renumbering = .f.
+	maxrun = 0
+	maxorg = 0
 	
 	function init(filter as String)
-	local i, j, lexcnt, lexArray, subcnt, subArray, val, runset
+	local i, lexcnt,  subcnt, target
+	local array lexArray[1], subArray[1]
 		this.valid = .f.
 		this.filtering = .f.
-		m.runset = .f.
+		this.renumbering = .f.
 		if vartype(m.filter) == "O"
-			m.filter = m.filter.toString()
+			m.filter = m.filter.transfer()
 		endif
 		if empty(m.filter)
 			for m.i = 1 to 255
-				this.run[m.i] = .t.
+				this.run[m.i] = m.i
 			endfor
 			this.valid = .t.
+			this.maxorg = 255
+			this.maxrun = 255
 			return
 		endif
+		for m.i = 1 to 255
+			this.run[m.i] = 0
+		endfor
 		if vartype(m.filter) == "N"
 			m.filter = ltrim(str(m.filter))
 		endif
 		if not vartype(m.filter) == "C"
 			return
 		endif
-		dimension m.lexArray[1]
-		dimension m.subArray[1]
-		m.lexcnt = alines(m.lexArray,m.filter,5,",")
+		if empty(m.filter)
+			this.valid = .t.
+			return
+		endif
+		m.lexcnt = alines(m.lexArray,m.filter,5,";")
 		for m.i = 1 to m.lexcnt
-			m.subcnt = alines(m.subArray,m.lexArray[m.i],5,"-")
+			m.subcnt = alines(m.subArray,m.lexArray[m.i],5,":")
 			if m.subcnt > 2
 				return
 			endif
-			for m.j = 1 to m.subcnt
-				m.val = val(m.subArray[m.j])
-				if m.val <= 0 or m.val > 255 or not (ltrim(str(m.val,3)) == m.subArray[m.j])
+			m.target = -1
+			if m.subcnt == 2
+				m.target = int(val(m.subArray[2]))
+				if m.target < 0 or m.target > 255 or not (ltrim(str(m.target,3)) == m.subArray[2])
 					return
 				endif
-				m.subArray[m.j] = m.val
-			endfor
-			if m.subcnt == 1
-				this.run[m.subArray[1]] = .t.
-				m.runset = .t.
-			else
-				if m.subArray[1] > m.subArray[2]
-					return
-				endif
-				m.runset = .t.
-				for m.j = m.subArray[1] to m.subArray[2]
-					this.run[m.j] = .t.
-				endfor
+			endif
+			if not this.parseList(m.subArray[1], m.target)
+				return
 			endif
 		endfor
-		if m.runset == .f.
-			return
-		endif
 		this.valid = .t.
 		this.filtering = .t.
+		for m.i = 1 to 255
+			if this.run[m.i] > 0
+				this.maxrun = max(this.maxrun, this.run[m.i])
+				this.maxorg = max(this.maxorg, m.i)
+				if this.run[m.i] != m.i
+					this.renumbering = .t.
+				endif
+			endif
+		endfor
+	endfunc
+
+	hidden function parseList(list as String, target as integer)
+	local i, j, minuscnt, val
+	local array comma[1], minus[1]
+		m.target = int(evl(m.target, 0))
+		for m.i = 1 to alines(m.comma, m.list, 5, ",")
+			m.minuscnt = alines(m.minus, m.comma[m.i], 5, "-")
+			if m.minuscnt > 2
+				return .f.
+			endif
+			for m.j = 1 to m.minuscnt
+				m.val = int(val(m.minus[m.j]))
+				if m.val <= 0 or m.val > 255 or not (ltrim(str(m.val,3)) == m.minus[m.j])
+					return .f.
+				endif
+				m.minus[m.j] = m.val
+			endfor
+			if m.minus[1] > m.minus[m.minuscnt]
+				return .f.
+			endif
+			for m.j = m.minus[1] to m.minus[m.minuscnt]
+				this.run[m.j] = iif(m.target >= 0, m.target, m.j)
+			endfor
+		endfor
+		return .t.
 	endfunc
 	
 	function isValid()
 		return this.valid
+	endfunc
+	
+	function isRenumbering()
+		return this.renumbering
 	endfunc
 	
 	function isFiltering()
@@ -407,75 +445,93 @@ define class RunFilter as Custom
 	endfunc
 	
 	function isFiltered(run as Integer)
-		if m.run <= 0 or m.run > 255
+		if m.run <= 0 or m.run > this.maxorg
 			return .f.
 		endif
-		return this.run[m.run]
+		return this.run[m.run] > 0
 	endfunc
 
-	function toString()
-	local str, i, start
-		m.str = ""
-		if not this.filtering
-			return m.str
+	function renumber(run as Integer)
+		if m.run <= 0 or m.run > this.maxorg
+			return 0
 		endif
-		m.start = 0
-		for m.i = 1 to 256
-			if this.run[m.i] == .f.
-				if m.start <= 0
-					loop
-				endif
-				if m.i-m.start > 1
-					m.str = m.str+","+ltrim(str(m.start))+"-"+ltrim(str(m.i-1))
-				else
-					m.str = m.str+","+ltrim(str(m.start))
-				endif
-				m.start = 0
-			else
-				if m.start == 0
-					m.start = m.i
-				endif
-			endif
-		endfor
-		return ltrim(m.str,",")
+		return this.num[m.run]
 	endfunc
 	
-	function getRunFilter(exp as String, raw as boolean)
-	local filter, i, start
-		if not this.filtering
-			return ""
+	function getMaxRun(original as Boolean)
+		return iif(m.original, this.maxorg, this.maxrun)
+	endfunc
+	
+	function collect(original as Boolean)
+	local i, col
+		m.col = createobject("Collection")
+		if m.original
+			for m.i = 1 to this.maxorg
+				if this.run[m.i] > 0
+					m.col.add(m.i)
+				endif
+			endfor
+		else
+			for m.i = 1 to this.maxorg
+				if this.run[m.i] > 0 and m.col.getKey(transform(this.run[m.i])) == 0
+					m.col.add(this.run[m.i], transform(this.run[m.i]))
+				endif
+			endfor
 		endif
-		m.filter = ""
-		m.exp = alltrim(m.exp)
-		m.start = 0
-		for m.i = 1 to 256
-			if this.run[m.i] == .f.
-				if m.start <= 0
-					loop
-				endif
-				if m.raw
-					if m.i-m.start > 1
-						m.filter = m.filter+' or '+m.exp+' >= "'+chr(m.start)+'" and '+m.exp+' <= "'+chr(m.i-1)+'"'
-					else
-						m.filter = m.filter+' or '+m.exp+' == "'+chr(m.start)+'"'
-					endif
-				else
-					if m.i-m.start > 1
-						m.filter = m.filter+' or '+m.exp+' >= '+ltrim(str(m.start))+' and '+m.exp+' <= '+ltrim(str(m.i-1))
-					else
-						m.filter = m.filter+' or '+m.exp+' == '+ltrim(str(m.start))
-					endif
-				endif
-				m.start = 0
-			else
-				if m.start == 0
-					m.start = m.i
-				endif
+		return m.col
+	endfunc
+	
+	function transfer()
+	local i, j, col, list, str, run, start, key
+		m.col = createobject("Collection")
+		m.col.add(createobject("Collection"), "0")
+		for m.i = 1 to this.maxorg
+			if not inlist(this.run[m.i], 0, m.i) and m.col.getKey(transform(this.run[m.i])) == 0
+				m.col.add(createobject("Collection"), transform(this.run[m.i]))
 			endif
 		endfor
-		return substr(m.filter, 5)
+		for m.i = 1 to this.maxorg
+			if this.run[m.i] <= 0
+				loop
+			endif
+			m.list = m.col.getKey(transform(this.run[m.i]))
+			if m.list == 0
+				m.list = m.col.item(1)
+			else
+				m.list = m.col.item(m.list)
+			endif
+			m.list.add(m.i)
+		endfor
+		m.str = ""
+		for m.i = 1 to m.col.count
+			m.key = m.col.getkey(m.i)
+			m.list = m.col.item(m.i)
+			if m.list.count == 0
+				loop
+			endif
+			m.run = ""
+			m.start = 1
+			for m.j = 2 to m.list.count+1
+				if m.j > m.list.count or m.list.item(m.j) != m.list.item(m.j-1)+1
+					m.run = m.run+","+transform(m.list.item(m.start))
+					if m.j-1 > m.start
+						m.run = m.run+"-"+transform(m.list.item(m.j-1))
+					endif
+					m.start = m.j
+				endif
+			endfor
+			m.run = ltrim(m.run, ",")
+			if not m.key == "0"
+				m.run = m.run+":"+m.key
+			endif
+			m.str = m.str+";"+m.run
+		endfor 
+		return evl(ltrim(m.str, ";"), "1-255:0")
 	endfunc
-
+	
+	function toString()
+		return this.transfer()
+	endfunc
 enddefine
 
 define class MetaFilter as Custom
@@ -961,6 +1017,7 @@ enddefine
 define class SearchType as Custom
 	hidden prepList, preparer
 	hidden priority, field, priority, share, offset, maxocc, avgocc, log, softmax, typeIndex
+	hidden destructive, joining
 	prepList = .f.
 	preparer = .f.
 	field = ""
@@ -972,6 +1029,8 @@ define class SearchType as Custom
 	log = .f.
 	softmax = 0
 	typeIndex = 1
+	destructive = .f.
+	joining = .f.
 	
 	function init(str, preparer)
 	local lexArray, cnt, i, val
@@ -1055,6 +1114,7 @@ define class SearchType as Custom
 		endfor
 		if vartype(this.preparer) == "O"
 			this.activatePreparer()
+			this.checkPreparer()
 		endif
 	endfunc
 	
@@ -1070,6 +1130,21 @@ define class SearchType as Custom
 			m.prepList.add(m.preparerType)
 		endfor
 		this.prepList = m.prepList
+	endfunc
+	
+	hidden function checkPreparer()
+	local i, preparerType
+		this.destructive = .f.
+		this.joining = .f.
+		for m.i = 1 to this.prepList.count
+			m.preparerType = this.prepList.item(m.i)
+			if m.preparerType.isDestructive()
+				this.destructive = .t.
+			endif
+			if m.preparerType.isJoining()
+				this.joining = .t.
+			endif
+		endfor
 	endfunc
 	
 	function isValid(baseTable)
@@ -1114,22 +1189,33 @@ define class SearchType as Custom
 				m.i = m.i + 1
 			endif
 		enddo
+		this.destructive = .f.
 	endfunc
 	
 	function isDestructive()
-	local i, preparerType
-		for m.i = 1 to this.prepList.count
-			m.preparerType = this.prepList.item(m.i)
-			if m.preparerType.isDestructive()
-				return .t.
-			endif
-		endfor
-		return .f.
+		return this.destructive
 	endfunc
 	
 	function prepare(str)
-	local i, preparerType
+	local i, preparerType, org, buf
 		m.str = this.preparer.openPrepare(m.str)
+		if this.joining
+			if this.prepList.count == 1
+				return this.preparer.closePrepare(m.str)
+			endif
+			m.org = m.str
+			m.buf = ""
+			for m.i = 1 to this.prepList.count
+				m.preparerType = this.prepList.item(m.i)
+				if m.preparerType.isJoining()
+					m.buf = m.buf+m.str+" "
+					m.str = m.org
+				else
+					m.str = m.preparerType.execute(m.str)
+				endif
+			endfor
+			return this.preparer.closePrepare(rtrim(m.buf+m.str))
+		endif
 		for m.i = 1 to this.prepList.count
 			m.preparerType = this.prepList.item(m.i)
 			m.str = m.preparerType.execute(m.str)
@@ -1600,7 +1686,7 @@ define class SearchTypes as Custom
 enddefine
 
 define class Preparer as Custom
-	hidden normizer, types, metaphone, soundex, cologne, default_from, default_to
+	hidden normizer, types, metaphone, soundex, cologne, default_from, default_to, joining
 	xmlerror = ""
 	
 	function init()
@@ -1612,7 +1698,6 @@ define class Preparer as Custom
 		m.default = m.default+"<line><type>NOUMLAUT</type><com>replace</com><para1></para1><para2>UE</para2><para3>U</para3></line>"
 		m.default = m.default+"<line><type>NOUMLAUT</type><com>replace</com><para1></para1><para2>AE</para2><para3>A</para3></line>"
 		m.default = m.default+"<line><type>NOUMLAUT</type><com>replace</com><para1></para1><para2>OE</para2><para3>O</para3></line>"
-		m.default = m.default+"<line><type>SEPNUM</type><com>cockle</com></line>"
 		m.default = m.default+"<line><type>SEPNUM</type><com>separate</com><para1>0123456789</para1><para2>ABCDEFGHIJKLMNOPQRSTUVWXYZ</para2></line>"
 		m.default = m.default+"<line><type>GRAM2</type><com>gram</com><para1>2</para1></line>"
 		m.default = m.default+"<line><type>GRAM2</type><com>destructive</com></line>"
@@ -1628,41 +1713,39 @@ define class Preparer as Custom
 		m.default = m.default+"<line><type>SOUNDEX</type><com>destructive</com></line>"
 		m.default = m.default+"<line><type>COLOGNE</type><com>encode</com><para1>COLOGNE</para1></line>"
 		m.default = m.default+"<line><type>COLOGNE</type><com>destructive</com></line>"
+		m.default = m.default+"<line><type>LINK</type><com>join</com></line>"
+		m.default = m.default+"<line><type>DESTRUCTIVE</type><com>destructive</com></line>"
 		m.default = m.default+"<line><type>MAXLENGTH1</type><com>limit</com><para1>LENGTH</para1><para2>1</para2></line>"
 		m.default = m.default+"<line><type>MAXLENGTH2</type><com>limit</com><para1>LENGTH</para1><para2>2</para2></line>"
 		m.default = m.default+"<line><type>MAXLENGTH3</type><com>limit</com><para1>LENGTH</para1><para2>3</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH4</type><com>limit</com><para1>LENGTH</para1><para2>4</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH5</type><com>limit</com><para1>LENGTH</para1><para2>5</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH6</type><com>limit</com><para1>LENGTH</para1><para2>6</para2></line>"
 		m.default = m.default+"<line><type>MAXLENGTH7</type><com>limit</com><para1>LENGTH</para1><para2>7</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH8</type><com>limit</com><para1>LENGTH</para1><para2>8</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH9</type><com>limit</com><para1>LENGTH</para1><para2>9</para2></line>"
 		m.default = m.default+"<line><type>MAXLENGTH10</type><com>limit</com><para1>LENGTH</para1><para2>10</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH11</type><com>limit</com><para1>LENGTH</para1><para2>11</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH12</type><com>limit</com><para1>LENGTH</para1><para2>12</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH13</type><com>limit</com><para1>LENGTH</para1><para2>13</para2></line>"
-		m.default = m.default+"<line><type>MAXLENGTH14</type><com>limit</com><para1>LENGTH</para1><para2>14</para2></line>"
 		m.default = m.default+"<line><type>MAXLENGTH15</type><com>limit</com><para1>LENGTH</para1><para2>15</para2></line>"
+		m.default = m.default+"<line><type>MAXLENGTH20</type><com>limit</com><para1>LENGTH</para1><para2>20</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS1</type><com>limit</com><para1>COUNT</para1><para2>1</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS2</type><com>limit</com><para1>COUNT</para1><para2>2</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS3</type><com>limit</com><para1>COUNT</para1><para2>3</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS4</type><com>limit</com><para1>COUNT</para1><para2>4</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS5</type><com>limit</com><para1>COUNT</para1><para2>5</para2></line>"
-		m.default = m.default+"<line><type>MAXWORDS6</type><com>limit</com><para1>COUNT</para1><para2>6</para2></line>"
-		m.default = m.default+"<line><type>MAXWORDS7</type><com>limit</com><para1>COUNT</para1><para2>7</para2></line>"
-		m.default = m.default+"<line><type>MAXWORDS8</type><com>limit</com><para1>COUNT</para1><para2>8</para2></line>"
-		m.default = m.default+"<line><type>MAXWORDS9</type><com>limit</com><para1>COUNT</para1><para2>9</para2></line>"
 		m.default = m.default+"<line><type>MAXWORDS10</type><com>limit</com><para1>COUNT</para1><para2>10</para2></line>"
+		m.default = m.default+"<line><type>MAXWORDS20</type><com>limit</com><para1>COUNT</para1><para2>20</para2></line>"
+		m.default = m.default+"<line><type>MAXWORDS40</type><com>limit</com><para1>COUNT</para1><para2>40</para2></line>"
 		m.default = m.default+"<line><type>SKIPWORDS1</type><com>limit</com><para1>COUNT</para1><para2>1</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS2</type><com>limit</com><para1>COUNT</para1><para2>2</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS3</type><com>limit</com><para1>COUNT</para1><para2>3</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS4</type><com>limit</com><para1>COUNT</para1><para2>4</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS5</type><com>limit</com><para1>COUNT</para1><para2>5</para2><para3>SKIP</para3></line>"
-		m.default = m.default+"<line><type>SKIPWORDS6</type><com>limit</com><para1>COUNT</para1><para2>6</para2><para3>SKIP</para3></line>"
-		m.default = m.default+"<line><type>SKIPWORDS7</type><com>limit</com><para1>COUNT</para1><para2>7</para2><para3>SKIP</para3></line>"
-		m.default = m.default+"<line><type>SKIPWORDS8</type><com>limit</com><para1>COUNT</para1><para2>8</para2><para3>SKIP</para3></line>"
-		m.default = m.default+"<line><type>SKIPWORDS9</type><com>limit</com><para1>COUNT</para1><para2>9</para2><para3>SKIP</para3></line>"
 		m.default = m.default+"<line><type>SKIPWORDS10</type><com>limit</com><para1>COUNT</para1><para2>10</para2><para3>SKIP</para3></line>"
+		m.default = m.default+"<line><type>SKIPWORDS20</type><com>limit</com><para1>COUNT</para1><para2>20</para2><para3>SKIP</para3></line>"
+		m.default = m.default+"<line><type>SKIPWORDS40</type><com>limit</com><para1>COUNT</para1><para2>40</para2><para3>SKIP</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS1</type><com>limit</com><para1>COUNT</para1><para2>1</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS2</type><com>limit</com><para1>COUNT</para1><para2>2</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS3</type><com>limit</com><para1>COUNT</para1><para2>3</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS4</type><com>limit</com><para1>COUNT</para1><para2>4</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS5</type><com>limit</com><para1>COUNT</para1><para2>5</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS10</type><com>limit</com><para1>COUNT</para1><para2>10</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS20</type><com>limit</com><para1>COUNT</para1><para2>20</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>LASTWORDS40</type><com>limit</com><para1>COUNT</para1><para2>40</para2><para3>RIGHT</para3></line>"
 		m.default = m.default+"</SearchEngine>"
 		this.addXML(m.default, .t.)
 	endfunc
@@ -1684,14 +1767,14 @@ define class Preparer as Custom
 		if vartype(m.err) == "O"
 			this.xmlError = "Invalid XML"
 			if not empty(m.err.message)
-				this.xmlerror = this.xmlerror+chr(10)+m.err.message
+				this.xmlerror = this.xmlerror+chr(13)+chr(10)+m.err.message
 			endif
 			return .f.
 		endif
 		if field(1, m.tmp.alias) == "TYPE" and field(2, m.tmp.alias) == "COM" and type(m.tmp.alias+".type") == "C" and type(m.tmp.alias+".com") == "C"
 			return this.addXMLCursor(m.tmp, m.default)
 		endif
-		this.xmlerror = "Invalid XML structure:"+chr(10)+"Tags <type> and <com> not found"
+		this.xmlerror = "Invalid XML structure:"+chr(13)+chr(10)+"Tags <type> and <com> not found"
 		return .f.
 	endfunc
 	
@@ -1736,7 +1819,7 @@ define class Preparer as Custom
 			for m.j = 1 to m.type.getComCount()
 				m.com = m.type.getCom(m.j)
 				if not m.com.isValid()
-					this.xmlerror = "Invalid XML block: "+chr(10)+"<type>"+m.key+"</type>"+chr(10)+m.com.toString()
+					this.xmlerror = "Invalid XML block: "+chr(13)+chr(10)+"<type>"+m.key+"</type>"+chr(13)+chr(10)+m.com.toString()
 					return .f.
 				endif
 			endfor
@@ -1795,7 +1878,7 @@ define class Preparer as Custom
 	endfunc
 	
 	function openPrepare(str)
-		return this.normizer.normize(m.str)
+		return ltrim(this.normizer.normize(m.str))
 	endfunc
 	
 	function closePrepare(str)
@@ -1804,6 +1887,64 @@ define class Preparer as Custom
 	
 	function isValid()
 		return empty(this.xmlerror)
+	endfunc
+	
+	function toString(preparer as String, compact as Boolean)
+	local i, j, col, type, com, str
+		if vartype(m.preparer) == "C"
+			m.col = createobject("Collection")
+			m.i = this.types.getKey(this.normizer.normize(m.preparer, "_"))
+			if m.i > 0
+				m.col.add(this.types.item(m.i))
+			endif
+		else
+			if vartype(m.preparer) == "L"
+				m.compact = m.preparer
+			endif
+			m.col = this.types
+		endif
+		m.str = "<SearchEngine>"+chr(13)+chr(10)
+		for m.i = 1 to m.col.count
+			m.type = m.col.item(m.i)
+			if m.type.coms.count == 0 and m.type.destructive
+				if m.compact
+					m.str = m.str+chr(9)+"<preparer><type>"+m.type.type+"</type><com>DESTRUCTIVE</com></preparer>"+chr(13)+chr(10)
+				else
+					m.str = m.str+chr(9)+"<preparer>"+chr(13)+chr(10)+chr(9)+chr(9)+"<type>"+m.type.type+"</type>"+chr(13)+chr(10)+chr(9)+chr(9)+"<com>DESTRUCTIVE</com>"+chr(13)+chr(10)+chr(9)+"</preparer>"+chr(13)+chr(10)
+				endif
+				loop
+			endif				
+			if m.type.coms.count == 1 and not m.type.destructive
+				m.com = m.type.coms.item(1)
+				if m.compact
+					m.str = m.str+chr(9)+"<preparer><type>"+m.type.type+"</type>"+swapchars(m.com.toString(), chr(13)+chr(10), "")+"</preparer>"+chr(13)+chr(10)
+				else
+					m.str = m.str+chr(9)+"<preparer>"+chr(13)+chr(10)+chr(9)+chr(9)+"<type>"+m.type.type+"</type>"+chr(13)+chr(10)+chr(9)+chr(9)+strtran(m.com.toString(), chr(10), chr(10)+chr(9)+chr(9))+chr(13)+chr(10)+chr(9)+"</preparer>"+chr(13)+chr(10)
+				endif
+				loop
+			endif				
+			if m.compact
+				m.str = m.str+chr(9)+"<preparer><type>"+m.type.type+"</type></preparer>"+chr(13)+chr(10)
+			else
+				m.str = m.str+chr(9)+"<preparer>"+chr(13)+chr(10)+chr(9)+chr(9)+"<type>"+m.type.type+"</type>"+chr(13)+chr(10)+chr(9)+"</preparer>"+chr(13)+chr(10)
+			endif
+			for m.j = 1 to m.type.coms.count
+				m.com = m.type.coms.item(m.j)
+				if m.compact
+					m.str = m.str+chr(9)+"<command>"+swapchars(m.com.toString(), chr(13)+chr(10), "")+"</command>"+chr(13)+chr(10)
+				else
+					m.str = m.str+chr(9)+"<command>"+chr(13)+chr(10)+chr(9)+chr(9)+strtran(m.com.toString(), chr(10), chr(10)+chr(9)+chr(9))+chr(13)+chr(10)+chr(9)+"</command>"+chr(13)+chr(10)
+				endif
+			endfor
+			if m.type.destructive
+				if m.compact
+					m.str = m.str+chr(9)+"<command><com>DESTRUCTIVE</com></command>"+chr(13)+chr(10)
+				else
+					m.str = m.str+chr(9)+"<command>"+chr(13)+chr(10)+chr(9)+chr(9)+"<com>DESTRUCTIVE</com>"+chr(13)+chr(10)+chr(9)+"</command>"+chr(13)+chr(10)
+				endif				
+			endif
+		endfor
+		return m.str+"</SearchEngine>"
 	endfunc
 
 	hidden function lineToXML()
@@ -1817,7 +1958,7 @@ define class Preparer as Custom
 			endif
 			m.field = alltrim(m.field)
 			if not empty(m.field)
-				m.str = m.str+"<"+lower(field(m.i))+">"+m.field+"</"+lower(field(m.i))+">"+chr(10)
+				m.str = m.str+"<"+lower(field(m.i))+">"+m.field+"</"+lower(field(m.i))+">"+chr(13)+chr(10)
 			endif
 		endfor
 		return left(m.str,len(m.str)-1)
@@ -1838,14 +1979,23 @@ define class Preparer as Custom
 	endfunc
 
 	hidden function addXMLCursor(cursor as Object, default as Boolean)
-	local i, types, key, type, err, com, index
+	local i, types, key, type, err, com, index, last
+		m.last = ""
 		m.types = createobject("Collection")
 		select (m.cursor.alias)
 		scan
-			m.key = this.normizer.normize(type, "_")
+			if empty(type)
+				m.key = m.last
+			else
+				m.key = this.normizer.normize(type, "_")
+			endif
 			if empty(m.key)
 				this.xmlerror = "Empty preparer name"
 				return .f.
+			endif
+			m.last = m.key
+			if empty(com)
+				loop
 			endif
 			m.index = m.types.getKey(m.key)
 			if m.index == 0
@@ -1861,7 +2011,7 @@ define class Preparer as Custom
 				m.err = .t.
 			endtry
 			if m.err or not this.isComClass(m.com)
-				this.xmlerror = "Invalid XML block: "+chr(10)+this.lineToXML()
+				this.xmlerror = "Invalid XML block: "+chr(13)+chr(10)+this.lineToXML()
 				return .f.
 			endif
 			m.type.addCom(m.com)
@@ -1885,12 +2035,12 @@ define class PreparerType as Custom
 	coms = .f.
 	type = ""
 	destructive = .f.
+	joining = .f.
 	default = .f.
 	
 	function init(type, default)
 		this.coms = createobject("Collection")
 		this.type = alltrim(upper(m.type))
-		this.destructive = .f.
 		this.default = m.default
 	endfunc
 	
@@ -1915,7 +2065,24 @@ define class PreparerType as Custom
 	endfunc
 	
 	function execute(str)
-	local i, com
+	local i, com, org, buf
+		if this.joining
+			if this.coms.count == 1
+				return m.str
+			endif
+			m.org = m.str
+			m.buf = ""
+			for m.i = 1 to this.coms.count
+				m.com = this.coms.item(m.i)
+				if m.com.isJoining()
+					m.buf = m.buf+m.str+" "
+					m.str = m.org
+				else
+					m.str = m.com.execute(m.str)
+				endif
+			endfor
+			return rtrim(m.buf+m.str)
+		endif
 		for m.i = 1 to this.coms.count
 			m.com = this.coms.item(m.i)
 			m.str = m.com.execute(m.str)
@@ -1956,8 +2123,16 @@ define class PreparerType as Custom
 		this.destructive = m.destructive
 	endfunc
 	
+	function isJoining()
+		return this.joining and this.coms.count == 1
+	endfunc
+	
+	function setJoining(joining)
+		this.joining = m.joining
+	endfunc
+	
 	function isValid()
-		return this.coms.count > 0
+		return this.coms.count > 0 or this.destructive or this.joining
 	endfunc
 enddefine
 
@@ -1967,15 +2142,15 @@ define class Com as Custom
 	dimension parax[1]
 	
 	function init(preparer)
-	local i
+	local i, para
 		if this.paracnt > 0
 			dimension this.parax[this.paracnt]
 		endif
 		for m.i = 1 to this.paracnt
-			this.parax[m.i] = evaluate("para"+ltrim(str(m.i)))
+			m.para = "para"+ltrim(str(m.i))
+			this.parax[m.i] = iif(type(m.para) == "U", "", evaluate("para"+ltrim(str(m.i))))
 			if not vartype(this.para[m.i]) == "C"
-				this.parax[m.i] = createobject("String",this.parax[m.i])
-				this.parax[m.i] = this.parax[m.i].toString()
+				this.parax[m.i] = transform(this.parax[m.i])
 			endif
 			this.parax[m.i] = m.preparer.normize(this.parax[m.i],"[]")
 		endfor
@@ -1986,6 +2161,10 @@ define class Com as Custom
 	endfunc
 	
 	function isPassive()
+		return .f.
+	endfunc
+	
+	function isJoining()
 		return .f.
 	endfunc
 	
@@ -2003,11 +2182,13 @@ define class Com as Custom
 		if left(m.str,4) == "COM_"
 			m.str = substr(m.str,5)
 		endif
-		m.str = "<com>"+m.str+"</com>"+chr(10)
+		m.str = "<com>"+m.str+"</com>"+chr(13)+chr(10)
 		for m.i = 1 to this.paracnt
-			m.str = m.str+"<para"+ltrim(str(m.i,18))+">"+this.parax[m.i]+"</para"+ltrim(str(m.i,18))+">"+chr(10)
+			if this.parax[m.i] != ""
+				m.str = m.str+"<para"+transform(m.i)+">"+transform(this.parax[m.i])+"</para"+transform(m.i)+">"+chr(13)+chr(10)
+			endif
 		endfor
-		return left(m.str,len(m.str)-1)
+		return left(m.str,len(m.str)-2)
 	endfunc
 enddefine
 
@@ -2102,17 +2283,26 @@ define class com_Change as Com
 	endfunc
 enddefine
 
-define class com_Reset as Com
+define class com_Cleanup as Com
 	function execute(str)
 		return strtran(strtran(m.str,"[",""),"]","")
 	endfunc
 enddefine
 
+define class com_Reset as com_Cleanup
+enddefine
+
 define class com_Cockle as Com
+	protected cockle
+
+	function init(preparer)
+		Com::init(m.preparer)
+		this.cockle = createobject("String")
+	endfunc
+
 	function execute(str)
-		local cockle
-		m.cockle = createobject("String",m.str)
-		return m.cockle.getCockle()
+		this.cockle.setString(m.str)
+		return this.cockle.getCockle()
 	endfunc
 enddefine
 
@@ -2135,11 +2325,7 @@ define class com_Split as Com
 	endfunc
 
 	function execute(str)
-		m.str = alltrim(strtran(" "+m.str+" ",this.parax[2]," "+alltrim(this.parax[2])+" "))
-		do while "  " $ m.str
-			m.str = strtran(m.str,"  "," ")
-		enddo
-		return m.str
+		return alltrim(squeeze(strtran(" "+m.str+" ",this.parax[2]," "+alltrim(this.parax[2])+" "), " "))
 	endfunc
 enddefine
 
@@ -2157,7 +2343,7 @@ define class com_Cut as Com
 				this.parax[2] = this.parax[2]+" "
 				this.mode = 2
 			else
-				if this.parax[1] = ""
+				if inlist(this.parax[1], "BOTH", "")
 					this.mode = 3
 				endif
 			endif
@@ -2170,7 +2356,7 @@ define class com_Cut as Com
 	endfunc
 
 	function execute(str)
-		local left, right, n, pos
+	local left, right, n, pos
 		m.str = " "+m.str+" "
 		m.n = 1
 		m.pos = at(this.parax[2],m.str)
@@ -2200,26 +2386,28 @@ define class com_Separate as Com
 	paracnt = 2
 	function init(preparer)
 		Com::init(m.preparer)
-		this.parax[1]  = strtran(this.parax[1]," ","")
-		this.parax[2]  = strtran(this.parax[2]," ","")
+		this.parax[1] = strtran(this.parax[1]," ","")
+		this.parax[2] = strtran(this.parax[2]," ","")
 	endfunc
 	
 	function execute(str)
-		local sep, chr, len, i, oldtype, type
+	local chr, len, i, oldtype, type
 		m.len = len(m.str)
 		m.oldtype = 0
-		m.sep = ""
-		for m.i = 1 to m.len
+		m.i = 1
+		do while m.i <= m.len
 			m.chr = substr(m.str,m.i,1)
 			m.type = iif(m.chr $ this.parax[1],1,iif(m.chr $ this.parax[2],2,0))
-			if m.type == 0 or m.oldtype == 0 or m.type == m.oldtype
-				m.sep = m.sep+m.chr
+			if m.type != m.oldtype and m.type != 0 and m.oldtype != 0
+				m.str = stuff(m.str, m.i, 0, " ")
+				m.len = m.len+1
+				m.i = m.i+2
 			else
-				m.sep = m.sep+" "+m.chr
+				m.i = m.i+1
 			endif
 			m.oldtype = m.type
-		endfor
-		return m.sep
+		enddo
+		return m.str
 	endfunc
 enddefine
 
@@ -2231,15 +2419,7 @@ define class com_Blank as Com
 	endfunc
 	
 	function execute(str)
-		local len, i
-		m.len = len(this.parax[1])
-		for m.i = 1 to m.len
-			m.str = strtran(m.str,substr(this.parax[1],m.i,1)," ")
-		endfor
-		do while "  " $ m.str
-			m.str = strtran(m.str,"  "," ")
-		enddo
-		return alltrim(m.str)
+		return alltrim(squeeze(blankchars(m.str, this.parax[1]), " "))
 	endfunc
 enddefine
 
@@ -2257,7 +2437,7 @@ define class com_Gram as Com
 	endfunc
 	
 	function execute(str)
-		return gram(str, this.parax[1])
+		return gram(m.str, this.parax[1])
 	endfunc
 enddefine
 
@@ -2301,62 +2481,73 @@ define class com_Limit as Com
 	function init(preparer)
 		Com::init(m.preparer)
 		this.mode = 0
-		if this.parax[1] = "LENGTH"
+		if inlist(this.parax[1], "LENGTH", "CHAR")
 			this.mode = 1
 		else
-			if this.parax[1] = "COUNT"
+			if inlist(this.parax[1], "COUNT", "WORD")
 				this.mode = 2
 			endif
 		endif
 		this.parax[2] = int(val(this.parax[2]))
-		this.skip = .f.
-		if this.parax[3] = "SKIP"
-			this.skip = .t.
-			this.parax[2] = this.parax[2]+1
-		endif
+		this.skip = 9
+		do case
+			case this.parax[3] == "LEFT" or empty(this.parax[3])
+				this.skip = 0
+			case this.parax[3] == "SKIP"
+				this.skip = 1
+			case this.parax[3] == "RIGHT"
+				this.skip = -1
+		endcase
 	endfunc
 	
 	function isValid()
-		return this.mode > 0 and this.parax[2] > 0
+		return this.mode > 0 and this.parax[2] > 0 and inlist(this.skip, -1, 0, 1)
 	endfunc
 
 	function execute(str)
-		local limit, cnt, lex, i 
+	local limit, cnt, i, pos 
+	local array lex[1]
 		m.limit = this.parax[2]
-		dimension m.lex[1]
-		m.cnt = alines(m.lex, m.str, 1, " ")
-		if this.skip
-			if this.mode = 1
-				m.str = ""
-				for m.i = 1 to m.cnt
-					if len(m.lex[m.i]) >= m.limit
-						m.str = m.str+" "+substr(m.lex[m.i],m.limit)
-					endif
-				endfor
-			else
-				if m.cnt < m.limit
-					return ""
-				endif
-				m.str = ""
-				for m.i = m.limit to m.cnt
-					m.str = m.str+" "+m.lex[m.i]
-				endfor
-			endif			
+		if this.mode == 1
+			m.cnt = alines(m.lex, m.str, 1, " ")
+			m.str = ""
+			do case
+				case this.skip == 1
+					for m.i = 1 to m.cnt
+						if len(m.lex[m.i]) >= m.limit
+							m.str = m.str+" "+substr(m.lex[m.i],m.limit)
+						endif
+					endfor
+				case this.skip == -1
+					for m.i = 1 to m.cnt
+						m.str = m.str+" "+right(m.lex[m.i],m.limit)
+					endfor
+				otherwise
+					for m.i = 1 to m.cnt
+						m.str = m.str+" "+left(m.lex[m.i],m.limit)
+					endfor
+			endcase
+			m.str = ltrim(m.str)
 		else
-			if this.mode = 1
-				m.str = ""
-				for m.i = 1 to m.cnt
-					m.str = m.str+" "+left(m.lex[m.i],m.limit)
-				endfor
-			else
-				if m.cnt <= m.limit
-					return m.str
-				endif
-				m.str = ""
-				for m.i = 1 to m.limit
-					m.str = m.str+" "+m.lex[m.i]
-				endfor
-			endif
+			do case
+				case this.skip == 1
+					m.pos = at(" ", m.str, m.limit)
+					if m.pos <= 0
+						m.str = ""
+					else
+						m.str = substr(m.str, m.pos+1)
+					endif
+				case this.skip == -1
+					m.pos = rat(" ", m.str, m.limit)
+					if m.pos > 0
+						m.str = right(m.str, len(m.str) - m.pos)
+					endif
+				otherwise
+					m.pos = at(" ", m.str, m.limit)
+					if m.pos > 0
+						m.str = left(m.str, m.pos-1)
+					endif
+			endcase
 		endif
 		return m.str
 	endfunc
@@ -2368,6 +2559,16 @@ define class com_Destructive as Com
 	endfunc
 	
 	function isPassive()
+		return .t.
+	endfunc
+enddefine
+
+define class com_Join as Com
+	function activate(preparer, preparerType)
+		m.preparerType.setJoining(.t.)
+	endfunc
+
+	function isJoining()
 		return .t.
 	endfunc
 enddefine
@@ -2981,7 +3182,7 @@ define class EngineTable as BaseTable
 		return .f.
 	endfunc
 
-	function getActualSlot()
+	function getCurrentSlot()
 		local max
 		local array slot[1]
 		if not this.isValid() or this.reccount() < 1
@@ -3000,7 +3201,7 @@ define class EngineTable as BaseTable
 			return ""
 		endif
 		if not vartype(m.slot) == "C"
-			m.slot = this.getActualSlot()
+			m.slot = this.getCurrentSlot()
 		else
 			m.slot = alltrim(m.slot)
 		endif
@@ -3063,7 +3264,6 @@ define class EngineTable as BaseTable
 	endfunc
 enddefine
 
-
 define class ResultTable as BaseTable
 	protected function init(table)
 		BaseTable::init(m.table)
@@ -3081,7 +3281,7 @@ define class ResultTable as BaseTable
 			return .f.
 		endif
 		local pa, lm, psl
-		local result, tmp, draw, sql
+		local result, tmp, draw, sql, run
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
@@ -3142,7 +3342,7 @@ define class ResultTable as BaseTable
 			m.sql = m.sql+" and identity >= "+transform(m.low)+" and identity < "+transform(m.high)
 		endif
 		if m.runFilter.isFiltering()
-			m.sql = m.sql+" and m.runFilter.run[asc(run)]"
+			m.sql = m.sql+" and m.runFilter.run[asc(run)] > 0"
 		endif
 		m.sql = substr(m.sql, 6)
 		if empty(m.sql) and m.shuffle <= 0
@@ -3181,6 +3381,12 @@ define class ResultTable as BaseTable
 				use
 				this.useExclusive()
 			endif
+			if m.runFilter.isRenumbering()
+				this.messenger.forceMessage("Renumbering...")
+				update (this.alias) set run = chr(m.runFilter.run[asc(run)]) where asc(run) != m.runFilter.run[asc(run)]
+			endif
+			calculate max(run) for searched > 0 to m.run
+			this.setRun(asc(m.run))
 		endif
 		this.messenger.forceMessage("Exporting...")
 		this.forceRequiredKeys()
@@ -3253,10 +3459,11 @@ define class ResultTable as BaseTable
 	endfunc
 	
 	function compressRun()
-	local ps1, run, sql
+	local pa, ps1, run, sql
 		if not this.isValid()
 			return .f.
 		endif
+		m.pa = createobject("PreservedAlias")
 		m.ps1 = createobject("PreservedSetting","talk","off")
 		m.run = createobject("TempAlias")
 		select distinct run, cast(" " as c(1)) as newrun from (this.alias) into cursor (m.run.alias) readwrite
@@ -3268,6 +3475,38 @@ define class ResultTable as BaseTable
 		return .t.
 	endfunc
 	
+	function collectRuns()
+	local col, pa, ps1, run
+		m.col = createobject("Collection")
+		if not this.isValid()
+			return m.col
+		endif
+		m.pa = createobject("PreservedAlias")
+		m.ps1 = createobject("PreservedSetting","talk","off")
+		m.run = createobject("TempAlias")
+		select distinct run from (this.alias) where searched > 0 into cursor (m.run.alias) readwrite
+		scan
+			m.col.add(asc(run))
+		endscan
+		return m.col
+	endfunc
+	
+	function collectRunFilter()
+	local pa, ps1, run, runFilter
+		if not this.isValid()
+			return createobject("RunFilter","1-255:0")
+		endif
+		m.pa = createobject("PreservedAlias")
+		m.ps1 = createobject("PreservedSetting","talk","off")
+		m.run = createobject("TempAlias")
+		select distinct run from (this.alias) where searched > 0 into cursor (m.run.alias) readwrite
+		m.runFilter = ""
+		scan
+			m.runFilter = m.runFilter+transform(asc(run))+","
+		endscan
+		return createobject("RunFilter", rtrim(m.runFilter, ","))
+	endfunc
+
 	function check(type, ignore, perc)
 		local ps1, ps2, ps3, pa, lm, pk
 		local pos, rec, complete, key
@@ -3350,7 +3589,7 @@ define class ResultTable as BaseTable
 	function toString()
 		local str
 		m.str = BaseTable::toString()
-		m.str = m.str+"Run: "+ltrim(str(this.getRun()))+chr(10)
+		m.str = m.str+"Run: "+ltrim(str(this.getRun()))+chr(13)+chr(10)
 		return m.str
 	endfunc
 
@@ -3442,7 +3681,7 @@ define class ResultTable as BaseTable
 			if m.oldkey >= m.key
 				if not m.usekey
 					this.messenger.stopProgress()
-					if messagebox("Unable to analyse the ResultTable using the physical order."+chr(10)+"Restart analysis using an index?",36,"Analyse ResultTable") == 7
+					if messagebox("Unable to analyse the ResultTable using the physical order."+chr(13)+chr(10)+"Restart analysis using an index?",36,"Analyse ResultTable") == 7
 						exit
 					endif
 					return this.analyseResult(.t., m.type, m.ignore, m.from, m.to, m.step)
@@ -3622,12 +3861,13 @@ enddefine
 define class ExportTable as mp_ExportTable
 	searchKey = ""
 	foundKey = ""
-	runFilter = .f.
 	engine = .f.
 	text = .f.
 	exclusive = .f.
 	low = 0
 	high = 101
+	runFilter = .f.
+	txt = .f.
 
 	protected function init(table)
 		local struc, substruc, s, f
@@ -3635,11 +3875,11 @@ define class ExportTable as mp_ExportTable
 		if vartype(m.table) == "O"
 			this.searchKey = m.table.searchKey
 			this.foundKey = m.table.foundKey
-			this.runFilter = createobject("RunFilter",m.table.runFilter)
 			this.text = m.table.text
 			this.exclusive = m.table.exclusive
-			this.high = m.table.high
 			this.low = m.table.low
+			this.high = m.table.high
+			this.runFilter = createobject("RunFilter", m.table.runFilter)
 			this.txt = m.table.txt
 			m.struc = m.table.getRequiredTableStructure()
 			this.setRequiredTableStructure(m.struc.toString())
@@ -3687,13 +3927,13 @@ define class ExportTable as mp_ExportTable
 		local f, result, search, found
 		local main, col, table, searchrec
 		local foundrec, struc, sort, sortcnt
-		local array data[1]
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
 		m.psl.set("exact","on")
 		m.psl.set("decimals","6")
 		m.psl.set("exclusive","off")
+		m.psl.set("deleted","on")
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Exporting...")
@@ -3803,30 +4043,15 @@ define class ExportTable as mp_ExportTable
 		this.searchKey = iif(m.searchRec,"",m.searchKey)
 		this.foundKey = iif(m.foundRec,"",m.foundKey)
 		this.text = m.text
-		this.runFilter = m.runFilter
 		this.exclusive = m.exclusive
-		this.high = m.high
 		this.low = m.low
+		this.high = m.high
+		this.runFilter = m.runFilter
 		this.txt = not like("*.dbf",lower(this.dbf))
 		this.messenger.forceMessage("Sorting...")
 		m.result.forceKey("searched")
 		m.sort = createobject("BaseCursor", this.getPath(), m.result.getTableStructure())
-		if m.runFilter.isFiltering()
-			select (m.result.alias)
-			scan
-				if not m.runFilter.isFiltered(asc(run))
-					loop
-				endif
-				scatter to m.data memo
-				select (m.sort.alias)
-				append blank
-				gather from m.data memo
-			endscan
-			select (m.sort.alias)
-			go top
-		else
-			m.sort.appendIndexed(m.result)
-		endif
+		m.sort.appendIndexed(m.result)
 		this.messenger.forceMessage("Exporting...")
 		m.sortcnt = m.sort.reccount()
 		m.pfw = m.engine.getPFW()
@@ -3951,7 +4176,7 @@ define class ExportTable as mp_ExportTable
 			select (m.result.alias)
 			go (m.rec)
 			m.run = asc(run)
-			if searched == 0 or not this.runFilter.isFiltered(m.run)
+			if searched == 0
 				loop
 			endif
 			m.srec = searched
@@ -3994,7 +4219,8 @@ define class ExportTable as mp_ExportTable
 			if this.exclusive and m.max >= this.high
 				m.skip = .t.
 			endif
-			if m.skip == .f. and m.identity >= this.low and m.identity < this.high
+			if m.skip == .f. and m.identity >= this.low and m.identity < this.high and this.runFilter.run[m.run] > 0
+				m.run = this.runFilter.run[m.run]
 				if this.text or m.foundRec == .f.		
 					m.found.goRecord(m.fkey)
 					m.found.selectActiveTable()
@@ -4023,7 +4249,7 @@ define class ExportTable as mp_ExportTable
 		endif
 		m.messenger.forceProgress()
 	endfunc
-	
+
 	function write(converter as Collection, alias as String)
 	local line, i
 		select (m.alias)
@@ -5061,23 +5287,18 @@ define class GroupedExportTable as mp_ExportTable
 enddefine
 
 define class MetaExportTable as mp_ExportTable
-	low = 0
-	high = 101
 	meta = .f.
-	runfilter = .f.
 	header = ""
 	foundTypes = .f.
 	searchedTypes = .f.
 	rep = 0
 	compare = .t.
+	runs = .f.
 
 	protected function init(table)
 	local struc, substruc, s
 		BaseTable::init(m.table)
 		if vartype(m.table) == "O"
-			this.runFilter = createobject("RunFilter",m.table.runFilter)
-			this.high = m.table.high
-			this.low = m.table.low
 			this.foundTypes = createobject("SearchTypes", m.table.foundTypes)
 			this.searchedTypes = createobject("SearchTypes", m.table.searchedTypes)
 			this.meta = createobject("MetaFilter",m.table.meta.transfer(), m.table.foundTypes)
@@ -5087,6 +5308,7 @@ define class MetaExportTable as mp_ExportTable
 			this.compare = m.table.compare
 			m.struc = m.table.getRequiredTableStructure()
 			this.setRequiredTableStructure(m.struc.toString())
+			this.runs = createobject("RunFilter", m.table.runs)
 			return
 		endif
 		m.struc = this.getTableStructure()
@@ -5106,9 +5328,9 @@ define class MetaExportTable as mp_ExportTable
 		this.resizeRequirements()
 	endfunc
 		
-	function create(engine, meta, nocomp, low, high, runFilter)
+	function create(engine, meta, nocomp)
 		local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from, to
-		local result, runmax, s, searchCluster, join
+		local result, runs, s, searchCluster, join
 		local table, foundreg, searchedreg, stype, ipos, count
 		local tmp1, tmp2, sql, struc, main, local, global
 		m.psl = createobject("PreservedSettingList")
@@ -5141,14 +5363,6 @@ define class MetaExportTable as mp_ExportTable
 			this.messenger.errormessage("ResultTable is invalid.")
 			return .f.
 		endif
-		if m.idc
-			this.erase()
-		endif
-		if not this.isCreatable()
-			this.messenger.errormessage("MetaExportTable is not creatable.")
-			return .f.
-		endif
-		m.result = m.engine.getResultTable()
 		this.foundtypes = m.engine.getSearchTypes()
 		if not this.foundtypes.isValid()
 			this.messenger.errormessage("SearchTypes are invalid.")
@@ -5166,48 +5380,33 @@ define class MetaExportTable as mp_ExportTable
 			this.messenger.errormessage("Invalid meta filter.")
 			return .f.
 		endif
-		if vartype(m.nocomp) == "N"
-			m.runfilter = m.high
-			m.high = m.low
-			m.low = m.nocomp
+		if vartype(m.meta) == "L" and pcount() == 2
+			m.nocomp = m.meta
 		endif
 		m.meta = createobject("MetaFilter",m.meta,this.foundtypes)
 		if not m.meta.isValid()
 			this.messenger.errormessage("Invalid meta filter.")
 			return .f.
 		endif
-		if not inlist(vartype(m.low),"N","L")
-			this.messenger.errormessage("Invalid low range.")
-			return .f.
-		endif
-		if not inlist(vartype(m.high),"N","L") 
-			this.messenger.errormessage("Invalid high range.")
-			return .f.
-		endif
-		m.low = iif(vartype(m.low) == "N", max(m.low,0), 0)
-		m.high = iif(vartype(m.high) == "N", max(m.high,0), 999)
-		if m.high <= m.low
-			m.high = m.low+1
-		endif
-		if not inlist(vartype(m.runFilter),"O","C","L")
-			this.messenger.errormessage("Invalid runFilter setting.")
-			return .f.
-		endif
-		if not vartype(m.runFilter) == "O"
-			m.runFilter = createobject("RunFilter",m.runFilter)
-		endif
-		if not m.runFilter.isValid()
-			this.messenger.errormessage("Run filter expression is invalid.")
-			return .f.
-		endif
 		if not vartype(m.nocomp) == "L"
 			this.messenger.errormessage("Compare setting invalid.")
 			return .f.
 		endif
-		this.low = m.low
-		this.high = m.high
+		m.result = m.engine.getResultTable()
+		this.runs = m.result.collectRunFilter()
+		if this.runs.getMaxRun() == 0
+			this.messenger.errormessage("ResultTable is empty.")
+			return .f.
+		endif
+		m.runs = this.runs.collect(.t.)
+		if m.idc
+			this.erase()
+		endif
+		if not this.isCreatable()
+			this.messenger.errormessage("MetaExportTable is not creatable.")
+			return .f.
+		endif
 		this.meta = m.meta
-		this.runFilter = m.runFilter
 		this.txt = not like("*.dbf",lower(this.dbf))
 		this.compare = 0
 		this.rep = 0
@@ -5236,21 +5435,14 @@ define class MetaExportTable as mp_ExportTable
 				endif
 			endfor
 		endfor
-		m.runmax = m.result.getRun()
 		m.s = 7
 		if this.txt
 			m.chr9 = chr(9)
 			this.header = "SEARCHED"+m.chr9+"FOUND"+m.chr9+"IDENTITY"+m.chr9+"SCORE"+m.chr9+"CNT"+m.chr9+"ICNT"+m.chr9+"IPOS"
-			for m.i = 1 to m.runmax
-				if m.runFilter.isFiltered(m.i)
-					this.header = this.header+m.chr9+"RUN"+ltrim(str(m.i))
-					m.s = m.s+1
-				endif
+			for m.i = 1 to m.runs.count
+				this.header = this.header+m.chr9+"RUN"+transform(m.runs.item(m.i))
 			endfor
-			if m.s == 7
-				this.messenger.errormessage("Run filter yields no results.")
-				return .f.
-			endif
+			m.s = m.s + m.runs.count
 			for m.i = 1 to this.compare
 				this.header = this.header+m.chr9+"CSF"+transform(m.i)+m.chr9+"CFS"+transform(m.i)
 			endfor
@@ -5274,16 +5466,10 @@ define class MetaExportTable as mp_ExportTable
 		else
 			m.chr9 = ","
 			this.header = "searched i, found i, identity b(6), score b(6), cnt b(6), icnt b(6), ipos b(6)"
-			for m.i = 1 to m.runmax
-				if m.runFilter.isFiltered(m.i)
-					this.header = this.header+", RUN"+ltrim(str(m.i))+" n(1)"
-					m.s = m.s+1
-				endif
+			for m.i = 1 to m.runs.count
+				this.header = this.header+m.chr9+"RUN"+transform(m.runs.item(m.i))
 			endfor
-			if m.s == 7
-				this.messenger.errormessage("Run filter yields no results.")
-				return .f.
-			endif				
+			m.s = m.s + m.runs.count
 			for m.i = 1 to this.compare
 				this.header = this.header+", CSF"+transform(m.i)+" b(6), CFS"+transform(m.i)+" b(6)"
 			endfor
@@ -5367,12 +5553,12 @@ define class MetaExportTable as mp_ExportTable
 		select (m.tmp2.alias)
 		use
 		m.result.setKey()
-		m.from = m.engine.locateFrom(m.runFilter)
+		m.from = m.engine.locateFrom()
 		if m.from <= 0
 			m.from = 1
 			m.to = 0
 		else
-			m.to = m.engine.locateTo(m.runFilter)
+			m.to = m.engine.locateTo()
 		endif
 		m.pfw = m.engine.getPFW()
 		m.wc = m.pfw.setOptimalWorkerCount(m.to-m.from+1,250)
@@ -5432,9 +5618,9 @@ define class MetaExportTable as mp_ExportTable
 	endfunc
 		
 	function exporting(from as Integer, to as Integer, export as Object, result as Object, searchedreg as Object, foundreg as Object, ipos as Object, count as Object, engine as Object, messenger as Object)
-	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes
+	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes, runs
 	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex
-	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target, runmax
+	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target
 	local lexarray, rec, sMaxOcc, fMaxOcc, searchField
 	local inc, key, item, element, scnt, rcnt, freccount
 	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer, tarpos
@@ -5457,7 +5643,7 @@ define class MetaExportTable as mp_ExportTable
 		m.foundTypes = m.engine.getSearchTypes()
 		m.lrcpdScope = m.engine.getLrcpdScope()
 		m.preparer = m.engine.getPreparer()
-		m.runmax = m.result.getRun()
+		m.runs = this.runs.collect(.t.)
 		dimension m.lexarray[1]
 		m.searched = -1
 		m.found = -1
@@ -5524,7 +5710,7 @@ define class MetaExportTable as mp_ExportTable
 			go (m.rec)		
 			m.run = asc(run)
 			m.identity = identity
-			if searched <= 0 or not this.runFilter.isFiltered(m.run) or m.identity < this.low or m.identity >= this.high
+			if searched <= 0
 				loop
 			endif
 			m.found = found
@@ -5696,14 +5882,8 @@ define class MetaExportTable as mp_ExportTable
 			enddo
 			asort(m.mx,4,m.mxcnt)
 			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+transform(m.identity)+m.chr9+transform(m.score)+m.chr9+transform(m.cnt)+m.chr9+transform(m.icnt)+m.chr9+transform(m.pos)
-			for m.i = 1 to m.runmax
-				if m.i = m.run
-					m.line = m.line+m.chr9+"1"
-				else
-					if this.runFilter.isFiltered(m.i)
-						m.line = m.line+m.chr9+"0"
-					endif
-				endif
+			for m.i = 1 to m.runs.count
+				m.line = m.line+chr9+iif(m.i == m.run, "1", "0")
 			endfor
 			for m.i = 1 to this.compare
 				m.line = m.line+m.chr9+transform(m.cx[m.i,1])+m.chr9+transform(m.cx[m.i,2])
@@ -5763,6 +5943,7 @@ define class SearchEngine as custom
 	hidden txt, timerlog, logheader, copy, para, output
 	hidden advanced
 	hidden pfw
+	hidden help
 	tag = ""
 
 	protected function init(path, slot)
@@ -5852,7 +6033,7 @@ define class SearchEngine as custom
 		endif
 		for m.i = 1 to m.dircnt
 			if not this.preparer.addXML(m.dir[m.i, 1])
-				this.preparer.xmlerror = "Error in "+m.dir[m.i,1]+iif(not empty(this.preparer.xmlerror),chr(10)+this.preparer.xmlerror, "")
+				this.preparer.xmlerror = "Error in "+m.dir[m.i,1]+iif(not empty(this.preparer.xmlerror),chr(13)+chr(10)+this.preparer.xmlerror, "")
 				exit
 			endif
 		endfor
@@ -6031,6 +6212,17 @@ define class SearchEngine as custom
 	function getSlot()
 		return this.slot
 	endfunc
+	
+	function reset() && resets search parameters
+		this.setThreshold(90)
+		this.setCutoff(0)
+		this.setFeedback(0)
+		this.setActivation(0)
+		this.setRelative(.f.)
+		this.setDarwinian(.f.)
+		this.setIgnorant(.f.)
+		this.setZealous(.f.)
+	endfunc
 
 	function setLimit(limit)
 		this.limit = min(max(m.limit,0),100)
@@ -6050,7 +6242,7 @@ define class SearchEngine as custom
 	endfunc	
 
 	function setDepth(depth)
-		this.depth = min(max(m.depth,0),MAXSEARCHDEPTH)
+		this.depth = min(max(evl(m.depth,0),0),MAXSEARCHDEPTH)
 	endfunc
 	
 	function getDepth()
@@ -6102,7 +6294,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function setFeedback(fb)
-		this.feedback = max(m.fb,0)
+		this.feedback = min(max(evl(m.fb,0),0),100)
 	endfunc
 
 	function getFeedback()
@@ -6110,7 +6302,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function setCutoff(co)
-		this.cutoff = int(max(m.co,0))
+		this.cutoff = int(max(evl(m.co, 0),0))
 	endfunc
 
 	function getCutoff()
@@ -6118,7 +6310,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function setActivation(act)
-		this.activation = int(max(m.act,0))
+		this.activation = int(max(evl(m.act, 0),0))
 	endfunc
 
 	function getActivation()
@@ -6126,7 +6318,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function setLrcpdScope(scope)
-		this.lrcpdscope = int(max(m.scope,0))
+		this.lrcpdscope = int(max(evl(m.scope,DEFLRCPDSCOPE),1))
 	endfunc
 
 	function getLrcpdScope()
@@ -6369,8 +6561,12 @@ define class SearchEngine as custom
 		if vartype(m.rt) == "C"
 			this.result = createobject("ResultTable",m.rt)
 		else
-			m.rt.useShared()
-			this.result = createobject("ResultTable",m.rt.getDBF())
+			if m.rt.class == "Resulttable"
+				this.result = m.rt
+			else
+				m.rt.useShared()
+				this.result = createobject("ResultTable",m.rt.getDBF())
+			endif
 		endif
 		this.result.useShared()
 		this.changed = .t.
@@ -6710,19 +6906,19 @@ define class SearchEngine as custom
 		if m.pos == 0
 			return ""
 		endif
-		m.str = substr(m.str, m.pos+12)
-		m.pos = evl(at(chr(10),m.str),at(chr(13),m.str))
-		return strtran(alltrim(left(m.str, m.pos-1)),chr(13),"")
+		m.str = substr(m.str, m.pos+11)
+		m.pos = evl(min(at(chr(10),m.str),at(chr(13),m.str)), len(m.str)+1)
+		return alltrim(left(m.str, m.pos-1))
 	endfunc
 
 	function toString()
 		local str
 		this.confirmChanges()
-		m.str = "[Engine]"+chr(10)
-		m.str = m.str+"Class: "+proper(this.class)+chr(10)
-		m.str = m.str+"Version: "+version_of_searchengine()+iif(this.advanced, " [advanced]", "")+chr(10)
-		m.str = m.str+"EnginePath: "+lower(this.engine.getPath())+chr(10)
-		m.str = m.str+"Slot: "+this.getSlot()+chr(10)
+		m.str = "[Engine]"+chr(13)+chr(10)
+		m.str = m.str+"Class: "+proper(this.class)+chr(13)+chr(10)
+		m.str = m.str+"Version: "+version_of_searchengine()+iif(this.advanced, " [advanced]", "")+chr(13)+chr(10)
+		m.str = m.str+"EnginePath: "+lower(this.engine.getPath())+chr(13)+chr(10)
+		m.str = m.str+"Slot: "+this.getSlot()+chr(13)+chr(10)
 		m.str = m.str+"Flags: "
 		m.str = m.str+iif(this.isValid(),"valid, ","")
 		m.str = m.str+iif(this.isCreatable(),"creatable, ","")
@@ -6737,7 +6933,7 @@ define class SearchEngine as custom
 		else
 			m.str = m.str+"none"
 		endif
-		m.str = m.str+chr(10)
+		m.str = m.str+chr(13)+chr(10)
 		m.str = m.str+"Synchronized: "
 		m.str = m.str+iif(this.isSearchedSynchronized(),"searched, ","")
 		m.str = m.str+iif(this.isFoundSynchronized(),"found, ","")
@@ -6746,7 +6942,7 @@ define class SearchEngine as custom
 		else
 			m.str = m.str+"none"
 		endif
-		m.str = m.str+chr(10)
+		m.str = m.str+chr(13)+chr(10)
 		m.str = m.str+"Ready: "
 		m.str = m.str+iif(this.isSearchReady(),"Search, ","")
 		m.str = m.str+iif(this.isBaseTableReady(),"BaseTable, ","")
@@ -6757,27 +6953,27 @@ define class SearchEngine as custom
 		else
 			m.str = m.str+"none"
 		endif
-		m.str = m.str+chr(10)
+		m.str = m.str+chr(13)+chr(10)
 		if this.searchTypes.isValid()
-			m.str = m.str+"Types: "+this.searchTypes.toString()+chr(10)
+			m.str = m.str+"Types: "+this.searchTypes.toString()+chr(13)+chr(10)
 		endif
 		if this.depth > 0 and this.depth != DEFSEARCHDEPTH
-			m.str = m.str+"Depth: "+ltrim(str(this.depth,18))+chr(10)
+			m.str = m.str+"Depth: "+ltrim(str(this.depth,18))+chr(13)+chr(10)
 		endif
 		if this.limit > 0 and this.limit <= 100
-			m.str = m.str+"Threshold: "+ltrim(str(this.limit,6,2))+"%"+chr(10)
+			m.str = m.str+"Threshold: "+ltrim(str(this.limit,6,2))+"%"+chr(13)+chr(10)
 		endif
 		if this.cutoff > 0
-			m.str = m.str+"Cutoff: "+ltrim(str(this.cutoff,18))+chr(10)
+			m.str = m.str+"Cutoff: "+ltrim(str(this.cutoff,18))+chr(13)+chr(10)
 		endif
 		if this.feedback > 0
-			m.str = m.str+"Feedback: "+ltrim(str(this.feedback,14,2))+"%"+chr(10)
+			m.str = m.str+"Feedback: "+ltrim(str(this.feedback,14,2))+"%"+chr(13)+chr(10)
 		endif
 		if this.activation > 0
-			m.str = m.str+"Activation: "+ltrim(str(this.activation,18))+chr(10)
+			m.str = m.str+"Activation: "+ltrim(str(this.activation,18))+chr(13)+chr(10)
 		endif
 		if this.lrcpdscope != DEFLRCPDSCOPE
-			m.str = m.str+"LrcpdScope: "+ltrim(str(this.lrcpdscope,18))+chr(10)
+			m.str = m.str+"LrcpdScope: "+ltrim(str(this.lrcpdscope,18))+chr(13)+chr(10)
 		endif
 		if not this.copy 
 			m.str = m.str+"MP: "
@@ -6786,28 +6982,28 @@ define class SearchEngine as custom
 			else
 				m.str = m.str+ltrim(str(this.mp(),12))+"/"+ltrim(str(this.pfw.getCPUcount(),12))+" CPU"+iif(this.getSafeMode()," (safe mode)","")
 			endif
-			m.str = m.str+chr(10)
+			m.str = m.str+chr(13)+chr(10)
 		endif
 		if not (empty(this.preparer.xmlerror) and empty(this.preparermsg))
-			m.str = m.str+chr(10)+"PreparerMessage: "+chr(10)
+			m.str = m.str+chr(13)+chr(10)+"PreparerMessage: "+chr(13)+chr(10)
 			if not empty(this.preparer.xmlerror)
-				m.str = m.str+this.preparer.xmlerror+chr(10)
+				m.str = m.str+this.preparer.xmlerror+chr(13)+chr(10)
 			endif
 			if not empty(this.preparermsg)
-				m.str = m.str+this.preparermsg+chr(10)
+				m.str = m.str+this.preparermsg+chr(13)+chr(10)
 			endif
 		endif
-		m.str = m.str+chr(10)+"[ResultTable]"+chr(10)
+		m.str = m.str+chr(13)+chr(10)+"[ResultTable]"+chr(13)+chr(10)
 		m.str = m.str+this.result.toString()
-		m.str = m.str+chr(10)+"[BaseTable]"+chr(10)
+		m.str = m.str+chr(13)+chr(10)+"[BaseTable]"+chr(13)+chr(10)
 		m.str = m.str+this.baseCluster.toString()
-		m.str = m.str+chr(10)+"[SearchTable]"+chr(10)
+		m.str = m.str+chr(13)+chr(10)+"[SearchTable]"+chr(13)+chr(10)
 		m.str = m.str+this.searchCluster.toString()
 		if this.searchFieldJoin.getJoinCount() > 0
-			m.str = m.str+"SearchFieldJoin: "+proper(this.searchFieldJoin.toString())+chr(10)
+			m.str = m.str+"SearchFieldJoin: "+proper(this.searchFieldJoin.toString())+chr(13)+chr(10)
 		endif
 		if !empty(this.info)
-			m.str = m.str+chr(10)+"[Info]"+chr(10)+this.info+chr(10)
+			m.str = m.str+chr(13)+chr(10)+"[Info]"+chr(13)+chr(10)+this.info+chr(13)+chr(10)
 		endif
 		return m.str
 	endfunc
@@ -6870,15 +7066,8 @@ define class SearchEngine as custom
 		m.psl.set("exclusive","off")
 		m.psl.set("reprocess",1)
 		m.path = this.engine.getPath()
-		this.setLimit(90)
-		this.setZealous(.f.)
+		this.reset() && resets search parameters
 		this.setDepth(0)
-		this.setRelative(.f.)
-		this.setDarwinian(.f.)
-		this.setIgnorant(.f.)
-		this.setFeedback(0)
-		this.setActivation(0)
-		this.setCutoff(0)
 		this.setInfo("")
 		this.expanded = .f.
 		this.changed = .t.
@@ -6913,7 +7102,7 @@ define class SearchEngine as custom
 						m.invalid = this.searchTypes.getInvalidPreparer()
 						if not empty(m.invalid)
 							if not empty(this.preparermsg)
-								this.preparermsg = this.preparermsg+chr(10)
+								this.preparermsg = this.preparermsg+chr(13)+chr(10)
 							endif
 							this.preparermsg = this.preparermsg+"Invalid Preparer: "+strtran(m.invalid," ",", ")
 						endif
@@ -6930,14 +7119,14 @@ define class SearchEngine as custom
 		endif
 		if not m.copy
 			if not vartype(m.slot) == "C" or empty(m.slot)
-				m.slot = this.engine.getActualSlot()
+				m.slot = this.engine.getCurrentSlot()
 			endif
 			m.str = createobject("String",this.engine.load(m.slot))
 		endif
 		if m.str.isEmpty()
 			m.rc = .f.
 			this.messenger.errorMessage("Engine slot does not exists.")
-			m.slot = this.engine.getActualSlot()
+			m.slot = this.engine.getCurrentSlot()
 			m.str = createobject("String",this.engine.load(m.slot))
 		endif
 		this.slot = alltrim(m.slot)
@@ -7104,6 +7293,127 @@ define class SearchEngine as custom
 		this.confirmChanges()
 		return m.rc
 	endfunc
+	
+	function statistics(empty as boolean)
+	local psl, pa, result, stats, byrun, runs, run, run_start, run_stop, item
+	local searched, found, cnt_max, cnt_min, cnt_avg, cnt_std, id_min, id_max, id_avg, id_std, id_var, var
+		m.stats = createobject("TempAlias")
+		select cast("" as c(7)) as run, cast(0 as i) as searched, cast(0 as i) as found, cast(0 as i) as cnt_max, cast(0 as i) as cnt_min, cast(0 as b(6)) as cnt_avg, cast(0 as b(6)) as cnt_std, cast(0 as b(6)) as id_max, cast(0 as b(6)) as id_min, cast(0 as b(6)) as id_avg, cast(0 as b(6)) as id_std from (m.stats.alias) where .f. into cursor (m.stats.alias) readwrite
+		if m.empty
+			return m.stats
+		endif
+		m.psl = createobject("PreservedSettingList")
+		m.psl.set("talk", "off")
+		m.psl.set("escape", "off")
+		m.pa = createobject("PreservedAlias")
+		this.messenger.forceMessage("Statistics...")
+		this.messenger.startCancel("Cancel calculation?", "Statistics", "Canceling...")
+		m.result = this.getResultTable()
+		if not this.result.isValid()
+			this.messenger.errorMessage("ResultTable is not valid.")
+			return .f.
+		endif
+		m.byrun = createobject("TempAlias")
+		m.runs = createobject("Collection")
+		select (m.result.alias)
+		if reccount() == 1 and searched <= 0 or reccount() == 0
+			return m.stats
+		endif
+		this.messenger.forceMessage("Identity statistics...")
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		select run, searched, identity from (m.result.alias) where searched > 0 order by run, searched into cursor (m.byrun.alias)
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		m.run = run
+		m.run_start = 1
+		scan
+			if not run == m.run
+				m.runs.add(createobject("MultiPurpose3", m.run, m.run_start, recno()-1))
+				m.run = run
+				m.run_start = recno()
+			endif
+		endscan
+		m.runs.add(createobject("MultiPurpose3", m.run, m.run_start, reccount()))
+		select (m.byrun.alias)
+		for each m.item in m.runs
+			if this.messenger.queryCancel()
+				this.messenger.cancelMessage("Canceled.")
+				return .f.
+			endif
+			m.run = transform(asc(m.item.value1))
+			this.messenger.forceMessage(textmerge("Identity <<m.run>>/<<m.runs.count>>"))
+			m.run_start = m.item.value2
+			m.run_stop = m.item.value3
+			go m.run_start
+			calculate cnt(), max(identity), min(identity), avg(identity), std(identity) next m.run_stop-m.run_start+1 to m.found, m.id_max, m.id_min, m.id_avg, m.id_std
+			insert into (m.stats.alias) (run, found, id_max, id_min, id_avg, id_std) values (m.run, m.found, m.id_max, m.id_min, m.id_avg, m.id_std)
+		endfor
+		m.runs.remove(-1)
+		this.messenger.forceMessage("Count statistics...")
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		select run, searched, count(*) as cnt from (m.byrun.alias) group by 1, 2 into cursor (m.byrun.alias)
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		m.run = run
+		m.run_start = 1
+		scan
+			if not run == m.run
+				m.runs.add(createobject("MultiPurpose3", m.run, m.run_start, recno()-1))
+				m.run = run
+				m.run_start = recno()
+			endif
+		endscan
+		m.runs.add(createobject("MultiPurpose3", m.run, m.run_start, reccount()))
+		for each m.item in m.runs
+			if this.messenger.queryCancel()
+				this.messenger.cancelMessage("Canceled.")
+				return .f.
+			endif
+			m.run = transform(asc(m.item.value1))
+			this.messenger.forceMessage(textmerge("Count <<m.run>>/<<m.runs.count>>"))
+			m.run_start = m.item.value2
+			m.run_stop = m.item.value3
+			go m.run_start
+			calculate cnt(), max(cnt), min(cnt), avg(cnt), std(cnt) next m.run_stop-m.run_start+1 to m.searched, m.cnt_max, m.cnt_min, m.cnt_avg, m.cnt_std
+			update (m.stats.alias) set searched = m.searched, cnt_max = m.cnt_max, cnt_min = m.cnt_min, cnt_avg = m.cnt_avg, cnt_std = m.cnt_std where run == m.run
+		endfor
+		if m.runs.count == 1
+			return m.stats
+		endif
+		this.messenger.forceMessage("Summary statistics...")
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		m.item = m.runs.item(1)
+		m.run = transform(asc(m.item.value1))
+		m.item = m.runs.item(m.runs.count)
+		m.run = m.run+"-"+transform(asc(m.item.value1))
+		select (m.stats.alias)
+		calculate sum(found) to m.found
+		calculate max(id_max), min(id_min), sum(id_avg * found/m.found), sum(id_std^2 * found/m.found) to m.id_max, m.id_min, m.id_avg, m.id_var
+		calculate sum((id_avg - m.id_avg)^2 * found/m.found) to m.var
+		m.id_std = sqrt(m.id_var+m.var)
+		if this.messenger.queryCancel()
+			this.messenger.cancelMessage("Canceled.")
+			return .f.
+		endif
+		select searched, sum(cnt) as cnt from (m.byrun.alias) group by searched into cursor (m.byrun.alias)
+		calculate cnt(), max(cnt), min(cnt), avg(cnt), std(cnt) to m.searched, m.cnt_max, m.cnt_min, m.cnt_avg, m.cnt_std
+		insert into (m.stats.alias) values (m.run, m.searched, m.found, m.cnt_max, m.cnt_min, m.cnt_avg, m.cnt_std, m.id_max, m.id_min, m.id_avg, sqrt(m.id_var+m.var))
+		this.messenger.clearMessage()
+		return m.stats
+	endfunc
 
 	function export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
 		local oldmes, rc, dp
@@ -7115,7 +7425,8 @@ define class SearchEngine as custom
 		m.dp.dyna("O")
 		m.dp.dyna("OCC")
 		m.dp.dyna("OCCNN")
-		m.dp.dyna("ONN","1,4,5,6,7,8")
+		m.dp.dyna("ONN","1,4,5")
+		m.dp.dyna("ONNL","1,4,5,6")
 		m.dp.dyna("ONNCL","1,4,5,7,8")
 		m.dp.dyna("ONNLCL","1,4,5,6,7,8")
 		m.dp.dyna("OC","1,7,8")
@@ -7142,7 +7453,7 @@ define class SearchEngine as custom
 	endfunc
 
  	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
-		local oldmes, exp, rc, idc, dp
+	local oldmes, exp, rc, idc, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExtendedExportTable",this.properExt(m.table))
 		endif
@@ -7342,7 +7653,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function metaExport(table, meta, nocomp, low, high, runFilter)
-		local oldmes, rc, dp, swap
+	local oldmes, rc, dp, swap, result
 		if vartype(m.table) == "C"
 			m.table = createobject("MetaExportTable",this.properExt(m.table))
 		endif
@@ -7371,14 +7682,36 @@ define class SearchEngine as custom
 			m.meta = m.runFilter
 			m.runFilter = m.swap
 		endif
+		if vartype(m.runFilter) == "C"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter")
+		endif
+		if evl(m.low,0) > 0 or evl(m.high,101) <= 100 or m.runFilter.isFiltering() 
+			m.result = createobject("BaseCursor", this.getEnginePath())
+			if not m.result.isValid()
+				return .f.
+			endif
+			m.result.erase()
+			m.swap = this.getResultTable()
+			m.result = createobject("ResultTable", m.result.dbf)
+			m.result.setCursor(.t.)
+			m.result.create(this, .f., m.low, m.high, m.runFilter, .f.)
+			this.setResultTable(m.result)
+		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
 		try
-			m.rc = m.table.create(this, m.meta, m.nocomp, m.low, m.high, m.runFilter)
+			m.rc = m.table.create(this, m.meta, m.nocomp)
 		catch
 			m.rc = .f.
 		endtry
 		m.table.setMessenger(m.oldmes)
+		if vartype(m.result) == "O"
+			this.setResultTable(m.swap)
+			m.result.erase()
+		endif
 		return m.rc
 	endfunc
 
@@ -7412,6 +7745,73 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
+	function importBase(file as String, nomemos as Boolean)
+		this.setBaseCluster(this.import(m.file, m.nomemos))
+		if this.BaseCluster.getTableCount() <= 0 and not this.messenger.isError()
+			this.messenger.errorMessage("BaseTable invalid.")
+		endif
+		return not this.messenger.isError()
+	endfunc
+	
+	function importSearch(file as String, nomemos as Boolean)
+		this.setSearchCluster(this.import(m.file, m.nomemos))
+		if this.SearchCluster.getTableCount() <= 0 and not this.messenger.isError()
+			this.messenger.errorMessage("SearchTable invalid.")
+		endif
+		return not this.messenger.isError()
+	endfunc
+	
+	hidden function import(file as String, nomemos as Boolean)
+	local cluster, table, txt, ps
+		m.ps = createobject("PreservedSetting","exclusive","off")
+		this.messenger.clearMessage()
+		m.file = alltrim(m.file)
+		if this.isTxtDefault()
+			m.txt = not like("*.dbf",lower(m.file))
+			if not like("*.txt",lower(m.file)) and not file(m.file)
+				m.file = rtrim(m.file,".")+".txt"
+			endif
+		else
+			m.txt = like("*.txt",lower(m.file))
+		endif
+		m.file = createobject("String",m.file)
+		m.table = m.file.getFileExtensionChange("")
+		if m.txt
+			m.cluster = createobject("TableCluster",m.table,1)
+			if m.cluster.getTableCount() == 0
+				if isdigit(right(m.table,1))
+					m.cluster = createobject("TableCluster",m.table+"_1",-1)
+				else
+					m.cluster = createobject("TableCluster",m.table+"1",-1)
+				endif
+			endif
+		else
+			if right(m.table,1) == "1" and (not isdigit(right(m.table,2)) or len(m.table) == 1)
+				m.cluster = createobject("TableCluster",m.table,-1)
+			else
+				m.cluster = createobject("TableCluster",m.table,1)
+			endif
+		endif
+		if m.cluster.getTableCount() > 0
+			return m.cluster
+		endif
+		m.table = m.file.getFileExtensionChange("dbf")
+		m.cluster = createobject("InsheetTableCluster",m.table)
+		m.cluster.setNomemos(m.nomemos)
+		m.cluster.setDecode(.t.)
+		m.cluster.setFoxpro(.t.)
+		m.cluster.setNoblank(.t.)
+		m.cluster.setPFW(this.pfw)
+		m.cluster.setMessenger(this.messenger)
+		if not m.cluster.create(m.file.toString())
+			if not this.messenger.isError() 
+				this.messenger.errorMessage("Canceled.")
+			endif
+		endif
+		m.cluster.call('useShared()')
+		return m.cluster
+	endfunc
+	
 	function create(searchTypesDefinition as String)
 		local pa, lm, psl, i, wc, err, batch
 		local invalid, collection, collector
@@ -8381,9 +8781,9 @@ define class SearchEngine as custom
 		this.result.setRun(m.run)
 		this.registry.forceRegistryKey()
 		m.messenger = createobject("Messenger", this.messenger) && copy without linkage (same main process)
-		m.messenger.startCancel("Cancel operation?"+chr(10)+"You will lose "+iif(m.advanced,"all","some")+" progress of this run.", "Searching", "Canceling...")
+		m.messenger.startCancel("Cancel operation?"+chr(13)+chr(10)+"This run will be incomplete.", "Searching", "Canceling...")
 		this.messenger.startProgress("Searching <<0>>/"+transform(m.searchcnt)+" (<<"+transform(m.found)+">>)")
-		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")
+		this.messenger.startCancel("Cancel operation?"+iif(m.cleaning,chr(13)+chr(10)+"Canceling may take a while to ensure consistency.",""),"Searching","Canceling...")
 		this.pfw.setWorkerCount(min(min(m.searchcnt-m.searchrec+1,m.batch),this.pfw.getMaxWorkerCount()))
 		m.wc = max(this.pfw.getWorkerCount(),1)
 		m.col = createobject("Collection")
@@ -8415,6 +8815,11 @@ define class SearchEngine as custom
 			if this.messenger.wasCanceled()
 				m.wc = 1
 				this.result.useExclusive()
+			else
+				if m.wc > 1 and this.messenger.getProgress(1) != m.to
+					this.messenger.errorMessage("Multiproccessing failed.")
+					exit
+				endif
 			endif
 			if m.cleaning
 				if this.messenger.wasCanceled()
@@ -8427,24 +8832,34 @@ define class SearchEngine as custom
 					endif
 				endif
 				if m.wc > 1
- 					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(int(this.messenger.getProgress(2)-m.lastProgress)))
+					m.to = int(this.messenger.getProgress(2)-m.lastProgress)
+ 					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(m.to))
 					this.pfw.linkMessenger(m.messenger)
 					this.pfw.callWorkers("mp_searchrefine", 1, -1, m.research, 1, m.refineMode)
 					this.pfw.wait(.t.)
+					if not m.messenger.wasCanceled() and m.messenger.getProgress(1) != m.to
+						this.messenger.errorMessage("Multiproccessing failed.")
+						exit
+					endif
 					if m.research and not m.messenger.wasCanceled()
-						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(int(this.messenger.getProgress(2)-m.lastProgress)))
+						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(m.to))
 						this.pfw.linkMessenger(m.messenger)
 						this.pfw.callWorkers("mp_searchresearch", 1, -1, .t., 4, 0)
 						this.pfw.wait(.t.)	
+						if not m.messenger.wasCanceled() and m.messenger.getProgress(1) != m.to
+							this.messenger.errorMessage("Multiproccessing failed.")
+							exit
+						endif
 					endif
 					this.pfw.linkMessenger(this.messenger)
 				else
+					m.to = int(m.result.reccount())
 					m.result = m.col.item(1)
 					m.result.useExclusive()
-					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(int(m.result.reccount())))
+					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(m.to))
 					this.refining(1, -1, m.result, m.research, 1, m.refineMode, .f., m.messenger)
 					if m.research and not m.messenger.wasCanceled()
-						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(int(m.result.reccount())))
+						m.messenger.startProgress("Researching "+m.mess+"<<0>>/"+transform(m.to))
 						this.researching(1, -1, m.result, .t., 4, 0, .f., m.messenger)
 					endif
 				endif
@@ -8453,13 +8868,15 @@ define class SearchEngine as custom
 				this.result.useExclusive()
 			endif
 			if not m.messenger.wasCanceled() && interrupted cleaning causes inconsitent batch | will never be canceled without cleaning mode
-				if m.wc > 1
-					this.result.useExclusive()
-				endif
 				this.messenger.sneakMessage("Consolidating"+substr(this.messenger.message,at(" ",this.messenger.message)))
 				for m.i = 1 to m.wc 
 					m.result = m.col.item(m.i)
-					m.result.useExclusive()
+					if not m.result.useExclusive() and not m.result.isValid()
+						if not m.result.useShared(.t.)
+							this.messenger.errorMessage("Incomplete search.")
+							exit
+						endif
+					endif
 					if m.cleaning
 						delete from (m.result.alias) where identity < m.refineLimit
 					endif
@@ -8488,7 +8905,7 @@ define class SearchEngine as custom
 		if this.messenger.wasCanceled() or m.messenger.wasCanceled()
 			this.messenger.cancelMessage("Canceled.")
 		endif
-		return not (this.messenger.wasCanceled() or m.messenger.wasCanceled())
+		return not (this.messenger.wasInterrupted() or m.messenger.wasInterrupted())
 	endfunc
 	
 	function searching(from as Integer, to as Integer, result as Object, increment as Integer, messenger as Object)
@@ -8531,7 +8948,7 @@ define class SearchEngine as custom
 			endif
 		endif
 		m.activeJoin = this.getActiveJoin()
-		m.fback = this.feedback/100
+		m.fback = min(max(this.feedback/100, 0), 1)
 		m.fbackinv = 1-m.fback
 		m.invlimit = 100-this.threshold
 		this.searchCluster.call("setKey()")
@@ -8892,7 +9309,7 @@ define class SearchEngine as custom
 		endif
 		m.result.setKey()
 		this.registry.forceRegistryKey()
-		m.fback = this.feedback/100
+		m.fback = min(max(this.feedback/100, 0), 1)
 		m.fbackinv = 1 - m.fback
 		m.activeJoin = this.getActiveJoin(iif(m.nonDestructiveOnly,1,0))
 		if m.nonDestructiveOnly
@@ -9572,9 +9989,13 @@ define class SearchEngine as custom
 	function locateFrom(runFilter as Object)
 	local pa, rec
 		if not vartype(m.runFilter) == "O"
-			m.runFilter = createobject("RunFilter",m.runFilter)
-			if not m.runFilter.isValid()
-				return .f.
+			if vartype(m.runFilter) == "C"
+				m.runFilter = createobject("RunFilter",m.runFilter)
+				if not m.runFilter.isValid()
+					return .f.
+				endif
+			else
+				m.runFilter = createobject("RunFilter")
 			endif
 		endif
 		m.pa = createobject("PreservedAlias")
@@ -9587,7 +10008,7 @@ define class SearchEngine as custom
 		endif
 		for m.rec = 2 to reccount()
 			go m.rec
-			if m.runFilter.run[asc(run)]
+			if m.runFilter.run[asc(run)] > 0
 				return m.rec
 			endif
 		endfor
@@ -9612,7 +10033,7 @@ define class SearchEngine as custom
 		endif
 		for m.rec = reccount() to 2 step -1
 			go m.rec
-			if m.runFilter.run[asc(run)]
+			if m.runFilter.run[asc(run)] > 0
 				return m.rec
 			endif
 		endfor
@@ -9816,7 +10237,7 @@ define class SearchEngine as custom
 			m.index = this.base2reg.index.item(m.cluster)
 			m.target = this.base2reg.target.item(m.cluster)
 		endif
-		m.fback = this.feedback/100
+		m.fback = min(max(this.feedback/100, 0), 1)
 		m.fbackinv = 1 - m.fback
 		m.typxrows = this.SearchTypes.getSearchTypeCount()
 		dimension m.lexArray[1]
@@ -10173,7 +10594,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	function run(file, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17, para18, para19, para20, para21, para22, para23, para24)
-	local output, append, i, val, pos, key, scriptText, return 
+	local output, append, i, val, pos, key, scriptText
 		this.output = _screen
 		m.file = fullpath(m.file)
 		m.output = ""
@@ -10242,11 +10663,11 @@ define class SearchEngine as custom
 		for m.rec = 1 to alen(m.script)
 			m.rc = .t.
 			m.line = m.script[m.rec]
-			if left(m.line,1) == "*" or empty(m.line)
+			if inlist(left(m.line,1),"*","&") or empty(m.line)
 				loop
 			endif
 			m.line = this.substitute(m.line)
-			if left(m.line,1) == "*" or empty(m.line)
+			if inlist(left(m.line,1),"*","&") or empty(m.line)
 				loop
 			endif
 			m.line = m.line+" "
@@ -10314,12 +10735,14 @@ define class SearchEngine as custom
 				m.silent = .f.
 				m.line = ltrim(substr(m.line,at(" ",m.line)+1))
 			endif
-			m.line = rtrim(m.line)
-			if empty(m.line) and (m.silent or m.loud)
-				m.quiet = m.silent
+			m.line = alltrim(m.line)
+			if inlist(left(m.line,1),"*","&") or empty(m.line)
+				if m.silent or m.loud
+					m.quiet = m.silent
+				endif
 			endif
 			this.shout(". "+iif(m.silent,"silent ","")+iif(m.loud,"loud ","")+iif(m.catch,"catch ","")+iif(m.force,"force ","")+m.line, (m.quiet or m.silent) and not m.loud)
-			if empty(m.line)
+			if inlist(left(m.line,1),"*","&") or empty(m.line)
 				loop
 			endif
 			m.return = .f.
@@ -10396,7 +10819,6 @@ define class SearchEngine as custom
 	endfunc
 	
 	function saveScript(file as String, script as String)
-	local script, line
 		if not vartype(m.file) == "C" or FileOpenWrite(RUNHANDLE, m.file) <= 0
 			return .f.
 		endif
@@ -10429,7 +10851,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	hidden function collectSubs(line as String)
-	local i, cnt, subs
+	local i, cnt, subs, col
 	local array sub[1]
 		m.col = createobject("Collection")
 		m.cnt = alines(m.sub, m.line, 16, "[", "]")
@@ -10446,7 +10868,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	hidden function substitute(line as String)
-	local subs, i, val, swap
+	local subs, i, val, swap, col
 		m.col = this.collectSubs(m.line)
 		m.swap = .f.
 		for m.i = 1 to m.col.count
@@ -10468,11 +10890,24 @@ define class SearchEngine as custom
 	endfunc
 
 	hidden function shout(text as String, quiet as Boolean)
+	local pos
+		if m.quiet
+			return
+		endif
 		if not this.output == _screen
 			if empty(this.output.value)
 				this.output.value = m.text
 			else
 				this.output.value = this.output.value+chr(13)+chr(10)+m.text
+			endif
+			if len(this.output.value) > 524288
+				this.output.value = right(this.output.value, 524289)
+				m.pos = at(chr(10), this.output.value)
+				if m.pos > 0
+					this.output.value = substr(this.output.value, m.pos + 1)
+				else
+					this.output.value = right(this.output.value, 524288)
+				endif
 			endif
 			try
 				this.output.selstart = len(this.output.value)
@@ -10482,209 +10917,243 @@ define class SearchEngine as custom
 		else
 			? m.text
 		endif
-		if m.quiet
-			return
-		endif
 		FileWriteCRLF(OUTHANDLE,m.text)
 	endfunc
-
-	function importBase(file as String, nomemos as Boolean)
-		this.setBaseCluster(this.import(m.file, m.nomemos))
-		if this.BaseCluster.getTableCount() <= 0 and not this.messenger.isError()
-			this.messenger.errorMessage("BaseTable invalid.")
-		endif
-		return not this.messenger.isError()
-	endfunc
 	
-	function importSearch(file as String, nomemos as Boolean)
-		this.setSearchCluster(this.import(m.file, m.nomemos))
-		if this.SearchCluster.getTableCount() <= 0 and not this.messenger.isError()
-			this.messenger.errorMessage("SearchTable invalid.")
+	function convertMD(md as String)
+	local pos, left, right, occ, asc
+		m.md = rtrim(m.md, chr(13), chr(10), " ")
+		if "code>" $ m.md
+			m.md = strtran(strtran(m.md,"<code>",""),"</code>","")
 		endif
-		return not this.messenger.isError()
-	endfunc
-	
-	hidden function import(file as String, nomemos as Boolean)
-	local cluster, table, txt, ps
-		m.ps = createobject("PreservedSetting","exclusive","off")
-		this.messenger.clearMessage()
-		m.file = alltrim(m.file)
-		if this.isTxtDefault()
-			m.txt = not like("*.dbf",lower(m.file))
-			if not like("*.txt",lower(m.file)) and not file(m.file)
-				m.file = rtrim(m.file,".")+".txt"
+		if "\*" $ m.md
+			m.md = strtran(m.md, "\*", "&#42;")
+		endif
+		if "*" $ m.md
+			m.md = strtran(m.md, "*", "")
+		endif
+		if "\" $ m.md
+			if "\\" $ m.md
+				m.md = strtran(m.md, "\\", "&#92;")
 			endif
-		else
-			m.txt = like("*.txt",lower(m.file))
+			m.md = strtran(m.md, "\", "")
 		endif
-		m.file = createobject("String",m.file)
-		m.table = m.file.getFileExtensionChange("")
-		if m.txt
-			m.cluster = createobject("TableCluster",m.table,1)
-			if m.cluster.getTableCount() == 0
-				if isdigit(right(m.table,1))
-					m.cluster = createobject("TableCluster",m.table+"_1",-1)
-				else
-					m.cluster = createobject("TableCluster",m.table+"1",-1)
-				endif
+		if "<b>" $ md
+			m.md = strtran(strtran(m.md, "<b>", "["), "</b>", "]")
+		endif
+		if "<i>" $ md
+			m.md = strtran(strtran(m.md, "<i>", "<"), "</i>", ">")
+		endif
+		if "](http" $ m.md
+			m.md = strtran(m.md, "](http", "](#http")
+		endif
+		m.pos = at("](#", m.md)
+		do while m.pos > 0
+			m.left = left(m.md, m.pos-1)
+			m.right = substr(m.md, m.pos+3)
+			m.pos = at(")", m.right)
+			if not "[" $ m.left or m.pos <= 0
+				exit
 			endif
-		else
-			if right(m.table,1) == "1" and (not isdigit(right(m.table,2)) or len(m.table) == 1)
-				m.cluster = createobject("TableCluster",m.table,-1)
-			else
-				m.cluster = createobject("TableCluster",m.table,1)
+			m.right = substr(m.right, m.pos+1)
+			m.pos = rat("[", m.left)
+			m.left = rtrim(left(m.left, m.pos-1), "[") + "[" + rtrim(substr(m.left, m.pos+1), "]") + "]"
+			m.md = m.left+m.right
+			m.pos = at("](#", m.md)
+		enddo
+		m.occ = 1
+		do while .t.
+			m.pos = at("&#", m.md, m.occ)
+			if m.pos == 0
+				exit
 			endif
-		endif
-		if m.cluster.getTableCount() > 0
-			return m.cluster
-		endif
-		m.table = m.file.getFileExtensionChange("dbf")
-		m.cluster = createobject("InsheetTableCluster",m.table)
-		m.cluster.setNomemos(m.nomemos)
-		m.cluster.setDecode(.t.)
-		m.cluster.setFoxpro(.t.)
-		m.cluster.setNoblank(.t.)
-		m.cluster.setPFW(this.pfw)
-		m.cluster.setMessenger(this.messenger)
-		if not m.cluster.create(m.file.toString())
-			if not this.messenger.isError() 
-				this.messenger.errorMessage("Canceled.")
+			m.right = substr(m.md, m.pos+2, 4)
+			if not ";" $ m.right
+				m.occ = m.occ + 1
+				loop
 			endif
-		endif
-		m.cluster.call('useShared()')
-		return m.cluster
+			m.right = getwordnum(m.right, 1, ";")
+			m.asc = val(m.right)
+			if m.asc <= 0 or m.asc > 255
+				m.occ = m.occ + 1
+				loop
+			endif
+			m.md = stuff(m.md, m.pos, 3+len(m.right), chr(m.asc))
+		enddo
+		return rtrim(m.md, chr(13), chr(10))
 	endfunc
 
-	hidden function _mirror(runFilter as String)
+	function _mirror(runFilter as String)
 		return this.mirror(m.runFilter)
 	endfunc
 	
-	hidden function _refine(identityMode as Number, compareMode as Number, runFilter as String, destructiveOnly as Boolean)
+	function _refine(identityMode as Number, compareMode as Number, runFilter as String, destructiveOnly as Boolean)
 		return this.refine(m.identityMode, m.compareMode, m.runFilter, m.destructiveOnly)
 	endfunc
 	
-	hidden function _research(identityMode as Number, scoreMode as Number, runFilter as String, nonDestructiveOnly as Boolean)
+	function _research(identityMode as Number, scoreMode as Number, runFilter as String, nonDestructiveOnly as Boolean)
 		return this.research(m.identityMode, m.scoreMode, m.runFilter, m.nonDestructiveOnly)
 	endfunc
 
-	hidden function _search(increment as Number, refineMode as Number, refineForce as Boolean, refineLimit as Number)
+	function _search(increment as Number, refineMode as Number, refineForce as Boolean, refineLimit as Number)
 		return this.search(m.increment, m.refineMode, m.refineForce, m.refineLimit)
 	endfunc
 
-	hidden function _expand(expandMode as Integer)
+	function _expand(expandMode as Integer)
 		return this.expand(m.expandMode)
 	endfunc
 
-	hidden function _create(searchTypesDefinition as String)
+	function _create(searchTypesDefinition as String)
 		return this.create(m.searchTypesDefinition)
 	endfunc
 	
-	hidden function _configtmp(path as String)
+	function _configtmp(path as String)
 		return this.setConfig("tmpfiles", m.path)
 	endfunc
 
-	hidden function _importBase(file as String, nomemos as Boolean)
+	function _importBase(file as String, nomemos as Boolean)
 		return this.importBase(m.file, m.nomemos)
 	endfunc
 	
-	hidden function _importSearch(file as String, nomemos as Boolean)
+	function _importSearch(file as String, nomemos as Boolean)
 		return this.importSearch(m.file, m.nomemos)
 	endfunc
 
-	hidden function _result(result)
+	function _result(result)
 		return this.setResultTable(m.result)
 	endfunc
 
-	hidden function _exportGrouped(table, cascade, basekey, low, high, exclusive, runFilter, notext, nosingle)
+	function _exportGrouped(table, cascade, basekey, low, high, exclusive, runFilter, notext, nosingle)
 		return this.groupedExport(m.table, m.cascade, m.basekey, m.low, m.high, m.exclusive, m.runFilter, m.notext, m.nosingle)
 	endfunc
 	
-	hidden function _exportExtended(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
+	function _exportExtended(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
 		return this.extendedExport(m.table, m.searchKey, m.foundKey, m.searchedGroupKey, m.foundGroupKey, m.low, m.high, m.exclusive, m.runFilter)
 	endfunc
 	
-	hidden function _exportMeta(table, meta, m.nocomp, low, high, runFilter)
+	function _exportMeta(table, meta, m.nocomp, low, high, runFilter)
 		return this.metaExport(m.table, m.meta, m.nocomp, m.low, m.high, m.runFilter)
 	endfunc
 
-	hidden function _exportResult(table, shuffle, low, high, runFilter, newrun)
+	function _exportResult(table, shuffle, low, high, runFilter, newrun)
 		return this.resultExport(m.table, m.shuffle, m.low, m.high, m.runFilter, m.newrun)
 	endfunc
 
-	hidden function _export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
+	function _export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
 		return this.export(m.table, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, m.text)
 	endfunc
 	
-	hidden function _load(slot)
+	function _list(alpha)
+	local list, txt
+		m.list = createobject("TempAlias")
+		if m.alpha
+			select slot, modified, lower(slot) as alpha from (this.engine.alias) order by 3, 2 desc into cursor (m.list.alias) 
+		else
+			select slot, modified, lower(slot) as alpha from (this.engine.alias) order by 2 desc, 3 into cursor (m.list.alias) 
+		endif
+		m.txt = ""
+		scan
+			m.txt = m.txt + "["+ttoc(modified, 1)+"] "+rtrim(slot) + chr(13) + chr(10)
+		endscan
+		return rtrim(m.txt, chr(13), chr(10))
+	endfunc
+	
+	function _load(slot)
 		return this.loadEngine(m.slot)
 	endfunc
 
-	hidden function _save(slot)
+	function _save(slot)
 		return this.saveEngine(m.slot)
 	endfunc
 	
-	hidden function _remove(slot)
+	function _remove(slot)
 		return this.removeEngine(m.slot)
 	endfunc
 	
-	hidden function _erase()
+	function _erase()
 		return this.erase()
 	endfunc
 	
-	hidden function _limit(limit)
+	function _reset()
+		this.reset()
+	endfunc
+	
+	function _limit(limit)
 		this.setLimit(m.limit)
 	endfunc
 
-	hidden function _threshold(threshold)
+	function _threshold(threshold)
 		this.setThreshold(m.threshold)
 	endfunc
 
-	hidden function _cutoff(cutoff)
+	function _cutoff(cutoff)
 		this.setCutoff(m.cutoff)
 	endfunc
 	
-	hidden function _feedback(feedback)
+	function _feedback(feedback)
 		this.setFeedback(m.feedback)
 	endfunc
 	
-	hidden function _activation(activation)
+	function _activation(activation)
 		this.setActivation(m.activation)
 	endfunc
 
-	hidden function _relative(relative)
+	function _contain(cutoff, activation, feedback)
+	local dp
+		if pcount() == 0
+			m.cutoff = 0
+			m.activation = 0
+			m.feedback = 0
+		else
+			m.dp = createobject("DynaPara")
+			m.dp.dyna("NNN")
+			m.dp.dyna("NN")
+			m.dp.dyna("N")
+			if m.dp.para(@m.cutoff, @m.activation, @m.feedback) == 0
+				throw
+			endif
+		endif	
+		m.activation = iif(vartype(m.activation) == "N", m.activation, m.cutoff)
+		m.feedback = iif(vartype(m.feedback) == "N", m.feedback, 10)
+		this.setCutoff(m.cutoff)
+		this.setActivation(m.activation)
+		this.setFeedback(m.feedback)
+	endfunc
+
+	function _relative(relative)
 		m.relative = iif(m.relative,.t.,.f.) && invalid type forces exception
 		this.setRelative(m.relative)
 	endfunc
 	
-	hidden function _darwinistic(darwin)
+	function _darwinistic(darwin)
 		m.darwin = iif(m.darwin,.t.,.f.) && invalid type forces exception
 		this.setDarwinistic(m.darwin)
 	endfunc
 	
-	hidden function _darwinian(darwin)
+	function _darwinian(darwin)
 		m.darwin = iif(m.darwin,.t.,.f.) && invalid type forces exception
 		this.setDarwinian(m.darwin)
 	endfunc
 
-	hidden function _ignorant(ignorant)
+	function _ignorant(ignorant)
 		m.ignorant = iif(m.ignorant,.t.,.f.) && invalid type forces exception
 		this.setIgnorant(m.ignorant)
 	endfunc
 	
-	hidden function _zealous(zealous)
+	function _zealous(zealous)
 		m.zealous = iif(m.zealous,.t.,.f.) && invalid type forces exception
 		this.setZealous(m.zealous)
 	endfunc
 	
-	hidden function _scope(scope)
+	function _scope(scope)
 		this.setLrcpdScope(m.scope)
 	endfunc
 
-	hidden function _depth(depth)
+	function _depth(depth)
 		this.setDepth(m.depth)
 	endfunc
 	
-	hidden function _mp(mp)
+	function _mp(mp)
 		m.mp = this.mp(m.mp)
 		return textmerge("<<int(m.mp)>>/<<int(this.pfw.getCPUcount())>> CPU")
 	endfunc
@@ -10693,72 +11162,112 @@ define class SearchEngine as custom
 		this.setSafeMode(m.safemode)
 	endfunc
 	
-	hidden function _benchmark()
+	function _benchmark()
 		return ltrim(str(this.benchmark(),18,3))+"s"
 	endfunc
 	
-	hidden function _timer(timer)
+	function _timer(timer)
 		this.setTimer(iif(pcount() == 0, .t., m.timer))
 	endfunc
 	
-	hidden function _join(field, searchField)
+	function _join(field, searchField)
 		if not this.joinSearchField(m.field, m.searchField)
 			throw
 		endif
 		return .t.
 	endfunc
 
-	hidden function _unjoin(field, searchField))
+	function _unjoin(field, searchField))
 		if not this.unjoinSearchField(m.field, m.searchField)
 			throw
 		endif
 		return .t.
 	endfunc
 	
-	hidden function _types(searchtypes)
+	function _types(searchtypes)
+	local str, i
+	local array st[1]
+		if vartype(m.searchtypes) == "L"
+			if m.searchtypes == .t.
+				alines(m.st, this.searchtypes.toString(), 5, ",")
+				if alen(m.st) == 1 and empty(m.st[1])
+					return ""
+				endif
+				m.str = ""
+				for m.i = 1 to alen(m.st)-1
+					m.str = m.str+transform(m.i)+": "+m.st[m.i]+chr(13)+chr(10)
+				endfor
+				m.str = m.str++transform(m.i)+": "+m.st[m.i]
+				return m.str
+			endif
+			return this.searchtypes.toString(.t.)
+		endif	
 		if not this.mergeSearchTypes(m.searchtypes)
 			throw
 		endif
 		return .t.
 	endfunc
 
-	hidden function _show()
-		return strtran(rtrim(this.toString(),chr(10)),chr(10),chr(13)+chr(10))
+	function _show()
+		return rtrim(this.toString(),chr(13),chr(10))
 	endfunc	
 	
-	hidden function _say(hello)
-		if not vartype(m.hello) == "C"
-			throw
-		endif
-		return m.hello
+	function _showpreparer(name, compact)
+		return rtrim(this.preparer.toString(m.name, m.compact),chr(13),chr(10))
 	endfunc
 	
-	hidden function _wait(seconds)
+	function _prepare(preparerList, text)
+	local st, invalid, i, str
+		if pcount() == 0
+			m.str = ""
+			for m.i = 1 to this.preparer.getCount()
+				m.str = m.str + this.preparer.getKey(m.i) + chr(13) + chr(10)
+			endfor
+			return rtrim(m.str, chr(13), chr(10))
+		endif
+		m.st = createobject("SearchType", "yoyo "+m.preparerList, this.preparer)
+		m.invalid = m.st.getInvalidPreparer()
+		if not empty(m.invalid)
+			this.messenger.errormessage("Invalid preparer: "+m.invalid)
+			throw
+		endif
+		return m.st.prepare(evl(m.text, ""))
+	endfunc
+	
+	function _say(hello)
+		return evl(m.hello, "")
+	endfunc
+	
+	function _wait(seconds)
 		m.seconds = evl(m.seconds,0)
 		wait "" timeout m.seconds
 	endfunc
 
-	hidden function _message(text)
-		messagebox(m.text,64,"SearchEngine")
+	function _message(text)
+		messagebox(evl(m.text,""), 0, "SearchEngine")
 	endfunc
 	
-	hidden function _time()
+	function _time()
 		return strtran(ttoc(datetime(),3),"T"," ")
 	endfunc
 
-	hidden function _info(info)
-		this.setInfo(strtran(m.info,"<br>",chr(10)))
+	function _note(info, replace)
+		if vartype(m.info) == "L" and m.info
+			this.setInfo("")
+		else
+			if m.replace
+				this.setInfo(strtran(m.info,"<br>",chr(13)+chr(10)))
+			else
+				this.setInfo(rtrim(this.getInfo(),chr(10),chr(13))+chr(13)+chr(10)+strtran(m.info,"<br>",chr(13)+chr(10)))
+			endif
+		endif
 	endfunc
 
-	hidden function _note(info)
-		this.setInfo(rtrim(this.getInfo(),chr(10))+chr(10)+strtran(m.info,"<br>",chr(10)))
-	endfunc
-
-	hidden function _slot()
+	function _slot()
 		return this.getSlot()
 	endfunc
 	
-	hidden function _run(para)
+	function _run(para)
 	local run
 		m.run = ltrim(str(max(this.result.getRun(),0),18))
 		if vartype(m.para) == "C" and not empty(m.para)
@@ -10766,13 +11275,47 @@ define class SearchEngine as custom
 		endif
 		return m.run
 	endfunc
-
-	hidden function _version()
+	
+	function _statistics(wide)
+	local stats, txt, i
+		m.stats = this.statistics()
+		if not vartype(m.stats) == "O"
+			return m.stats
+		endif
+		m.txt = ""
+		select (m.stats.alias)
+		if m.wide
+			for m.i = 1 to fcount()
+				m.txt = m.txt + lower(field(m.i))+chr(9)
+			endfor
+			m.txt = rtrim(m.txt, chr(9)) + chr(13) + chr(10)
+			scan
+				for m.i = 1 to fcount()
+					m.txt = m.txt + transform(evaluate(field(m.i))) + chr(9)
+				endfor
+				m.txt = rtrim(m.txt, chr(9)) + chr(13) + chr(10)
+			endscan
+		else
+			scan
+				m.txt = m.txt + upper(field(1)) + ": " + transform(evaluate(field(1))) + chr(13) + chr(10)
+				for m.i = 2 to fcount()
+					m.txt = m.txt + lower(field(m.i)) + ": " + transform(evaluate(field(m.i))) + chr(13) + chr(10)
+				endfor
+				m.txt = m.txt + chr(13) + chr(10)
+			endscan
+		endif
+		return rtrim(m.txt, chr(13), chr(10))
+	endfunc
+			
+	function _version()
 		return version_of_searchengine()
 	endfunc
 	
-	hidden function _output(output, append)
+	function _output(output, append)
 		FileClose(OUTHANDLE)
+		if not vartype(m.output) == "C"
+			return .t.
+		endif
 		m.output = fullpath(m.output)
 		if m.append
 			if FileOpenAppend(OUTHANDLE, m.output) <= 0
@@ -10787,7 +11330,7 @@ define class SearchEngine as custom
 		endif
 	endfunc
 	
-	hidden function _setPara(para, value, keep)
+	function _setPara(para, value, keep)
 	local ind
 		if not vartype(this.para) == "O"
 			return
@@ -10809,7 +11352,7 @@ define class SearchEngine as custom
 		endif
 	endfunc
 	
-	hidden function _getPara(para)
+	function _getPara(para)
 	local ind, list
 		if not vartype(this.para) == "O"
 			return
@@ -10831,7 +11374,7 @@ define class SearchEngine as custom
 		return m.para+"="+this.para.item(m.ind)
 	endfunc
 
-	hidden function _cancel()
+	function _cancel()
 		this.messenger.canceled = .t.
 	endfunc
 	
@@ -10898,6 +11441,97 @@ define class SearchEngine as custom
 			this.output.value = ""
 			this.output.refresh()
 		endif
+	endfunc
+
+	function _help(keyword, expand)
+	local pa, list, link, level, header, text, line, content
+		m.pa = createobject("PreservedAlias")
+		if not vartype(this.help) == "O"
+			if fileopenread(AUXHANDLE, this.getEnginePath()+"searchengine.md") < 0
+				return "Help file searchengine.md not found."
+			endif
+			this.help = createobject("TempAlias")
+			select cast("" as c(80)) as link, cast(0 as i) as level, cast("" as c(80)) as header, cast("" as m) as text from (this.help.alias) into cursor (this.help.alias) readwrite
+			m.link = ""
+			m.level = 0
+			m.header = ""
+			m.text = ""
+			m.line = rtrim(filereadlf(AUXHANDLE), chr(13))
+			do while not fileEOF(AUXHANDLE)
+				m.line = ltrim(m.line)
+				if left(m.line,1) == "#"
+					if not " " $ keepchars(getwordnum(m.line, 1), "#")
+						if m.level > 0 and not empty(m.text)
+							insert into (this.help.alias) values (m.link, m.level, m.header, m.text)						
+						endif
+						m.level = len(getwordnum(m.line, 1))
+						m.header = rtrim(ltrim(m.line, "#", " "))
+						m.link = strtran(replacechars(lower(m.header), "abcdefghijklmnopqrstuvwxyz0123456789 ", "", .t.), " ", "-")
+						m.text = ""
+						m.line = rtrim(filereadlf(AUXHANDLE), chr(13))
+						loop
+					endif
+				endif
+				m.text = m.text+rtrim(m.line)+chr(13)+chr(10)
+				m.line = rtrim(filereadlf(AUXHANDLE), chr(13))
+			enddo
+			if m.level > 0 and not empty(m.text)
+				insert into (this.help.alias) values (m.link, m.level, m.header, m.text)						
+			endif
+			fileclose(AUXHANDLE)
+			select (this.help.alias)
+			index on link tag link
+		endif
+		if reccount(this.help.alias) == 0
+			return "Invalid searchengine.md help file."
+		endif
+		m.list = ""
+		select (this.help.alias)
+		if vartype(m.keyword) == "C"
+			if m.keyword = "all" or empty(m.keyword)
+				m.keyword = "searchengine"
+				m.expand = .t.
+			else
+				m.keyword = strtran(replacechars(lower(m.keyword), "abcdefghijklmnopqrstuvwxyz0123456789 ", "", .t.), " ", "-")
+			endif
+			set order to tag link
+			if seek(m.keyword)
+				set order to
+				m.level = level
+				m.list = this.convertMD(header)+chr(13)+chr(10)+this.convertMD(text)
+				m.level = m.level + 1
+				m.content = ""
+				skip
+				scan rest
+					if level < m.level
+						exit
+					endif
+					if m.expand
+						m.list = m.list+chr(13)+chr(10)+chr(13)+chr(10)+this.convertMD(header)+chr(13)+chr(10)+this.convertMD(text)
+					else
+						if level == m.level
+							m.content = m.content+" ["+this.convertMD(header)+"]"
+						endif
+					endif
+				endscan
+				if not empty(m.content)
+					m.list = m.list+chr(13)+chr(10)+"Content:"+m.content
+				endif
+			endif
+		else
+			set order to
+			if vartype(m.keyword) == "N"
+				m.level = int(m.keyword)
+			else
+				m.level = -1
+			endif	
+			scan
+				if m.level <= 0 or level <= m.level
+					m.list = m.list+padr("", level-1, chr(9))+"["+this.convertMD(header)+"]"+chr(13)+chr(10)
+				endif
+			endscan
+		endif
+		return evl(rtrim(m.list, chr(13), chr(10)), "Keyword not found.")
 	endfunc
 enddefine
 
