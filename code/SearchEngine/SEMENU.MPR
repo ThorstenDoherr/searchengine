@@ -1,6 +1,6 @@
 *       *********************************************************
 *       *                                                         
-*       * 06/06/24             SEMENU.MPR               17:18:46  
+*       * 09/16/24             SEMENU.MPR               18:55:02  
 *       *                                                         
 *       *********************************************************
 *       *                                                         
@@ -126,22 +126,22 @@ ENDIF
 
 DEFINE MENU (m.cMenuName) IN (m.oFormRef.Name) BAR
 
-DEFINE PAD _6x2113vsp OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
+DEFINE PAD _6zw14joaz OF (m.cMenuName) PROMPT "\<File" COLOR SCHEME 3 ;
 	KEY ALT+F, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _6x2113vsq OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
+DEFINE PAD _6zw14job0 OF (m.cMenuName) PROMPT "\<Config" COLOR SCHEME 3 ;
 	KEY ALT+C, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _6x2113vsr OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
+DEFINE PAD _6zw14job1 OF (m.cMenuName) PROMPT "\<Action" COLOR SCHEME 3 ;
 	KEY ALT+A, "" ;
 	SKIP FOR empty(m.engine.tag)
-DEFINE PAD _6x2113vss OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
+DEFINE PAD _6zw14job2 OF (m.cMenuName) PROMPT "\<Tools" COLOR SCHEME 3 ;
 	KEY ALT+T, "" ;
 	SKIP FOR empty(m.engine.tag) 
-ON PAD _6x2113vsp OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
-ON PAD _6x2113vsq OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
-ON PAD _6x2113vsr OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
-ON PAD _6x2113vss OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
+ON PAD _6zw14joaz OF (m.cMenuName) ACTIVATE POPUP (a_menupops[1])
+ON PAD _6zw14job0 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[3])
+ON PAD _6zw14job1 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[4])
+ON PAD _6zw14job2 OF (m.cMenuName) ACTIVATE POPUP (a_menupops[5])
 
 DEFINE POPUP (a_menupops[1]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
 DEFINE BAR 1 OF (a_menupops[1]) PROMPT "\<Save Settings"
@@ -154,17 +154,17 @@ DEFINE BAR 6 OF (a_menupops[1]) PROMPT "\<Command"
 DEFINE BAR 7 OF (a_menupops[1]) PROMPT "\-"
 DEFINE BAR 8 OF (a_menupops[1]) PROMPT "E\<xit"
 ON SELECTION BAR 1 OF (a_menupops[1]) ;
-	DO _6x2113vst ;
+	DO _6zw14job3 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[1]) ;
-	DO _6x2113vsu ;
+	DO _6zw14job4 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON BAR 4 OF (a_menupops[1]) ACTIVATE POPUP (a_menupops[2])
 ON SELECTION BAR 6 OF (a_menupops[1]) ;
-	DO _6x2113vsv ;
+	DO _6zw14job5 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 8 OF (a_menupops[1]) ;
-	DO _6x2113vsw ;
+	DO _6zw14job6 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[2]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -176,19 +176,19 @@ DEFINE BAR 4 OF (a_menupops[2]) PROMPT "\-"
 DEFINE BAR 5 OF (a_menupops[2]) PROMPT "\<Result Export"
 DEFINE BAR 6 OF (a_menupops[2]) PROMPT "\<Meta Export"
 ON SELECTION BAR 1 OF (a_menupops[2]) ;
-	DO _6x2113vsx ;
+	DO _6zw14job7 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[2]) ;
-	DO _6x2113vsy ;
+	DO _6zw14job8 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[2]) ;
-	DO _6x2113vsz ;
+	DO _6zw14job9 ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[2]) ;
-	DO _6x2113vt0 ;
+	DO _6zw14joba ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[2]) ;
-	DO _6x2113vt1 ;
+	DO _6zw14jobb ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[3]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -202,19 +202,19 @@ DEFINE BAR 5 OF (a_menupops[3]) PROMPT "\<Settings"
 DEFINE BAR 6 OF (a_menupops[3]) PROMPT "\-"
 DEFINE BAR 7 OF (a_menupops[3]) PROMPT "\<Preferences"
 ON SELECTION BAR 1 OF (a_menupops[3]) ;
-	DO _6x2113vt2 ;
+	DO _6zw14jobc ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[3]) ;
-	DO _6x2113vt3 ;
+	DO _6zw14jobd ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 4 OF (a_menupops[3]) ;
-	DO _6x2113vt4 ;
+	DO _6zw14jobe ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[3]) ;
-	DO _6x2113vt5 ;
+	DO _6zw14jobf ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[3]) ;
-	DO _6x2113vt6 ;
+	DO _6zw14jobg ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[4]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -234,25 +234,25 @@ DEFINE BAR 7 OF (a_menupops[4]) PROMPT "E\<xpand" ;
 DEFINE BAR 8 OF (a_menupops[4]) PROMPT "\<Mirror" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isResultTableValid() or not m.engine.isMono()
 ON SELECTION BAR 1 OF (a_menupops[4]) ;
-	DO _6x2113vt7 ;
+	DO _6zw14jobh ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[4]) ;
-	DO _6x2113vt8 ;
+	DO _6zw14jobi ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 3 OF (a_menupops[4]) ;
-	DO _6x2113vt9 ;
+	DO _6zw14jobj ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 5 OF (a_menupops[4]) ;
-	DO _6x2113vta ;
+	DO _6zw14jobk ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 6 OF (a_menupops[4]) ;
-	DO _6x2113vtb ;
+	DO _6zw14jobl ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 7 OF (a_menupops[4]) ;
-	DO _6x2113vtc ;
+	DO _6zw14jobm ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 8 OF (a_menupops[4]) ;
-	DO _6x2113vtd ;
+	DO _6zw14jobn ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 DEFINE POPUP (a_menupops[5]) MARGIN RELATIVE SHADOW COLOR SCHEME 4
@@ -260,26 +260,31 @@ DEFINE BAR 1 OF (a_menupops[5]) PROMPT "\<Quick Search" ;
 	SKIP FOR not m.engine.isValid() or not m.engine.isBaseTableReady()  
 DEFINE BAR 2 OF (a_menupops[5]) PROMPT "\<Result Checker" ;
 	SKIP FOR not m.engine.isValid()  or not  m.engine.isSearchedSynchronized() or not  m.engine.isFoundSynchronized()
-DEFINE BAR 3 OF (a_menupops[5]) PROMPT "\-"
-DEFINE BAR 4 OF (a_menupops[5]) PROMPT "\<Notes"
-DEFINE BAR 5 OF (a_menupops[5]) PROMPT "\-"
-DEFINE BAR 6 OF (a_menupops[5]) PROMPT "\<Browser"
-DEFINE BAR 7 OF (a_menupops[5]) PROMPT "\-"
-DEFINE BAR 8 OF (a_menupops[5]) PROMPT "\<About"
+DEFINE BAR 3 OF (a_menupops[5]) PROMPT "\<Statistics" ;
+	SKIP FOR not m.engine.isResultTableValid()
+DEFINE BAR 4 OF (a_menupops[5]) PROMPT "\-"
+DEFINE BAR 5 OF (a_menupops[5]) PROMPT "\<Notes"
+DEFINE BAR 6 OF (a_menupops[5]) PROMPT "\-"
+DEFINE BAR 7 OF (a_menupops[5]) PROMPT "\<Browser"
+DEFINE BAR 8 OF (a_menupops[5]) PROMPT "\-"
+DEFINE BAR 9 OF (a_menupops[5]) PROMPT "\<About"
 ON SELECTION BAR 1 OF (a_menupops[5]) ;
-	DO _6x2113vte ;
+	DO _6zw14jobo ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 ON SELECTION BAR 2 OF (a_menupops[5]) ;
-	DO _6x2113vtf ;
+	DO _6zw14jobp ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
-ON SELECTION BAR 4 OF (a_menupops[5]) ;
-	DO _6x2113vtg ;
+ON SELECTION BAR 3 OF (a_menupops[5]) ;
+	DO _6zw14jobq ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
-ON SELECTION BAR 6 OF (a_menupops[5]) ;
-	DO _6x2113vth ;
+ON SELECTION BAR 5 OF (a_menupops[5]) ;
+	DO _6zw14jobr ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
-ON SELECTION BAR 8 OF (a_menupops[5]) ;
-	DO _6x2113vti ;
+ON SELECTION BAR 7 OF (a_menupops[5]) ;
+	DO _6zw14jobs ;
+	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
+ON SELECTION BAR 9 OF (a_menupops[5]) ;
+	DO _6zw14jobt ;
 	IN LOCFILE("SEARCHENGINE\SEMENU" ,"MPX;MPR|FXP;PRG" ,"WHERE is SEMENU?")
 
 ACTIVATE MENU (m.cMenuName) NOWAIT
@@ -292,7 +297,7 @@ ENDIF
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VST  ON SELECTION BAR 1 OF POPUP file            
+*       * _6ZW14JOB3  ON SELECTION BAR 1 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -303,7 +308,7 @@ ENDIF
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vst
+PROCEDURE _6zw14job3
 do form sesave
 m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine.")
 
@@ -311,7 +316,7 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSU  ON SELECTION BAR 2 OF POPUP file            
+*       * _6ZW14JOB4  ON SELECTION BAR 2 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -322,14 +327,14 @@ m.mainForm.statusBar.setMessage("Save the current settings of the SearchEngine."
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsu
+PROCEDURE _6zw14job4
 do form seload
 m.mainForm.statusBar.setMessage("Load new settings for the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSV  ON SELECTION BAR 6 OF POPUP file            
+*       * _6ZW14JOB5  ON SELECTION BAR 6 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -340,14 +345,14 @@ m.mainForm.statusBar.setMessage("Load new settings for the SearchEngine.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsv
+PROCEDURE _6zw14job5
 do form secomm with m.engine
-m.mainform.statusBar.setMessage("Execute selected code.")
+m.mainform.statusBar.setMessage("Execute selected code with [Ctrl+Enter].")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSW  ON SELECTION BAR 8 OF POPUP file            
+*       * _6ZW14JOB6  ON SELECTION BAR 8 OF POPUP file            
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -358,13 +363,13 @@ m.mainform.statusBar.setMessage("Execute selected code.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsw
+PROCEDURE _6zw14job6
 clear events
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSX  ON SELECTION BAR 1 OF POPUP export          
+*       * _6ZW14JOB7  ON SELECTION BAR 1 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -375,14 +380,14 @@ clear events
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsx
+PROCEDURE _6zw14job7
 do form seexpo with m.engine
 m.mainForm.statusBar.setMessage("Exports result data (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSY  ON SELECTION BAR 2 OF POPUP export          
+*       * _6ZW14JOB8  ON SELECTION BAR 2 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -393,14 +398,14 @@ m.mainForm.statusBar.setMessage("Exports result data (ESC cancels export).")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsy
+PROCEDURE _6zw14job8
 do form seexte with m.engine
 m.mainForm.statusBar.setMessage("Exports result data into a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VSZ  ON SELECTION BAR 3 OF POPUP export          
+*       * _6ZW14JOB9  ON SELECTION BAR 3 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -411,14 +416,14 @@ m.mainForm.statusBar.setMessage("Exports result data into a browsable ExportTabl
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vsz
+PROCEDURE _6zw14job9
 do form segrou with m.engine
 m.mainForm.statusBar.setMessage("Groups and exports self referenced result data (mono) to a browsable ExportTable (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT0  ON SELECTION BAR 5 OF POPUP export          
+*       * _6ZW14JOBA  ON SELECTION BAR 5 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -429,14 +434,14 @@ m.mainForm.statusBar.setMessage("Groups and exports self referenced result data 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt0
+PROCEDURE _6zw14joba
 do form seresu with m.engine
 m.mainForm.statusBar.setMessage("Creates a subset and/or random sample of the ResultTable.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT1  ON SELECTION BAR 6 OF POPUP export          
+*       * _6ZW14JOBB  ON SELECTION BAR 6 OF POPUP export          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -447,14 +452,14 @@ m.mainForm.statusBar.setMessage("Creates a subset and/or random sample of the Re
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt1
+PROCEDURE _6zw14jobb
 do form semeta with m.engine
 m.mainForm.statusBar.setMessage("Exports heuristic meta information for machine learning etc. (ESC cancels export).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT2  ON SELECTION BAR 1 OF POPUP config          
+*       * _6ZW14JOBC  ON SELECTION BAR 1 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -465,14 +470,14 @@ m.mainForm.statusBar.setMessage("Exports heuristic meta information for machine 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt2
+PROCEDURE _6zw14jobc
 do form sefile with m.engine
 m.mainform.statusBar.setMessage("These file locations are used by the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT3  ON SELECTION BAR 2 OF POPUP config          
+*       * _6ZW14JOBD  ON SELECTION BAR 2 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -483,14 +488,14 @@ m.mainform.statusBar.setMessage("These file locations are used by the SearchEngi
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt3
+PROCEDURE _6zw14jobd
 do form sejoin with m.engine
 m.mainform.statusBar.setMessage("Join fields of the SearchTable with the types of the SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT4  ON SELECTION BAR 4 OF POPUP config          
+*       * _6ZW14JOBE  ON SELECTION BAR 4 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -501,14 +506,14 @@ m.mainform.statusBar.setMessage("Join fields of the SearchTable with the types o
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt4
+PROCEDURE _6zw14jobe
 do form setype with m.engine
 m.mainform.statusBar.setMessage("Change SearchType specific parameters.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT5  ON SELECTION BAR 5 OF POPUP config          
+*       * _6ZW14JOBF  ON SELECTION BAR 5 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -519,14 +524,14 @@ m.mainform.statusBar.setMessage("Change SearchType specific parameters.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt5
+PROCEDURE _6zw14jobf
 do form sesett with m.engine
 m.mainform.statusBar.setMessage("Search specific settings.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT6  ON SELECTION BAR 7 OF POPUP config          
+*       * _6ZW14JOBG  ON SELECTION BAR 7 OF POPUP config          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -537,14 +542,14 @@ m.mainform.statusBar.setMessage("Search specific settings.")
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt6
+PROCEDURE _6zw14jobg
 do form sepref with m.engine
 m.mainform.statusBar.setMessage("Adjust internal engine and performance preferences.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT7  ON SELECTION BAR 1 OF POPUP action          
+*       * _6ZW14JOBH  ON SELECTION BAR 1 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -555,14 +560,14 @@ m.mainform.statusBar.setMessage("Adjust internal engine and performance preferen
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt7
+PROCEDURE _6zw14jobh
 do form sesear with m.engine
 m.mainform.statusBar.setMessage("Starts the search on the SearchTable (ESC cancels search).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT8  ON SELECTION BAR 2 OF POPUP action          
+*       * _6ZW14JOBI  ON SELECTION BAR 2 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -573,14 +578,14 @@ m.mainform.statusBar.setMessage("Starts the search on the SearchTable (ESC cance
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt8
+PROCEDURE _6zw14jobi
 do form serese with m.engine
 m.mainform.statusBar.setMessage("Researches the identities by applying other settings (ESC cancels research).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VT9  ON SELECTION BAR 3 OF POPUP action          
+*       * _6ZW14JOBJ  ON SELECTION BAR 3 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -591,14 +596,14 @@ m.mainform.statusBar.setMessage("Researches the identities by applying other set
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vt9
+PROCEDURE _6zw14jobj
 do form serefi with m.engine
 m.mainform.statusBar.setMessage("Refines the identities by applying fuzzy string comparisons (ESC cancels refine).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTA  ON SELECTION BAR 5 OF POPUP action          
+*       * _6ZW14JOBK  ON SELECTION BAR 5 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -609,14 +614,14 @@ m.mainform.statusBar.setMessage("Refines the identities by applying fuzzy string
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vta
+PROCEDURE _6zw14jobk
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Creates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTB  ON SELECTION BAR 6 OF POPUP action          
+*       * _6ZW14JOBL  ON SELECTION BAR 6 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -627,14 +632,14 @@ m.mainform.statusBar.setMessage("Creates the SearchEngine using the BaseTable (E
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vtb
+PROCEDURE _6zw14jobl
 do form secrea with m.engine
 m.mainform.statusBar.setMessage("Recreates the SearchEngine using the BaseTable (ESC cancels creation).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTC  ON SELECTION BAR 7 OF POPUP action          
+*       * _6ZW14JOBM  ON SELECTION BAR 7 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -645,14 +650,14 @@ m.mainform.statusBar.setMessage("Recreates the SearchEngine using the BaseTable 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vtc
+PROCEDURE _6zw14jobm
 do form seexpa with m.engine
 m.mainform.statusBar.setMessage("Expands the registry using the SearchTable (ESC cancels expansion).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTD  ON SELECTION BAR 8 OF POPUP action          
+*       * _6ZW14JOBN  ON SELECTION BAR 8 OF POPUP action          
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -663,14 +668,14 @@ m.mainform.statusBar.setMessage("Expands the registry using the SearchTable (ESC
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vtd
+PROCEDURE _6zw14jobn
 do form semirr with m.engine
 m.mainform.statusBar.setMessage("Mirrors ResultTable by reflecting matches (ESC cancels mirror).")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTE  ON SELECTION BAR 1 OF POPUP tools           
+*       * _6ZW14JOBO  ON SELECTION BAR 1 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -681,14 +686,14 @@ m.mainform.statusBar.setMessage("Mirrors ResultTable by reflecting matches (ESC 
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vte
+PROCEDURE _6zw14jobo
 do form seqsea with m.engine
 m.mainform.statusBar.setMessage("Right click on an entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTF  ON SELECTION BAR 2 OF POPUP tools           
+*       * _6ZW14JOBP  ON SELECTION BAR 2 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
@@ -699,60 +704,78 @@ m.mainform.statusBar.setMessage("Right click on an entry for heuristics and addi
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vtf
+PROCEDURE _6zw14jobp
 do form sechec with m.engine
 m.mainform.statusBar.setMessage("Right click on a searched/found entry for heuristics and additional info.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTG  ON SELECTION BAR 4 OF POPUP tools           
+*       * _6ZW14JOBQ  ON SELECTION BAR 3 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   51         
-*       * Called By:  ON SELECTION BAR 4 OF POPUP tools           
-*       * Prompt:     Notes                                       
+*       * From Menu:  SEMENU.MPR,            Record:   49         
+*       * Called By:  ON SELECTION BAR 3 OF POPUP tools           
+*       * Prompt:     Statistics                                  
 *       * Snippet:    24                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vtg
+PROCEDURE _6zw14jobq
+do form sestat with m.engine
+m.mainform.statusBar.setMessage("ResultTable statistics by runs.")
+
+
+*       *********************************************************
+*       *                                                         
+*       * _6ZW14JOBR  ON SELECTION BAR 5 OF POPUP tools           
+*       *                                                         
+*       * Procedure Origin:                                       
+*       *                                                         
+*       * From Menu:  SEMENU.MPR,            Record:   52         
+*       * Called By:  ON SELECTION BAR 5 OF POPUP tools           
+*       * Prompt:     Notes                                       
+*       * Snippet:    25                                          
+*       *                                                         
+*       *********************************************************
+*
+PROCEDURE _6zw14jobr
 do form seNote with m.engine
 m.mainform.statusBar.setMessage("Take notes to this SearchEngine.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTH  ON SELECTION BAR 6 OF POPUP tools           
+*       * _6ZW14JOBS  ON SELECTION BAR 7 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   54         
-*       * Called By:  ON SELECTION BAR 6 OF POPUP tools           
+*       * From Menu:  SEMENU.MPR,            Record:   55         
+*       * Called By:  ON SELECTION BAR 7 OF POPUP tools           
 *       * Prompt:     Browser                                     
-*       * Snippet:    25                                          
+*       * Snippet:    26                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vth
+PROCEDURE _6zw14jobs
 do form sebrow
 m.mainform.statusBar.setMessage("Browse Foxpro tables.")
 
 
 *       *********************************************************
 *       *                                                         
-*       * _6X2113VTI  ON SELECTION BAR 8 OF POPUP tools           
+*       * _6ZW14JOBT  ON SELECTION BAR 9 OF POPUP tools           
 *       *                                                         
 *       * Procedure Origin:                                       
 *       *                                                         
-*       * From Menu:  SEMENU.MPR,            Record:   57         
-*       * Called By:  ON SELECTION BAR 8 OF POPUP tools           
+*       * From Menu:  SEMENU.MPR,            Record:   58         
+*       * Called By:  ON SELECTION BAR 9 OF POPUP tools           
 *       * Prompt:     About                                       
-*       * Snippet:    26                                          
+*       * Snippet:    27                                          
 *       *                                                         
 *       *********************************************************
 *
-PROCEDURE _6x2113vti
+PROCEDURE _6zw14jobt
 do form about
 m.mainform.statusBar.setMessage("Legal Notice.")
