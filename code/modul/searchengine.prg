@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.09.16
+*    Date:       2024.09.18
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.09.16"
+	return "2024.09.18"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -1689,8 +1689,9 @@ define class Preparer as Custom
 	hidden normizer, types, metaphone, soundex, cologne, default_from, default_to, joining
 	xmlerror = ""
 	
-	function init()
-	local default
+	function init(file_template as String)
+	local default, dircnt, path, i
+	local array dir[1]
 		this.types = createobject("Collection")
 		this.normizer = createobject("StringNormizer")
 		m.default = "<SearchEngine>"
@@ -1748,6 +1749,17 @@ define class Preparer as Custom
 		m.default = m.default+"<line><type>LASTWORDS40</type><com>limit</com><para1>COUNT</para1><para2>40</para2><para3>RIGHT</para3></line>"
 		m.default = m.default+"</SearchEngine>"
 		this.addXML(m.default, .t.)
+		if not vartype(m.file_template) == "C"
+			return
+		endif
+		m.path = strtran(ltrim(rtrim(swapchars(justpath(m.file_template), "/?*", "\"), "\")+"/", "/"), "/", "\")
+		m.dircnt = adir(m.dir, m.file_template)
+		for m.i = 1 to m.dircnt
+			if not this.addXML(m.path+m.dir[m.i, 1])
+				this.xmlerror = "Error in "+lower(m.dir[m.i,1])+iif(not empty(this.xmlerror),chr(13)+chr(10)+this.xmlerror, "")
+				exit
+			endif
+		endfor
 	endfunc
 	
 	function addXML(file as String, default as Boolean)
@@ -2193,8 +2205,8 @@ define class Com as Custom
 enddefine
 
 define class com_Call as Com
-	protected preparerType
 	paracnt = 1
+	preparerType = .f.
 
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2225,61 +2237,71 @@ enddefine
 
 define class com_Replace as Com
 	paracnt = 3
+	from = ""
+	to = ""
+	
 	function init(preparer)
 		Com::init(m.preparer)
 		if this.parax[1] = "LEFT"
-			this.parax[2] = " "+this.parax[2]
-			this.parax[3] = " "+this.parax[3]
+			this.from = " "+this.parax[2]
+			this.to = " "+this.parax[3]
 			return
 		endif
 		if this.parax[1] = "RIGHT"
-			this.parax[2] = this.parax[2]+" "
-			this.parax[3] = this.parax[3]+" "
+			this.from = this.parax[2]+" "
+			this.to = this.parax[3]+" "
 			return
 		endif
 		if this.parax[1] = "WORD"
-			this.parax[2] = " "+this.parax[2]+" "
-			this.parax[3] = " "+this.parax[3]+" "
+			this.from = " "+this.parax[2]+" "
+			this.to = " "+this.parax[3]+" "
+			return
 		endif
+		this.from = this.parax[2]
+		this.to = this.parax[3]
 	endfunc
 	
 	function isValid()
-		return inlist(this.parax[1],"LEFT","RIGHT","WORD","")
+		return inlist(this.parax[1],"LEFT","RIGHT","WORD","FREE","")
 	endfunc
 
 	function execute(str)
-		return alltrim(strtran(" "+m.str+" ",this.parax[2],this.parax[3]))
+		return alltrim(strtran(" "+m.str+" ",this.from,this.to))
 	endfunc
 enddefine
 
 define class com_Change as Com
 	paracnt = 3
+	from = ""
+	to = ""
+	
 	function init(preparer)
 		Com::init(m.preparer)
 		if this.parax[1] = "LEFT"
-			this.parax[2] = " "+this.parax[2]
-			this.parax[3] = " ["+this.parax[3]+"]"
+			this.from = " "+this.parax[2]
+			this.to = " ["+this.parax[3]+"]"
 			return
 		endif
 		if this.parax[1] = "RIGHT"
-			this.parax[2] = this.parax[2]+" "
-			this.parax[3] = "["+this.parax[3]+"] "
+			this.from = this.parax[2]+" "
+			this.to = "["+this.parax[3]+"] "
 			return
 		endif
 		if this.parax[1] = "WORD"
-			this.parax[2] = " "+this.parax[2]+" "
-			this.parax[3] = " ["+this.parax[3]+"] "
+			this.from = " "+this.parax[2]+" "
+			this.to = " ["+this.parax[3]+"] "
 			return
 		endif
-		this.parax[3] = "["+this.parax[3]+"]"
+		this.from = this.parax[2]
+		this.to = "["+this.parax[3]+"]"
 	endfunc
 
 	function isValid()
-		return inlist(this.parax[1],"LEFT","RIGHT","WORD","")
+		return inlist(this.parax[1],"LEFT","RIGHT","WORD","FREE","")
 	endfunc
 
 	function execute(str)
-		return alltrim(strtran(" "+m.str+" ",this.parax[2],this.parax[3]))
+		return alltrim(strtran(" "+m.str+" ",this.from,this.to))
 	endfunc
 enddefine
 
@@ -2289,7 +2311,10 @@ define class com_Cleanup as Com
 	endfunc
 enddefine
 
-define class com_Reset as com_Cleanup
+define class com_Reset as Com
+	function execute(str)
+		return strtran(strtran(m.str,"[",""),"]","")
+	endfunc
 enddefine
 
 define class com_Cockle as Com
@@ -2307,40 +2332,60 @@ define class com_Cockle as Com
 enddefine
 
 define class com_Split as Com
-	paracnt = 2
+	paracnt = 3
+	split = ""
+	search = ""
+	
 	function init(preparer)
 		Com::init(m.preparer)
+		if this.parax[3] == "BOTH"
+			this.split = " "+this.parax[2]+" "
+		else
+			if this.parax[3] == "LEFT"
+				this.split = " "+this.parax[2]
+			else
+				if this.parax[3] == "RIGHT"
+					this.split = this.parax[2]+" "
+				else
+					this.split = " "+this.parax[2]+" "
+				endif
+			endif
+		endif
+		this.search = this.parax[2]
 		if this.parax[1] = "LEFT"
-			this.parax[2] = " "+this.parax[2]
+			this.search = " "+this.search
 			return
 		endif
 		if this.parax[1] = "RIGHT"
-			this.parax[2] = this.parax[2]+" "
+			this.search = this.search+" "
 			return
 		endif
 	endfunc
 	
 	function isValid()
-		return inlist(this.parax[1],"LEFT","RIGHT","")
+		return inlist(this.parax[1],"LEFT","RIGHT","FREE","") and inlist(this.parax[3],"LEFT","RIGHT","BOTH","")
 	endfunc
 
 	function execute(str)
-		return alltrim(squeeze(strtran(" "+m.str+" ",this.parax[2]," "+alltrim(this.parax[2])+" "), " "))
+		return alltrim(squeeze(strtran(" "+m.str+" ",this.search,this.split), " "))
 	endfunc
 enddefine
 
 define class com_Cut as Com
-	hidden paralen, mode
 	paracnt = 2
+	paralen = 0
+	mode = 0
+	search = ""
+
 	function init(preparer)
 		Com::init(m.preparer)
 		this.mode = 0
 		if this.parax[1] = "LEFT"
-			this.parax[2] = " "+this.parax[2]
+			this.search = " "+this.parax[2]
 			this.mode = 1
 		else
 			if this.parax[1] = "RIGHT"
-				this.parax[2] = this.parax[2]+" "
+				this.search = this.parax[2]+" "
 				this.mode = 2
 			else
 				if inlist(this.parax[1], "BOTH", "")
@@ -2348,7 +2393,7 @@ define class com_Cut as Com
 				endif
 			endif
 		endif
-		this.paralen = len(this.parax[2])
+		this.paralen = len(this.search)
 	endfunc
 
 	function isValid()
@@ -2359,7 +2404,7 @@ define class com_Cut as Com
 	local left, right, n, pos
 		m.str = " "+m.str+" "
 		m.n = 1
-		m.pos = at(this.parax[2],m.str)
+		m.pos = at(this.search,m.str)
 		do while m.pos > 0
 			do case
 				 case this.mode == 1
@@ -2373,10 +2418,10 @@ define class com_Cut as Com
 				otherwise
 					m.left = substr(m.str,1,m.pos-1)
 					m.right = substr(m.str,m.pos+this.paralen)
-					m.str = substr(m.left,1,rat(" ",m.left))+this.parax[2]+substr(m.right,at(" ",m.right))
+					m.str = substr(m.left,1,rat(" ",m.left))+this.search+substr(m.right,at(" ",m.right))
 			endcase
 			m.n = m.n+1
-			m.pos = at(this.parax[2],m.str,m.n)
+			m.pos = at(this.search,m.str,m.n)
 		enddo
 		return alltrim(m.str)
 	endfunc
@@ -2384,6 +2429,7 @@ enddefine
 	
 define class com_Separate as Com
 	paracnt = 2
+	
 	function init(preparer)
 		Com::init(m.preparer)
 		this.parax[1] = strtran(this.parax[1]," ","")
@@ -2413,6 +2459,7 @@ enddefine
 
 define class com_Blank as Com
 	paracnt = 1
+	
 	function init(preparer)
 		Com::init(m.preparer)
 		this.parax[1]  = strtran(this.parax[1]," ","")
@@ -2425,6 +2472,7 @@ enddefine
 
 define class com_Gram as Com
 	paracnt = 1
+	
 	function init(preparer)
 		Com::init(m.preparer)
 		this.parax[1]  = int(val(this.parax[1]))
@@ -2442,8 +2490,9 @@ define class com_Gram as Com
 enddefine
 
 define class com_Encode as Com
-	hidden phono
 	paracnt = 1
+	phono = .f.
+
 	function init(preparer)
 		Com::init(m.preparer)
 		if this.parax[1] == "METAPHONE"
@@ -2476,8 +2525,10 @@ define class com_Encode as Com
 enddefine
 
 define class com_Limit as Com
-	hidden mode, skip
 	paracnt = 3
+	mode = 0
+	skip = 0
+
 	function init(preparer)
 		Com::init(m.preparer)
 		this.mode = 0
@@ -5947,8 +5998,7 @@ define class SearchEngine as custom
 	tag = ""
 
 	protected function init(path, slot)
-	local progpath, err, se, i, dircnt
-	local array dir[1]
+	local err, se
 		set exclusive off
 		set reprocess to -1
 		this.advanced = version(5) >= 1001
@@ -6008,8 +6058,6 @@ define class SearchEngine as custom
 			this.setSafeMode(lower(alltrim(this.getConfig("safemode"))) == "true")
 		endif
 		m.path = this.engine.getPath()
-		m.progpath = createobject("ProgramPath")
-		m.progpath = m.progpath.toString()
 		this.txt = lower(alltrim(this.getConfig("txt"))) == "true"
 		this.timerlog = lower(alltrim(this.getConfig("timer"))) == "true"
 		this.ControlTable = createobject("ControlTable",m.path+"control")
@@ -6025,18 +6073,8 @@ define class SearchEngine as custom
 		this.searchTypes = createobject("SearchTypes")
 		this.searchFieldJoin = createobject("TableStructureJoin")
 		this.logfile = m.path+"SearchEngine.log"
-		this.preparer = createobject("Preparer")
 		this.para = createobject("Collection")
-		m.dircnt = adir(m.dir, m.path+"SearchEngine*.xml") 
-		if m.dircnt == 0
-			m.dircnt = adir(m.dir, m.progpath+"SearchEngine*.xml")
-		endif
-		for m.i = 1 to m.dircnt
-			if not this.preparer.addXML(m.dir[m.i, 1])
-				this.preparer.xmlerror = "Error in "+m.dir[m.i,1]+iif(not empty(this.preparer.xmlerror),chr(13)+chr(10)+this.preparer.xmlerror, "")
-				exit
-			endif
-		endfor
+		this.preparer = createobject("Preparer",  m.path+"SearchEngine*.xml")
 		if this.preparer.isValid()
 			this.preparer.consolidate()
 		endif
@@ -11210,7 +11248,26 @@ define class SearchEngine as custom
 
 	function _show()
 		return rtrim(this.toString(),chr(13),chr(10))
-	endfunc	
+	endfunc
+	
+	function _loadpreparer()
+	local err
+		this.preparer = createobject("Preparer", this.engine.getPath()+"SearchEngine*.xml")
+		if this.preparer.isValid()
+			this.preparer.consolidate()
+		endif
+		this.preparermsg = ""
+		this.loadEngine(this.toString())
+		m.err = ""
+		if not empty(this.preparer.xmlerror)
+			m.err = m.err+this.preparer.xmlerror+chr(13)+chr(10)
+		endif
+		if not empty(this.preparermsg)
+			m.err = m.err+this.preparermsg
+		endif
+		m.err = rtrim(m.err, chr(13), chr(10))
+		return evl(m.err, .f.)
+	endfunc
 	
 	function _showpreparer(name, compact)
 		return rtrim(this.preparer.toString(m.name, m.compact),chr(13),chr(10))
