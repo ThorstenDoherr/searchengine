@@ -1042,18 +1042,18 @@ The LRCPD string comparison is used by the <b>refine</b> function to impose a vi
 #### screen
 <code>screen(*Sproperty* [, *value*])</code>  
 sets various screen properties determining the look of the execution window of the <b>Batch Mode</b> and to some extend of the command window:  
-screen(‚Äúwidth‚Äù, 550) sets the screen with to 550 pixel.  
-screen(‚Äúheight‚Äù,400) sets the screen height to 400 pixel.  
-screen(‚Äúleft‚Äù,100) sets the screen coordinate of the top left corner to 100 pixel.  
-screen(‚Äútop‚Äù,100) sets the screen coordinate of the top left corner to 100 pixel.  
-screen(‚Äúhide‚Äù) hides the screen.  
-screen(‚Äúmaximize‚Äù) maximizes the screen.  
-screen(‚Äúminimize‚Äù) minimizes the screen.  
-screen(‚Äúnormal‚Äù) switches the screen from maximized/minimized state into normal state .  
-screen(‚Äúbackcolor‚Äù, ‚Äú0,0,0‚Äù) sets the back color of the screen in RGB format.  
-screen(‚Äúforecolor‚Äù, ‚Äú25,245,75‚Äù) sets the fore color of the screen in RGB format.  
-screen(‚Äúfont‚Äù, ‚ÄúCourier New‚Äù) sets the font.  
-screen(‚Äúfontsize‚Äù, 9) sets the font size in points.  
+screen(ìwidthî, 550) sets the screen with to 550 pixel.  
+screen(ìheightî,400) sets the screen height to 400 pixel.  
+screen(ìleftî,100) sets the screen coordinate of the top left corner to 100 pixel.  
+screen(ìtopî,100) sets the screen coordinate of the top left corner to 100 pixel.  
+screen(ìhideî) hides the screen.  
+screen(ìmaximizeî) maximizes the screen.  
+screen(ìminimizeî) minimizes the screen.  
+screen(ìnormalî) switches the screen from maximized/minimized state into normal state .  
+screen(ìbackcolorî, ì0,0,0î) sets the back color of the screen in RGB format.  
+screen(ìforecolorî, ì25,245,75î) sets the fore color of the screen in RGB format.  
+screen(ìfontî, ìCourier Newî) sets the font.  
+screen(ìfontsizeî, 9) sets the font size in points.  
 Only the font and color related properties are supported by the command window.  
 [[Batch Mode]](#batch-mode)  
 [[File>Command]](#filecommand)  
@@ -1257,34 +1257,34 @@ You can use the <b>showpreparer</b> function in the command window to see the un
 These preparers provide a foundation for simple harmonization or transformation tasks and linguistic approaches independent of language related particularities. Built-in preparer mostly implement a single command with different parametrizations.
 
 #### NOABBREV
-contracts all contiguous single characters into a word: "B.a.s.f. √ñlplattform" > "BASF OELPLATTFORM"
+contracts all contiguous single characters into a word: "B.a.s.f. ÷lplattform" > "BASF OELPLATTFORM"
 
 #### NOUMLAUT
-replaces all occurences of "OE", "AE" and "UE" with the first letter to replicate a typical error in American spelling of German words: "√ñlplattform" > "OLPLATTFORM" 
+replaces all occurences of "OE", "AE" and "UE" with the first letter to replicate a typical error in American spelling of German words: "÷lplattform" > "OLPLATTFORM" 
 
 #### SEPNUM
-separates numbers from letters: "B.A.S.F √ñlplattform71.3w" > "B A S F OELPLATTFORM 71 3 W"  
+separates numbers from letters: "B.A.S.F ÷lplattform71.3w" > "B A S F OELPLATTFORM 71 3 W"  
 
 #### GRAM2
-implements 2-grams: "√ñlplattform" > "OE EL LP PL LA AT TT TF FO OR RM"
+implements 2-grams: "÷lplattform" > "OE EL LP PL LA AT TT TF FO OR RM"
 
 #### GRAM3
-implements 3-grams: "√ñlplattform" > "OEL ELP LPL PLA LAT ATT TTF TFO FOR ORM"
+implements 3-grams: "÷lplattform" > "OEL ELP LPL PLA LAT ATT TTF TFO FOR ORM"
 
 #### GRAM4
-implements 4-grams: "√ñlplattform" > "OELP ELPL LPLA PLAT LATT ATTF TTFO TFOR FORM"
+implements 4-grams: "÷lplattform" > "OELP ELPL LPLA PLAT LATT ATTF TTFO TFOR FORM"
 
 #### GRAM5
-implements 5-grams: "√ñlplattform" > "OELPL ELPLA LPLAT PLATT LATTF ATTFO TTFOR TFORM"
+implements 5-grams: "÷lplattform" > "OELPL ELPLA LPLAT PLATT LATTF ATTFO TTFOR TFORM"
 
 #### METAPHONE
-implements the linguistic Metaphone transformation: "√ñlplattform" > "OLPLTFRM"
+implements the linguistic Metaphone transformation: "÷lplattform" > "OLPLTFRM"
 
 #### SOUNDEX
-implements the linguistic Soundex transformation: "√ñlplattform" > "O7176298"
+implements the linguistic Soundex transformation: "÷lplattform" > "O7176298"
 
 #### COLOGNE
-implements the linguistic Cologne transformation according to the "K√∂lner Phonetik": "√ñlplattform" > "05152376"
+implements the linguistic Cologne transformation according to the "Kˆlner Phonetik": "÷lplattform" > "05152376"
 
 #### LINK
 joins preparer sequences together. Every sequence is based on the orginal data.  
@@ -1295,17 +1295,17 @@ declares the search type destructive regardless of the presense of destructive p
 [[search]](#search)
 
 #### MAXLENGTH1
-keeps only the first letter of every harmonized word: "B.a.s.f. √ñlplattform" > "B A S F O"  
+keeps only the first letter of every harmonized word: "B.a.s.f. ÷lplattform" > "B A S F O"  
 This preparer can be used to create initials.
 
 #### MAXLENGTH2
-keeps only the first 2 letters of every harmonized word. "B.a.s.f. √ñlplattform" > "B A S F OE"
+keeps only the first 2 letters of every harmonized word. "B.a.s.f. ÷lplattform" > "B A S F OE"
 
 #### MAXLENGTH3
-keeps only the first 2 letters of every harmonized word. "B.a.s.f. √ñlplattform" > "B A S F OEL"
+keeps only the first 2 letters of every harmonized word. "B.a.s.f. ÷lplattform" > "B A S F OEL"
 
 #### MAXLENGTH7
-keeps only the first 7 letters of every harmonized word. "B.a.s.f. √ñlplattform" > "B A S F OELPLAT"
+keeps only the first 7 letters of every harmonized word. "B.a.s.f. ÷lplattform" > "B A S F OELPLAT"
 
 #### MAXLENGTH10
 keeps only the first 2 letters of every harmonized word. "x" is a placeholder and must be replaced with a number between 1 and 15.
@@ -1363,7 +1363,7 @@ keeps the last 20 harmonized words.
 keeps the last 40 harmonized words.
 
 ### Custom Preparers
-Custom preparers are mostly used to standardize and automatize regular harmonization activities before matching. If you use the SearchEngine regularly and caught yourself by repeating the same harmonization steps over and over, you should think about implementing this routine as a preparer. In general, the pre-processing effort depends on the search context and the particularities of the involved languages. For example, the English language is relatively effortless and usually does not require custom preparer. On the other hand, for the German language custom preparer may improve the search success noticeably because it allows the contraction of words. Especially street names are affected by inconsistent usage of this feature. The Github package has a sub-directory "preparer" with a (hopefully) growing collection of preparer definitions. The file "searchengine_firma_strasse.xml" contains preparers to handle German firm and street names. The street name preparer "STRASSE" separates the most common street types, like "Stra√üe", "Allee", "Platz", "Weg" and so on, from any preceding street names. The firm name preparer "FIRMA" harmonizes abbreviations and legal form variations. To make those preparers available, you have to copy the corresponding xml-files into the engine directory. 
+Custom preparers are mostly used to standardize and automatize regular harmonization activities before matching. If you use the SearchEngine regularly and caught yourself by repeating the same harmonization steps over and over, you should think about implementing this routine as a preparer. In general, the pre-processing effort depends on the search context and the particularities of the involved languages. For example, the English language is relatively effortless and usually does not require custom preparer. On the other hand, for the German language custom preparer may improve the search success noticeably because it allows the contraction of words. Especially street names are affected by inconsistent usage of this feature. The Github package has a sub-directory "preparer" with a (hopefully) growing collection of preparer definitions. The file "searchengine_firma_strasse.xml" contains preparers to handle German firm and street names. The street name preparer "STRASSE" separates the most common street types, like "Straﬂe", "Allee", "Platz", "Weg" and so on, from any preceding street names. The firm name preparer "FIRMA" harmonizes abbreviations and legal form variations. To make those preparers available, you have to copy the corresponding xml-files into the engine directory. 
 
 At startup, the SearchEngine scans the engine directory for xml-files that start with "searchengine", like "SearchEngine.xml", "searchengine_my_preparers.xml" and so on. It will extract all preparers from those files to be used for search type definitions of the <b>create</b> command. If an error is found in a definition, it will be reported in the structure string. Every preparer must have a unique name over all xml-files in the engine directory including built-in preparers. After you have used custom preparers to create a SearchEngine, you should not make any changes to the participating preparers.
 
