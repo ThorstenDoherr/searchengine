@@ -1,3 +1,5 @@
+<!-- FIRMA: handles legal forms of German companies including abbreviations -->
+<!-- STRASSE: harmonizes German street names -->
 <SearchEngine>
 	<preparer>
 		<type>Firma</type>

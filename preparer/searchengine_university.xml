@@ -1,3 +1,5 @@
+<!-- Universities, Faculties and so on -->
+<!-- Demonstrates the functionality of the "cut" command to get rid of different word endings -->
 <searchengine>
 	<preparer>
 		<type>University</type>
@@ -19,13 +21,40 @@
 	<command>
 		<com>cut</com>
 		<para1>left</para1>
-		<para2>INSTITU</para2>
+		<para2>INSTITUT</para2>
 	</command>
 	<command>
 		<com>replace</com>
 		<para1>right</para1>
-		<para2>INSTITU</para2>
-		<para3>INSTUTE</para3>
+		<para2>INSTITUT</para2>
+		<para3>INSTITUTE</para3>
+	</command>
+	<command>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>INSTITUTE</para2>
+	</command>
+	<command>
+		<com>cut</com>
+		<para1>left</para1>
+		<para2>DEPART</para2>
+	</command>
+	<command>
+		<com>replace</com>
+		<para1>right</para1>
+		<para2>DEPART</para2>
+		<para3>DEPARTMENT</para3>
+	</command>
+	<command>
+		<com>replace</com>
+		<para1>right</para1>
+		<para2>ABTEILUNG</para2>
+		<para3>DEPARTMENT</para3>
+	</command>
+	<command>
+		<com>split</com>
+		<para1>right</para1>
+		<para2>DEPARTMENT</para2>
 	</command>
 	<command>
 		<com>cut</com>
