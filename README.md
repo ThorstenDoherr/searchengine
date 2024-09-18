@@ -1,33 +1,27 @@
 # searchengine
-**SearchEngine** is a tool written in Foxpro and to a small but decisive part in C. It implements heuristic matching of large databases by fuzzy criteria like addresses. The fundament of the heuristic is constituted in the registry, a dictionary containing the words of your data along with the occurences. An important word has a low occurrence while filler words have high occurrences. The tool allows to specify weights on your search fields (e.g. firm name, street, city), which, in conjunction with a threshold, define the basic search strategy. This strategy can be further refined by additional options managing weight distributions (log, softmax, offset), defining feedback of surplus words, activation of countermeassures for suspiciously large candidate list and so on. A pertinent search approach consists of multiple search runs. The first run should always be a basic search, defining the overall settings according to the data structure followed by several specialized runs taking the specifics of the data into account, e.g. missing address parts, misspellings, noise in the name field and so on. It is strongly advised to read the paper **HolisticMatching.pdf** and to go through the manual and the presentation slides in the **doc** directory.
+**SearchEngine** is a tool written in Foxpro and to a small but decisive part in C. It implements heuristic matching of large databases by fuzzy criteria like addresses. The fundament of the heuristic is constituted in the registry, a dictionary containing the words of your data along with the occurences. An important word has a low occurrence while filler words have high occurrences. The tool allows to specify weights on your search fields (e.g. firm name, street, city), which, in conjunction with a threshold, define the basic search strategy. This strategy can be further refined by additional options managing weight distributions (log, softmax, offset), defining feedback of surplus words, activation of countermeassures for suspiciously large candidate list and so on. A pertinent search approach consists of multiple search runs. The first run should always be a basic search, defining the overall settings according to the data structure followed by several specialized runs taking the specifics of the data into account, e.g. missing address parts, misspellings, noise in the name field and so on. It is strongly advised to read the paper **HolisticMatching.pdf** and to go through the **searchengine.md** (**searchengine.pdf**) and the presentation slides in the **doc** directory.
 
-If you are not interested in the source code, ignore the **code** directory except the **preparer** subdirectory in case you are working with german firm names and adresses (see **Special Preparer**).
+If you are not interested in the source code, ignore the **code** directory. The **SEML** directory contains STATA scripts for the **SearchEngine Machine Learning** approach to refine your results after matching.
 
 ## Documentation
-The documentaion can be found in the  **doc** directory. It consists of presentations explaining the algorithm and major features, a manual and a background paper.
+The documentaion can be found in the  **doc** directory. It consists of a manual, a background paper and presentations explaining the algorithm and major features.
 
 ## Prerequisites
 Windows
 
 ## Getting started
-* Copy the **SE** directory in your data directory.
-* Start the **SearchEngine.exe** to bring up a graphical user interface.
-* Follow the instructions of the manual in the **doc** directory and browse through the slides.
-* Your data has to be in tab-delimited text-format with header names und unique keys.
-* The **data** directory contains two sample files to get the hang of it and train your matching skills.
-* You will need a **SE** directory for every dataset constituting the base of a search project.
-
-## Special Preparer
-The SearchEngine already includes all necessary preparer but some languages or contexts may require the definition of special preparer (harmonization/tokenization directives). In the directory **code/preparer** you will find sub-directories for special preparer, i.e. the **GermanFirmsStreets** preparer for German firm and street names. Just copy the **searchengine.xml** next to the searchengine.exe and the associated preparer become available. Of course, you can always rely on your own external harmonization routines. As the SearchEngine is word based, special care has to be taken for languages that allow the concatenation of words, i.e. German.
-You can also create your own special preparer using the existing one(s) as templates.
-
-## Forthcoming Features
-- Documentation of the preparer XML scripts
-- Documentation of the Command window
-- help() command to be issued in the Command window to get a list of all commands and further command details
-- search result statistics
+It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2024.09.18
+- new help system based on searchengine.md in the SE root directoy, which can be opened with any markdown browser plugin
+- help command added (enter help("help") in the Command window for help about the new help system)
+- improved detection of multiprocessing issues (still unconfirmed if will work due to the erratic nature of the issue)
+- added preparer related commands to test, browse and load preparers
+- changed the Config>Settings dialog to match the "Containment" strategy (see manual)
+- new Tool>Statistics dialog and associated "statistics" command
+- ctrl+enter can be used in the Command window to executed selected code
+
 2024.06.06
 - SearchEngine is using Visual Foxpro Advanced: no 2GB table size limit!!!
 - cleaned up SE directory by removing unnecessary libraries (DLLs) to the dll directory (in case Windows complains, this is where you can find the missing libraries)
