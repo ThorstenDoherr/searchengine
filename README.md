@@ -14,8 +14,9 @@ It is recommended to install a Markdown plugin for your browser to read the **do
 
 ## Version history
 2024.09.18
-- new help system based on searchengine.md in the SE root directoy, which can be opened with any markdown browser plugin
+- new help system based on searchengine.md in the SE root directoy, which can be opened with a markdown browser plugin
 - help command added (enter help("help") in the Command window for help about the new help system)
+- you can click on links (in \[brackets\]) in help texts to navigate through the manual
 - improved detection of multiprocessing issues (still unconfirmed if will work due to the erratic nature of the issue)
 - added preparer related commands to test, browse and load preparers
 - changed the Config>Settings dialog to match the "Containment" strategy (see manual)
