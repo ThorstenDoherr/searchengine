@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.09.18
+*    Date:       2024.09.19
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.09.18"
+	return "2024.09.19"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -1747,6 +1747,7 @@ define class Preparer as Custom
 		m.default = m.default+"<line><type>LASTWORDS10</type><com>limit</com><para1>COUNT</para1><para2>10</para2><para3>RIGHT</para3></line>"
 		m.default = m.default+"<line><type>LASTWORDS20</type><com>limit</com><para1>COUNT</para1><para2>20</para2><para3>RIGHT</para3></line>"
 		m.default = m.default+"<line><type>LASTWORDS40</type><com>limit</com><para1>COUNT</para1><para2>40</para2><para3>RIGHT</para3></line>"
+		m.default = m.default+"<line><type>XXX</type><com>limit</com><para1>LENGTH</para1><para2>7</para2></line>"
 		m.default = m.default+"</SearchEngine>"
 		this.addXML(m.default, .t.)
 		if not vartype(m.file_template) == "C"
@@ -2023,7 +2024,7 @@ define class Preparer as Custom
 				m.err = .t.
 			endtry
 			if m.err or not this.isComClass(m.com)
-				this.xmlerror = "Invalid XML block: "+chr(13)+chr(10)+this.lineToXML()
+				this.xmlerror = "Invalid XML block:"+chr(13)+chr(10)+this.lineToXML()
 				return .f.
 			endif
 			m.type.addCom(m.com)
@@ -2149,7 +2150,6 @@ define class PreparerType as Custom
 enddefine
 
 define class Com as Custom
-	protected paracnt
 	paracnt = 0
 	dimension parax[1]
 	
@@ -2160,8 +2160,8 @@ define class Com as Custom
 		endif
 		for m.i = 1 to this.paracnt
 			m.para = "para"+ltrim(str(m.i))
-			this.parax[m.i] = iif(type(m.para) == "U", "", evaluate("para"+ltrim(str(m.i))))
-			if not vartype(this.para[m.i]) == "C"
+			this.parax[m.i] = alltrim(iif(type(m.para) == "U", "", evaluate("para"+ltrim(str(m.i)))))
+			if not vartype(this.parax[m.i]) == "C"
 				this.parax[m.i] = transform(this.parax[m.i])
 			endif
 			this.parax[m.i] = m.preparer.normize(this.parax[m.i],"[]")
@@ -2196,7 +2196,7 @@ define class Com as Custom
 		endif
 		m.str = "<com>"+m.str+"</com>"+chr(13)+chr(10)
 		for m.i = 1 to this.paracnt
-			if this.parax[m.i] != ""
+			if not empty(this.parax[m.i])
 				m.str = m.str+"<para"+transform(m.i)+">"+transform(this.parax[m.i])+"</para"+transform(m.i)+">"+chr(13)+chr(10)
 			endif
 		endfor
@@ -2472,20 +2472,21 @@ enddefine
 
 define class com_Gram as Com
 	paracnt = 1
+	gram = 3
 	
 	function init(preparer)
 		Com::init(m.preparer)
-		this.parax[1]  = int(val(this.parax[1]))
+		this.gram  = int(val(this.parax[1]))
 	endfunc
 	
 	function isValid()
-		if this.parax[1] <= 1
+		if this.gram <= 1
 			return .f.
 		endif
 	endfunc
 	
 	function execute(str)
-		return gram(m.str, this.parax[1])
+		return gram(m.str, this.gram)
 	endfunc
 enddefine
 
@@ -2528,6 +2529,7 @@ define class com_Limit as Com
 	paracnt = 3
 	mode = 0
 	skip = 0
+	limit = 0
 
 	function init(preparer)
 		Com::init(m.preparer)
@@ -2539,7 +2541,7 @@ define class com_Limit as Com
 				this.mode = 2
 			endif
 		endif
-		this.parax[2] = int(val(this.parax[2]))
+		this.limit = int(val(this.parax[2]))
 		this.skip = 9
 		do case
 			case this.parax[3] == "LEFT" or empty(this.parax[3])
@@ -2552,49 +2554,48 @@ define class com_Limit as Com
 	endfunc
 	
 	function isValid()
-		return this.mode > 0 and this.parax[2] > 0 and inlist(this.skip, -1, 0, 1)
+		return this.mode > 0 and this.limit > 0 and inlist(this.skip, -1, 0, 1)
 	endfunc
 
 	function execute(str)
-	local limit, cnt, i, pos 
+	local cnt, i, pos 
 	local array lex[1]
-		m.limit = this.parax[2]
 		if this.mode == 1
 			m.cnt = alines(m.lex, m.str, 1, " ")
 			m.str = ""
 			do case
 				case this.skip == 1
 					for m.i = 1 to m.cnt
-						if len(m.lex[m.i]) >= m.limit
-							m.str = m.str+" "+substr(m.lex[m.i],m.limit)
+						if len(m.lex[m.i]) >= this.limit
+							m.str = m.str+" "+substr(m.lex[m.i],this.limit)
 						endif
 					endfor
 				case this.skip == -1
 					for m.i = 1 to m.cnt
-						m.str = m.str+" "+right(m.lex[m.i],m.limit)
+						m.str = m.str+" "+right(m.lex[m.i],this.limit)
 					endfor
 				otherwise
 					for m.i = 1 to m.cnt
-						m.str = m.str+" "+left(m.lex[m.i],m.limit)
+						m.str = m.str+" "+left(m.lex[m.i],this.limit)
 					endfor
 			endcase
 			m.str = ltrim(m.str)
 		else
 			do case
 				case this.skip == 1
-					m.pos = at(" ", m.str, m.limit)
+					m.pos = at(" ", m.str, this.limit)
 					if m.pos <= 0
 						m.str = ""
 					else
 						m.str = substr(m.str, m.pos+1)
 					endif
 				case this.skip == -1
-					m.pos = rat(" ", m.str, m.limit)
+					m.pos = rat(" ", m.str, this.limit)
 					if m.pos > 0
 						m.str = right(m.str, len(m.str) - m.pos)
 					endif
 				otherwise
-					m.pos = at(" ", m.str, m.limit)
+					m.pos = at(" ", m.str, this.limit)
 					if m.pos > 0
 						m.str = left(m.str, m.pos-1)
 					endif
