@@ -6,18 +6,18 @@
 --------------------Konfiguration: foxpro - Win32 Debug--------------------
 </h3>
 <h3>Befehlszeilen</h3>
-Erstellen der temporären Datei  "C:\Users\tdo\AppData\Local\Temp\RSPA15D.tmp" mit Inhalten
+Erstellen der temporären Datei  "C:\Users\tdo\AppData\Local\Temp\RSP1ECF.tmp" mit Inhalten
 [
 /nologo /Gr /MD /W3 /GX /O2 /I "v:\prog\foxpro" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "FOXPRO_EXPORTS" /Fp"Release/foxpro.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
 "C:\_Baustelle\prog\foxpro\foxpro.cpp"
 ]
-Creating command line "cl.exe @C:\Users\tdo\AppData\Local\Temp\RSPA15D.tmp" 
-Erstellen der temporären Datei  "C:\Users\tdo\AppData\Local\Temp\RSPA15E.tmp" mit Inhalten
+Creating command line "cl.exe @C:\Users\tdo\AppData\Local\Temp\RSP1ECF.tmp" 
+Erstellen der temporären Datei  "C:\Users\tdo\AppData\Local\Temp\RSP1ED0.tmp" mit Inhalten
 [
 winapims.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /incremental:no /pdb:"Release/foxpro.pdb" /machine:I386 /out:"Release/foxpro.fll" /implib:"Release/foxpro.lib" /pdbtype:sept /libpath:"v:\prog\foxpro" 
 .\Release\foxpro.obj
 ]
-Erstellen der Befehlzeile "link.exe @C:\Users\tdo\AppData\Local\Temp\RSPA15E.tmp"
+Erstellen der Befehlzeile "link.exe @C:\Users\tdo\AppData\Local\Temp\RSP1ED0.tmp"
 <h3>Ausgabefenster</h3>
 Kompilierung läuft...
 foxpro.cpp

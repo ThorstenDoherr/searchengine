@@ -683,7 +683,7 @@ void FAR Normize(ParamBlk FAR *parm)
 		if (anorm[chr][1] != '\0') buffer[pos++] = anorm[chr][1];
 		if (pos >= BUFFERSIZE) break;
 	}
-	if (blank) buffer[pos-1] = '\0';
+	if (blank && pos > 0) buffer[pos-1] = '\0';
 	else buffer[pos] = '\0';
 	_HUnLock(parm->p[0].val.ev_handle);
 	_RetChar(buffer);
@@ -727,7 +727,7 @@ void FAR NormizeKeep(ParamBlk FAR *parm)
 		if (anorm[chr][1] != '\0') buffer[pos++] = anorm[chr][1];
 		if (pos >= BUFFERSIZE) break;
 	}
-	if (blank) buffer[pos-1] = '\0';
+	if (blank && pos > 0) buffer[pos-1] = '\0';
 	else buffer[pos] = '\0';
 	_HUnLock(parm->p[0].val.ev_handle);
 	_HUnLock(parm->p[1].val.ev_handle);
