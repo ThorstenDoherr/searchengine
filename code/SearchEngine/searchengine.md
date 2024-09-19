@@ -517,7 +517,7 @@ A search field is always a column name of the base table. The preparer will be a
 This will create a SearchEngine with two search types for the base table field **firm_name**, one with condensed abbreviations (single letters combined) and one that is additionally fragmented into grams. Destructive preparer like **GRAM3** destroy and diffuse information for the sake of an increased robustness towards typos and misspellings. Search types based on them should only be used sparely because they require much more computational resources than basic (non-destructive) search types. A search type is considered destructive when an exclamation mark appears after one of its preparer in the structure string shown in the main window. Integrate them into your search strategy with dedicated incremental search runs after you have exploited the capacities of the basic search types (see <b>Search Strategy</b>).  
 [[Action>Create]](#actioncreate)  
 [[Search Strategy]](#search-strategy)  
-[[preparer]](#preparer)  
+[[Preparers]](#Preparers)  
 
 #### cutoff
 <code>cutoff([*Icutoff*])</code>  
@@ -805,6 +805,14 @@ lists all SearchEngine save slots. If <i>Lalpha</i> is .t., sort order will be b
 loads the specified SearchEngine slot. If <i>Sslot</i> is omitted or empty, the current slot will be reloaded. The SearchEngine saves are just copies of the structure string. They describe a search project with all current settings. A SearchEngine is always associated with only one base table with the <b>create</b> function via extensive index files in the engine directory. You can replace those files by recreating the SearchEngine with a different base table or search type setting but reloading an older slot based on overwritten index files will not miraculously restore a bunch of index tables of considerable size. Every SearchEngine can only handle one base table. Create separate engine directories for different base tables or search types setups.  
 [[File>Load Settings]](#fileload-settings)  
 
+#### loadpreparer
+<code>loadpreparer()</code>  
+reloads all <b>custom preparers</b> from xml-files in the engine directory beginning with "searchengine", like "searchengine.xml" or "SearchEngine_firma_strasse.xml". Errors in the xml-structure, preparer definitions or missing preparers of current search types will be reported. Use this function to develop custom preparers by testing them with the <b>prepare</b> command and browsing through the code with <b>showpreparer</b>.  
+[[Preparers]](#preparers)  
+[[Custom Preparers]](#custom-preparers)  
+[[prepare]](#prepare)  
+[[showpreparer]](#showprepare)  
+
 #### message
 <code>message([*Stext*])</code>  
 opens a message box showing <i>Stext</i>. Program halts until confirmation.  
@@ -845,13 +853,14 @@ Do not confuse the output file with the "SearchEngine.log" file, which is reserv
 
 #### prepare
 <code>prepare([*Spreparerlist* [, *Stext]])</code>  
-applies the preparer listed in <i>Spreparerlist</i> (comma or blank separated) on the string specified with <i>Stext</i>. Use this function to test combinations of preparer or custom preparer. You can get a list of all installed preparer by omitting any parameter.  
+applies the preparer listed in <i>Spreparerlist</i> (comma or blank separated) on the string specified with <i>Stext</i>. Use this function to test combinations of built-in preparers and custom preparers. You can get a list of all installed preparer by omitting any parameter.  
 
 Examples:  
 <code>prepare("noabbrev gram3", "B.A.S.F. Aktiengesellschaft")</code> applies the NOABBREV and GRAM3 preparer in this order on the specified text.  
 <code>prepare()</code> shows a list of all installed preparer.  
-[[Preparer]](#preparer)  
+[[Preparers]](#preparers)  
 [[showpreparer]](#showpreparer)  
+[[loadpreparer]](#loadpreparer)  
 
 #### showpreparer
 <code>showpreparer([*Spreparer*], [*Lcompact*])</code>
@@ -860,8 +869,9 @@ shows the XML code of the preparer <i>Spreparer</i>. If a preparer name is omitt
 Examples:  
 <code>preparer("Firma", .t.)</code> shows the compact XML code of custom preparer "Firma".  
 <code>preparer()</code> shows the XML code of all installed preparer.  
-[[Preparer]](#preparer)  
+[[Preparers]](#preparers)  
 [[prepare]](#prepare)  
+[[loadpreparer]](#loadpreparer)  
 
 #### refine
 <code>refine([*Iidentitymode*, *Icomparemode*], [*Srunfilter*] , [*Ldestructiveonly*])</code>  
@@ -1238,8 +1248,9 @@ This option has a high risk of collecting false positives when the expected over
 ## Preparers
 Preparers are directives that can be attached to search fields of the base table. Multiple preparers can be attached to one field to form a search type. But even if a search field has no explicity assigned preparer, it will be harmonized by the default preparer, which transforms all characters to upper-case, removes all special, non-alpha-numeric characters and replaces all Umlauts, Apostrophes and other character mutations with their inoffensive ASCII representations. Beginning with this default preparer, the directives will be processed from the first preparer in the list to the last one. A directive can be a harmonization of synonymous words or group of words but also a linguistic tokenization replacing the word based separation. Because preparers are applied to search fields, they affect the base table in the same way as the search table by always guaranteeing a synchronous harmonization, which does not rely on manual preprocessing of data. This helps in reducing the potential error sources caused by manual data preparation. The SearchEngine has an assortment of built-in preparers to not only handle the usual harmonization task but also to provide linguistic methods that would be difficult to implement otherwise. Besides those internal preparers, custom preparers can be defined using simple xml-definitions to implement solutions especially for language related issues, like contracted words. They can be used automatize frequent harmonization tasks before matching.
 
-You can use the <b>showpreparer</b> function in the command window to see the underlying xml-script for a preparer. A preparer uses a sequence of simple commands to manipulate the input string. To get a better understanding of specific preparers, use the <b>prepare</b> function to try out a single preparer or combinations of them.  
+You can use the <b>showpreparer</b> function in the command window to see the underlying xml-script for a preparer. A preparer uses a sequence of simple commands to manipulate the input string. To get a better understanding of specific preparers, use the <b>prepare</b> function to try out a single preparer or combinations of them. Finally, you can reload custom preparers with <b>loadpreparer</b> during development to test them without restarting the SearchEngine.  
 [[showpreparer]](#showpreparer)  
+[[loadreparer]](#loadpreparer)  
 [[prepare]](#prepare)  
 
 ### Built-in Preparers
@@ -1383,7 +1394,7 @@ The preparer definitions in an xml-file have the following structure:
 <code>	\</preparer\></code>  
 <code>\</searchengine\></code>  
 
-The xml-file is initiated with the \<searchengine\> tag. A preparer definition starts with the \<preparer\> tag enclosing the preparer name within the \<type\> tag. All commands of the preparer follow in separate \<command\> tags. A command has a name in the \<com\> tag and may have numbered parameters in corresponding \<para\#\> tags, i.e. \<para3\> for the 3rd parameter. Parameters are usually numbers or strings. Because any command will only be applied on already harmonized data, the parameters will always be automatically harmonized before they become a part of a preparer definition. If a preparer consists of only one command the preparer definition and the command can be put together into the \<preparer\> tag (see last preparer definition in the structure example).  
+The xml-file is initiated with the \<searchengine\> tag. A preparer definition starts with the \<preparer\> tag enclosing the preparer name within the \<type\> tag. All commands of the preparer follow in separate \<command\> tags. A command has a name in the \<com\> tag and may have numbered parameters in corresponding \<para\#\> tags, i.e. \<para3\> for the 3rd parameter. Parameters are usually numbers or strings. Because any command will only be applied on already harmonized data, the parameters will always be automatically harmonized before they become a part of a preparer definition. You can omitt some parameter including the tags for the default value (see description). If a preparer consists of only one command the preparer definition and the command can be put together into the \<preparer\> tag (see last preparer definition in the structure example). You can integrate comments by enclosing them with the "\<!--" and "-->" tags.    
 
 The following commands are available:
 
@@ -1400,8 +1411,8 @@ Example:
 This command calls other installed preparer, which will be executed on the data. This allows to define routines to be included without repeating the definitions or to make additions to existing preparer without copying the definitions into a new preparer. 
 
 #### change
-<code>\<com\>**change**\</com\>\<para1\>**left**|**right**|**word**\</para1\>\<para2\>*from_string*\</para2\>\<para3\>*to_string*\</para3\></code>  
-The **change** command is the safe version of the <b>replace</b> command. The *from_string* will be replaced with the *to_string* as long as the occurrence is aligned according to the 1st parameter: **left** aligned, **right** aligned or **word** identity. In contrast to the <b>replace</b> command, the changed part will be enclosed is brackets to be <referenced by other commands, like <b>split</b> or <b>replace</b>. This is helpful, when longer phrases are abbreviated to a short form with change and you want to include those in subsequent commands without inadvertently changing original content. The brackets marking the changes can be removed with the <b>cleanup</b> command.  
+<code>\<com\>**change**\</com\>\<para1\>**left**|**right**|**word**|**free**\</para1\>\<para2\>*from_string*\</para2\>\<para3\>*to_string*\</para3\></code>  
+The **change** command is the safe version of the <b>replace</b> command. The *from_string* will be replaced with the *to_string* as long as the occurrence is aligned according to the 1st parameter: **left** aligned, **right** aligned, **word** identity or **free** of any alignment requirements (default). It this  In contrast to the <b>replace</b> command, the changed part will be enclosed is brackets to be referenced by other commands, like <b>split</b> or <b>replace</b>. This is helpful, when longer phrases are abbreviated to a short form with change and you want to include those in subsequent commands without inadvertently changing original content. The brackets marking the changes can be removed with the <b>cleanup</b> command.  
 
 Example:  
 <code>\<command\></code>  
@@ -1438,7 +1449,7 @@ The command **Cockle** contracts all contiguous single characters into a word: "
 
 #### cut
 <code>\<com\>**cut**\</com\>\<para1\>**left**|**right**|**both**\</para1\>\<para2\>*string*\</para2\></code>  
-The **cut** command removes trailing (**left**), leading (**right**) or adjoining (**both**) parts of a word containing the 2nd parameter *string*.
+The **cut** command removes trailing (**left**), leading (**right**) or adjoining (**both**) parts of a word containing the 2nd parameter *string*. This command can be used to truncate country specific variants of the same root word.
 
 Examples:  
 <code>\<com\>**cut**\</com\>\<para1\>**left**\</para1\>\<para2\>pre\</para2\></code>  
@@ -1447,6 +1458,10 @@ Examples:
 "MARKDOWN PREINSTALLED" \> "DOWN PREINSTALLED"  
 <code>\<com\>**cut**\</com\>\<para1\>**both**\</para1\>\<para2\>install\</para2\></code>  
 "MARKDOWN PREINSTALLED" \> "MARKDOWN INSTALL"  
+<code>\<com\>**cut**\</com\>\<para1\>**left**\</para1\>\<para2\>universi\</para2\></code>  
+<code>\<com\>**replace**\</com\>\<para1\>**right**\</para1\>\<para2\>universi\</para2\>\<para3\>university\</para3\></code>  
+"LISBOA UNIVERSIDAD" \> "LISBOA UNIVERSITY"  
+"UNIVERSTAET BERLIN" \> "UNIVERSITY BERLIN"  
 
 #### destructive
 <code>\<com\>**destructive**\</com\></code>  
@@ -1522,12 +1537,14 @@ Examples:
 "MARIA HELENA ANDROMACHI" > "HELENA"    
 
 #### replace
-<code>\<com\>**replace**\</com\>\<para1\>**left**|**right**|**word**\</para1\>\<para2\>*from_string*\</para2\>\<para3\>*to_string*\</para3\></code>  
-The *from_string* will be replaced with the *to_string* as long as the occurence is aligned according to the 1st parameter: **left** aligned, **right** aligned or **word** identity. You will use this command to harmonize different spellings or abbreviations of common terms.  
+<code>\<com\>**replace**\</com\>\<para1\>**left**|**right**|**word**|**free**\</para1\>\<para2\>*from_string*\</para2\>\<para3\>*to_string*\</para3\></code>  
+The *from_string* will be replaced with the *to_string* as long as the occurence is aligned according to the 1st parameter: **left** aligned, **right** aligned, **word** identity or **free** of any alignment requirements (default). You will use this command to harmonize different spellings or abbreviations of common terms.  
 
 Examples:  
 <code>\<com\>**replace**\</com\>\<para1\>**right**\</para1\>\<para2\>GESELLSCHAFT\</para2\>\<para3\>GES\</para3\></code>  
 "BASF AKTIENGESELLSCHAFT" \> "BASF AKTIENGES"  
+<code>\<com\>**replace**\</com\>\<para1\>**word**\</para1\>\<para2\>AKTIEN GES\</para2\>\<para3\>SE\</para3\></code>  
+"BASF AKTIENGES" \> "BASF SE"  
 <code>\<com\>**replace**\</com\>\<para1\>**word**\</para1\>\<para2\>AKTIEN GES\</para2\>\<para3\>SE\</para3\></code>  
 "BASF AKTIENGES" \> "BASF SE"  
 
@@ -1540,10 +1557,11 @@ Example:
 "32ND STREET" \> "32 ND STREET"  
 
 #### split
-<code>\<com\>**split**\</com\>\<para1\>**left**|**right**\</para1\>\<para2\>*separate_string*\</para2\></code>  
-The command will separate the *separate_string* from the adjoining word when it aligned according to the 1st parameter: **left** aligned or **right** aligned 
+<code>\<com\>**split**\</com\>\<para1\>**left**|**right**|**free**\</para1\>\<para2\>*separate_string*\</para2\>\<para3\>**both**|**left**|**right**\</para3\></code>  
+The command will separate the *separate_string* from the adjoined word when it is aligned according to the 1st parameter: **left** aligned, **right** aligned or not aligned with **free**. The 3rd parameter can be omitted. It dictates where the separating blank will be inserted: **both** separates the string on both sides (default), **left** separates it on the left side and **right** separates it on the right side.
 
 Example:  
 <code>\<com\>**split**\</com\>\<para1\>**right**\</para1\>\<para2\>strasse\</para2\></code>  
 "HAUPTSTRASSE 17" \> "HAUPT STRASSE 17"  
-
+<code>\<com\>**split**\</com\>\<para2\>schul\</para2\>\<para3\>**left**</para3\></code>  
+"HAUPTSCHULVERWALTUNG" \> "HAUPT SCHULVERWALTUNG"  
