@@ -22,7 +22,9 @@
 // - equal has to be 1 (match) or 9 (non-match) in samples, exports and truths
 // - a value in a block header of the scrutinized data (searched not empty, found empty) is the default value for the block (reduces typing)
 // - the default value in the block header is used for all missings and zeroes within a block
-// - retention will only be redrawn if the "new" parameter is specified
+// - you can define a global default value in the settings (see Settings below)
+// - retention will only be redrawn if seml_train.dta is deleted
+// - delete seml_train.dta und meta.dta when meta data has changed
 //
 // AGGREGATION OF SEARCH RUNS
 // The exportmeta function of the SeachEngine has the option to aggregate search runs.
@@ -36,8 +38,12 @@
 // global run2 6 7 8 9  // to aggregate run 6 to 9
 //
 // Settings:
+// batch - see "help brain" for info about neural netword batch sizes
+// retention - share that will not be used for training but for out of sampe prediction
+// default - global default when the "equal" in block headers is empty
 global batch 8 // mini batch size
 global retention 0.1 // 0.1 will retain 10% of the sample for testing
+global default 0 // default value for block header equal (1 = true positive, 9 = false positive, 0 = missing) 
 // Here would be your first run aggregation macro, i.e. global run1 2 3 4
 // The run macros are optional.
 
@@ -115,7 +121,7 @@ if _rc != 0 {
 		qui import delimited `"`f'"', enc("latin1") clear
 		keep searched found equal identity
 		qui gen str source = trim(lower(`"`f'"'))
-		drop if searched == .
+		drop if searched == . | searched == 0
 		cap destring equal, force replace
 		cap append using `train'
 		qui save `train', replace
@@ -130,6 +136,7 @@ if _rc != 0 {
 	replace found = . if found == 0
 	
 	// applying the default value for every searched block and cleaning
+	replace equal = $default if found == . & (equal == . | equal == 0)
 	egen byte default = max(equal * (found == .)), by(searched)
 	replace equal = default if equal == . | equal == 0
 	drop default
@@ -186,10 +193,8 @@ if _rc != 0 {
 meta_vars
 di as text "Meta: " as result "$meta_vars"
 
-// probit model
-// replace it with the OLS if it does not converge
-// reg equal $meta_vars if retention == 0 
-probit equal $meta_vars if retention == 0 
+// linear probability regression model
+reg equal $meta_vars if retention == 0 
 qui predict equal_base
 qui replace equal_base = min(max(equal_base,0),1)
 di as result "training"
