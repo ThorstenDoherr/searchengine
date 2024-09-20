@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.09.19
+*    Date:       2024.09.20
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.09.19"
+	return "2024.09.20"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -7427,6 +7427,7 @@ define class SearchEngine as custom
 			update (m.stats.alias) set searched = m.searched, cnt_max = m.cnt_max, cnt_min = m.cnt_min, cnt_avg = m.cnt_avg, cnt_std = m.cnt_std where run == m.run
 		endfor
 		if m.runs.count == 1
+			this.messenger.clearMessage()
 			return m.stats
 		endif
 		this.messenger.forceMessage("Summary statistics...")
@@ -8775,7 +8776,7 @@ define class SearchEngine as custom
 				endif
 				m.run = m.run+1
 			case m.increment == 2 && merge
-				if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
+				if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
 					this.messenger.errormessage("Unable to increment ResultTable.")
 					return .f.
 				endif
@@ -8798,7 +8799,7 @@ define class SearchEngine as custom
 				endif
 				m.searchrec = m.searchrec+1
 				if m.increment == 4
-					if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
+					if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
 						this.messenger.errormessage("Unable to increment ResultTable.")
 						return .f.
 					endif
@@ -9749,7 +9750,7 @@ define class SearchEngine as custom
 		else
 			m.to = this.locateTo(m.runFilter)
 		endif
-		if not this.result.deleteIndex() or not this.result.forceIndex('ltrim(str(searched))+" "+ltrim(str(found))')
+		if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
 			this.messenger.errormessage("Unable to mirror ResultTable.")
 			return .f.
 		endif
