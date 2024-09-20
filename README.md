@@ -13,7 +13,7 @@ Windows
 It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
-2024.09.19
+2024.09.20
 - new help system based on searchengine.md in the SE root directoy, which can be opened with a markdown browser plugin
 - help command added (enter help("help") in the Command window for help about the new help system)
 - you can click on links (in \[brackets\]) in help texts to navigate through the manual
