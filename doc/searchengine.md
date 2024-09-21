@@ -523,6 +523,7 @@ A search field is always a column name of the base table. The preparers will be 
 This will create a SearchEngine with two search types for the base table field **firm_name**, one with condensed abbreviations (single letters combined) and one that is additionally fragmented into grams. Destructive preparers like **GRAM3** destroy and diffuse information for the sake of an increased robustness towards typos and misspellings. Search types based on them should only be used sparely because they require much more computational resources than basic (non-destructive) search types. A search type is considered destructive when an exclamation mark appears after one of its preparer in the structure string shown in the main window. Integrate them into your search strategy with dedicated incremental search runs after you have exploited the capacities of the basic search types (see <b>Search Strategy</b>).  
 [[Action>Create]](#actioncreate)  
 [[Search Strategy]](#search-strategy)  
+[[Creation]](#creation)  
 [[Preparers]](#Preparers)  
 
 #### cutoff
