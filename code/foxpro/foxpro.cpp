@@ -1026,6 +1026,51 @@ void FAR Gram(ParamBlk FAR *parm)
 	_RetChar(buffer);
 }
 
+// string Cockle(string)
+// contracts all single, isolated characters into words to form acronyms from abbreviations
+// "B A S F SE" > "BASF SE"
+// it also trims and squeezes blanks
+void FAR Cockle(ParamBlk FAR *parm)
+{	unsigned char FAR *str;
+	long len1, len2, i, pos;
+	unsigned char last;
+	int single;
+
+	len1 = parm->p[0].val.ev_length;
+	_HLock(parm->p[0].val.ev_handle);
+	str = (unsigned char FAR *) _HandToPtr(parm->p[0].val.ev_handle);
+	pos = 0;
+	len2 = 0;
+	single = 0;
+	for (i = 0; i < len1; i++)
+	{	if (str[i] == ' ')
+		{	if (len2 == 0) continue;
+			if (len2 == 1)
+			{	if (single)
+				{	pos -= 2;
+					buffer[pos++] = last;
+				}
+				else single = 1;
+			}
+			else single = 0;
+			buffer[pos++] = ' ';
+			len2 = 0;
+		}
+		else
+		{	len2++;
+			last = str[i];
+			buffer[pos++] = last;
+		}
+	}
+	if (len2 == 1 && single)
+	{	pos -= 2;
+		buffer[pos++] = last;
+	}
+	buffer[pos] = '\0';
+	_HUnLock(parm->p[0].val.ev_handle);
+	_RetChar(buffer);
+}
+
 void FAR CollectSumArray(ParamBlk FAR *parm)
 {	AHandle FAR *ah;
 	double FAR *array;
@@ -1614,6 +1659,7 @@ FoxInfo myFoxInfo[] =
 	{"ReplaceChars", (FPFI) ReplaceChars, 4, "CCCL"},
 	{"Squeeze", (FPFI) Squeeze, 2, "CC"},
 	{"Gram", (FPFI) Gram, 2, "CI"},
+	{"Cockle", (FPFI) Cockle, 1, "C"},
 	{"CollectSumArray", (FPFI) CollectSumArray, 5, "IIIIN"},
 	{"LimitDescArray", (FPFI) LimitDescArray, 6, "INIIII"},
 	{"BinarySearchAscArray", (FPFI) BinarySearchAscArray, 5, "INIII"},
