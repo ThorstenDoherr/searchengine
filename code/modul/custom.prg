@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2024.08.14
+*   Date:       2024.09.27
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -11,7 +11,7 @@
 #DEFINE HKEY_USERS         -2147483645  && BITSET(0,31)+3
 
 function version_of_custom()
-	return "2024.08.14"
+	return "2024.09.27"
 endfunc
 
 function mp_bracket(from as Integer, to as Integer)
@@ -246,7 +246,7 @@ define class ParallelFoxWrapper as Custom
 	endfunc
 
 	function install(path)
-	local appl, clsid, localserver32, r, force
+	local appl, clsid, localserver32, r, force, parallelfox
 		m.appl = this.getApplication()
 		m.path = evl(m.path, "")
 		m.force = not empty(m.path)
@@ -571,7 +571,7 @@ define class ParallelFoxWrapper as Custom
 		if not empty(m.procedure)
 			this.doWorkers("set library to "+m.procedure+" additive")
 		endif
-		if vartype(m.messenger) == "O"
+		if vartype(this.messenger) == "O"
 			this.messenger.initReport(this.getWorkerCount())
 		endif
 		this.callWorkers("mp_linkMessenger", this.messenger)
@@ -3431,7 +3431,7 @@ define class TFieldStructure as DFieldStructure
 		return datetime(val(substr(m.val,1,4)),val(substr(m.val,5,2)),val(substr(m.val,7,2)),val(substr(m.val,9,2)),val(substr(m.val,11,2)),val(substr(m.val,13,2)))
 	endfunc
 	
-	function baseConverter(field as String, sort as Boolean)
+	function baseConverter(field as String, sort as Boolean, desc as Boolean)
 		if m.desc
 			return 'IIF(ISNULL('+m.field+'),.NULL.,Invert(TTOC('+m.field+',1)))'
 		endif
@@ -4246,6 +4246,7 @@ define class BaseTable as custom
 
 	function init(table)
 		declare Sleep in kernel32 integer millis
+		sys(9144, 1) && auto-opening of unstructural compound index files named "{table_name}_INDEX*.CDX"
 		this.initObjects()
 		if vartype(m.table) == "O"
 			if select(m.table.alias) > 0
@@ -4563,6 +4564,12 @@ define class BaseTable as custom
 				erase m.str.getFileExtensionChange("ndx")
 			catch
 			endtry
+			try
+				if not empty(this.dbf)
+					erase this.getCDXTemplate()
+				endif
+			catch
+			endtry
 		endif
 		this.setHandle(this.dbf)
 		return not this.exists()
@@ -4620,7 +4627,7 @@ define class BaseTable as custom
 		return this.exists()
 	endfunc
 
-	function zap
+	function zap()
 		local alias, ps, ok, shared
 		m.shared = this.isShared()
 		if not this.useExclusive()
@@ -4795,8 +4802,8 @@ define class BaseTable as custom
 		return .t.
 	endfunc
 
-	protected function getFreeExpTag()
-		local t, i, exp, maxexp
+	function getFreeExpTag()
+	local t, i, exp, maxexp
 		if not this.validAlias
 			return 0
 		endif
@@ -4816,6 +4823,37 @@ define class BaseTable as custom
 			m.t = tag(m.i,this.alias)
 		enddo
 		return "EXP"+ltrim(str(m.maxexp+1))
+	endfunc
+	
+	function getCDXTemplate(base)
+	local cdx
+		if empty(this.dbf)
+			return ""
+		endif
+		m.cdx = rtrim(justpath(this.dbf), "/", "\")+"\"+juststem(this.dbf)
+		if m.base
+			return m.cdx+".CDX"
+		endif
+		return m.cdx+"_INDEX_*.CDX"
+	endfunc
+	
+	function getFreeCDX()  && the table should be exclusive
+	local like, index, cdx
+		if empty(this.dbf)
+			return ""
+		endif
+		m.cdx = iif(this.validAlias, cdx(1, this.alias), "")
+		if empty(m.cdx)
+			return this.getCDXTemplate(.t.)
+		endif
+		m.like = this.getCDXTemplate()
+		m.index = 1
+		m.cdx = strtran(m.like, "*", transform(m.index))
+		do while file(m.cdx, 1)
+			m.index = m.index + 1
+			m.cdx = strtran(m.like, "*", transform(m.index))
+		enddo
+		return m.cdx
 	endfunc
 
 	function seekKey(key)
@@ -4968,7 +5006,7 @@ define class BaseTable as custom
 		return .t.
 	endfunc
 	
-	function forceKey(key, options)
+	function forceKey(key, options, required as Boolean)
 	local index, pa, ok, shared
 		if not this.validAlias
 			return .f.
@@ -4976,14 +5014,27 @@ define class BaseTable as custom
 		if this.setKey(m.key)
 			return .t.
 		endif
-		m.shared = this.isShared()
-		if not this.useExclusive()
-			return .f.
+		if vartype(m.options) == "L" and m.required == .f.
+			m.required = m.options
 		endif
-		if not vartype(m.options) == "C"
-			m.options = ""
+		m.shared = this.isShared()
+		if m.required == .f. and not sys(9144) == "1" and sys(9144, 1) == "1" and not empty(cdx(1, this.alias))
+			this.close()
+			if not this.useExclusive()
+				return .f.
+			endif
+			if this.setKey(m.key)  && try it again
+				return .t.
+			endif
 		else
-			m.options = " "+m.options
+			if not this.useExclusive()
+				return .f.
+			endif
+		endif
+		m.options = alltrim(strtran(" "+lower(evl(m.options,""))+" ", " additive ", " "))
+		m.options = " "+m.options+" additive"
+		if m.required == .f. and sys(9144) == "1" and not empty(cdx(1, this.alias))
+			m.options = ' of "'+this.getFreeCDX()+'"'+m.options
 		endif
 		m.index = "index on "+m.key+" tag "+m.key+m.options
 		m.pa = createobject("PreservedAlias")
@@ -5081,7 +5132,7 @@ define class BaseTable as custom
 			else
 				m.option = ""
 			endif
-			m.ok = m.ok and this.forceKey(m.item, m.option)
+			m.ok = m.ok and this.forceKey(m.item, m.option, .t.)
 		endfor
 		if m.share
 			this.useShared()
@@ -5243,7 +5294,7 @@ define class BaseTable as custom
 	function useExclusive(wait)
 		local sel, pa, pk, ps
 		this.validAlias = select(this.alias) > 0
-		if this.isexclusive()
+		if this.isexclusive() 
 			return .t.
 		endif
 		m.pa = createobject("PreservedAlias")
@@ -5604,7 +5655,7 @@ define class BaseTable as custom
 		endif
 		m.s = this.getRequiredKeys()
 		if m.s.isValid()
-			m.str = m.str+"RequiredKeys: "+proper(m.s.toString())+chr(10)
+			m.str = m.str+"RequiredKeys: "+m.s.toString()+chr(10)
 		endif
 		m.s = this.getTableStructure()
 		if m.s.isValid()
@@ -5612,11 +5663,11 @@ define class BaseTable as custom
 		endif
 		m.f = this.getkey(1)
 		if not empty(m.f)
-			m.str = m.str+"Keys: "+proper(m.f)
+			m.str = m.str+"Keys: "+m.f
 			m.i = 2
 			m.f = this.getkey(m.i)
 			do while not empty(m.f)
-				m.str = m.str+"; "+proper(m.f)
+				m.str = m.str+"; "+m.f
 				m.i = m.i+1
 				m.f = this.getkey(m.i)
 			enddo

@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.09.20
+*    Date:       2024.09.28
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.09.20"
+	return "2024.09.28"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -2318,16 +2318,8 @@ define class com_Reset as Com
 enddefine
 
 define class com_Cockle as Com
-	protected cockle
-
-	function init(preparer)
-		Com::init(m.preparer)
-		this.cockle = createobject("String")
-	endfunc
-
 	function execute(str)
-		this.cockle.setString(m.str)
-		return this.cockle.getCockle()
+		return cockle(m.str)
 	endfunc
 enddefine
 
@@ -3198,7 +3190,7 @@ define class RegistryTable as BaseTable
 	endfunc
 
 	function forceRegistryKey()
-		this.forceKey('ltrim(str(type))+" "+entry',"candidate")
+		this.forceKey('ltrim(str(type))+" "+entry',"candidate", .t.)
 	endfunc
 	
 	function buildRegistryKey(type, entry)
@@ -3320,7 +3312,7 @@ define class ResultTable as BaseTable
 	protected function init(table)
 		BaseTable::init(m.table)
 		this.setRequiredTableStructure("searched i, found i, identity b, equal n(1), score b, run c(1)")
-		this.setRequiredKeys("searched; found")
+		this.setRequiredKeys("searched")
 		this.resizeRequirements()
 	endfunc
 
@@ -3935,7 +3927,7 @@ define class ExportTable as mp_ExportTable
 			this.txt = m.table.txt
 			m.struc = m.table.getRequiredTableStructure()
 			this.setRequiredTableStructure(m.struc.toString())
-			this.setRequiredKeys("searched; found")
+			this.setRequiredKeys("searched")
 			return
 		endif
 		m.struc = this.getTableStructure()
@@ -3958,7 +3950,7 @@ define class ExportTable as mp_ExportTable
 			m.s = m.s+", run n(3)"
 		endif
 		this.setRequiredTableStructure(m.s)
-		this.setRequiredKeys("searched; found")
+		this.setRequiredKeys("searched")
 		this.resizeRequirements()
 	endfunc
 
@@ -4344,7 +4336,7 @@ define class ExtendedExportTable as mp_ExportTable
 			this.txt = m.table.txt
 			m.struc = m.table.getRequiredTableStructure()
 			this.setRequiredTableStructure(m.struc.toString())
-			this.setRequiredKeys("searched; found")
+			this.setRequiredKeys("searched")
 			return
 		endif
 		m.struc = this.getTableStructure()
@@ -5549,7 +5541,7 @@ define class MetaExportTable as mp_ExportTable
 			this.setRequiredTableStructure(this.header)
 		endif
 		if not this.isCreatable() or not this.construct()
-			this.messenger.errormessage("ExportTable is not creatable.")
+			this.messenger.errormessage("MetaExportTable is not creatable.")
 			return .f.
 		endif
 		m.struc = this.getTableStructure()
@@ -7693,7 +7685,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function metaExport(table, meta, nocomp, low, high, runFilter)
-	local oldmes, rc, dp, swap, result
+	local oldmes, rc, dp, swap, result, idc
 		if vartype(m.table) == "C"
 			m.table = createobject("MetaExportTable",this.properExt(m.table))
 		endif
@@ -7728,7 +7720,8 @@ define class SearchEngine as custom
 		if not vartype(m.runFilter) == "O"
 			m.runFilter = createobject("RunFilter")
 		endif
-		if evl(m.low,0) > 0 or evl(m.high,101) <= 100 or m.runFilter.isFiltering() 
+		if evl(m.low,0) > 0 or evl(m.high,101) <= 100 or m.runFilter.isFiltering()
+			m.idc = this.idontcare() 
 			m.result = createobject("BaseCursor", this.getEnginePath())
 			if not m.result.isValid()
 				return .f.
@@ -7737,8 +7730,12 @@ define class SearchEngine as custom
 			m.swap = this.getResultTable()
 			m.result = createobject("ResultTable", m.result.dbf)
 			m.result.setCursor(.t.)
+			m.result.setMessenger(this.getMessenger())
 			m.result.create(this, .f., m.low, m.high, m.runFilter, .f.)
 			this.setResultTable(m.result)
+			if m.idc
+				this.dontcare()
+			endif
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
@@ -8776,7 +8773,7 @@ define class SearchEngine as custom
 				endif
 				m.run = m.run+1
 			case m.increment == 2 && merge
-				if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
+				if not this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
 					this.messenger.errormessage("Unable to increment ResultTable.")
 					return .f.
 				endif
@@ -8799,7 +8796,7 @@ define class SearchEngine as custom
 				endif
 				m.searchrec = m.searchrec+1
 				if m.increment == 4
-					if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
+					if not this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
 						this.messenger.errormessage("Unable to increment ResultTable.")
 						return .f.
 					endif
@@ -8893,9 +8890,9 @@ define class SearchEngine as custom
 					endif
 					this.pfw.linkMessenger(this.messenger)
 				else
-					m.to = int(m.result.reccount())
 					m.result = m.col.item(1)
 					m.result.useExclusive()
+					m.to = int(m.result.reccount())
 					m.messenger.startProgress("Refining "+m.mess+"<<0>>/"+transform(m.to))
 					this.refining(1, -1, m.result, m.research, 1, m.refineMode, .f., m.messenger)
 					if m.research and not m.messenger.wasCanceled()
@@ -8938,8 +8935,6 @@ define class SearchEngine as custom
 		this.messenger.stopProgress()
 		this.messenger.sneakMessage("Closing...")
 		this.pfw.stopWorkers()
-		this.result.deleteKey()
-		this.result.deleteIndex()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
 		if this.messenger.wasCanceled() or m.messenger.wasCanceled()
@@ -8984,7 +8979,7 @@ define class SearchEngine as custom
 			this.result.forceKey("searched")
 		else
 			if m.increment = 2 && merge
-				this.result.useIndex()
+				this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
 			endif
 		endif
 		m.activeJoin = this.getActiveJoin()
@@ -9750,7 +9745,7 @@ define class SearchEngine as custom
 		else
 			m.to = this.locateTo(m.runFilter)
 		endif
-		if not this.result.deleteIndex() or not this.result.forceIndex(.f., 'ltrim(str(searched))+" "+ltrim(str(found))')
+		if not this.result.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
 			this.messenger.errormessage("Unable to mirror ResultTable.")
 			return .f.
 		endif
@@ -9803,7 +9798,6 @@ define class SearchEngine as custom
 			this.result.setRun(m.run)
 		endif
 		this.messenger.sneakMessage("Closing...")
-		this.result.deleteIndex()
 		this.result.forceRequiredKeys()
 		this.result.useShared()
 		return not this.messenger.wasCanceled()
@@ -9824,7 +9818,7 @@ define class SearchEngine as custom
 		endif
 		m.run = chr(m.run)
 		select (m.base.alias)
-		m.base.useIndex()
+		m.base.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
 		for m.rec = m.from to m.to
 			go m.rec
 			m.messenger.incProgress(1,1)
