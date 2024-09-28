@@ -15,7 +15,7 @@ It is recommended to install a Markdown plugin for your browser to read the **do
 ## Version history
 2024.09.28
 - optimized the contraction of abbreviations with the "NOABBREV" preparer, respectively the underlying "cockle" function
-- internally, every index has a designated ".cdx" file, thus "\*_index_\#.cdx" files may appear to increase overall file size capacity
+- internally, every index has a designated ".cdx" file, thus "\*\_index\_\#.cdx" files may appear to increase overall file size capacity
 - Config>File Locations has a decdicated "Auto" button to generate result table names
 - Meta files can now be properly overwritten with the "force" command
 - seml_train.do reads all sample files following the template \*sample\*.txt
