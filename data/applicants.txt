@@ -1,7 +1,7 @@
 line	appid	name	address	country
 1	1	F. HOFFMANN-LA ROCHE AG	Postfach 3255, 4002, Basel	CH
 2	1	F.HOFFMANN-LA ROCHE & CO. AKTIENGESELLSCHAFT	Postfach 3255, CH-4002, Basel	CH
-3	3	BASF AKTIENGESELLSCHAFT	, 67056, Ludwigshafen	DE
+3	3	BASF AKTIENGESELLSCHAFT	67056, Ludwigshafen	DE
 4	3	BASF Aktiengesellschaft	Rheinland-Pfalz, 67056, Ludwigshafen	DE
 5	5	KAKEN PHARMACEUTICAL CO., LTD.	28-8, Honkomagome 2-chome, Bunkyo-ku, 113-0021, Tokyo	JP
 6	5	Kaken Pharmaceutical Co., Ltd.	28-8, Honkomagome 2-chome,Bunkyo-ku, 113-0021, Tokyo	JP
@@ -151,7 +151,7 @@ line	appid	name	address	country
 150	150	COFRABEL N.V.	15, rue Golden Hope straat, B-1620, Drogenbos	BE
 151	151	Kollross, Günter	Münchener Strasse 11, 64521, Gross-Gerau	DE
 152	152	Renoulin, Roger Jean	29, Rue René Jean Mailleux, Thorigné-sur-Vilaine, Cesson	FR
-153	153	Heinrich Kuhn Metallwarenfabrik AG	, 8486, Rikon	CH
+153	153	Heinrich Kuhn Metallwarenfabrik AG	8486, Rikon	CH
 154	154	MEIJI SEIKA KAISHA LTD.	4-16 Kyobashi 2-chome, 104, Chuo-kuTokyo	JP
 155	154	MEIJI SEIKA KAISHA LTD.	4-16 Kyobashi 2-chome, Chuo-kuTokyo	JP
 156	156	Aktiebolaget Electrolux	St Göransgatan 143, 105 45, Stockholm	SE
@@ -176,7 +176,7 @@ line	appid	name	address	country
 175	175	PANAFACOM LIMITED	2-49, Fukami-nishi 4-chome, 242, Yamato-shiKanagawa	JP
 176	176	SAINT-GOBAIN EMBALLAGE	Les Miroirs 18, Avenue d'Alsace, 92400, Courbevoie	FR
 177	177	TOKYO OHKA KOGYO CO., LTD.	150, Nakamaruko Nakahara-ku, Kawasaki-shiKanagawa-ken	JP
-178	178	Aktiebolaget Gustavsberg	, S-134 00, Gustavsberg	SE
+178	178	Aktiebolaget Gustavsberg	S-134 00, Gustavsberg	SE
 179	179	Henkel AG&Co. KGAA	Henkelstr. 67, 40589, Düsseldorf	DE
 180	179	Henkel AG & Co. KGaA	CLI Patente Henkelstrasse 67, 40589, Düsseldorf	DE
 181	181	Edna Mc Connell Clark Foundation	250 Park Avenue, 10017, New York, New York	US
@@ -203,10 +203,10 @@ line	appid	name	address	country
 202	202	Hütter, Hans-Georg, Dr.	Hauptstrasse 131, A-2372, Giesshübel	AT
 203	203	NIELSEN, May Vibeke	78 Sdr. Strandvej, DK-3000, Helsingor	DK
 204	204	Rider, Joseph Alfred	10 Charles Dean Road, 94941, Mill Valley, California	US
-205	205	Alois Pöttinger OHG	, A-4710, Grieskirchen	AT
+205	205	Alois Pöttinger OHG	A-4710, Grieskirchen	AT
 206	206	LAND PYROMETERS LIMITED	Wreakes Lane, SheffieldS18 6PN, DronfieldNr.	GB
 207	207	Mafell-Maschinenfabrik Rudolf Mey GmbH & Co. KG	Postfach 1180, D-7238, Oberndorf a.N.Aistaig	DE
-208	208	Stratos Ventilation AB	, S-199 81, Enköping	SE
+208	208	Stratos Ventilation AB	S-199 81, Enköping	SE
 209	209	HARTING Electronics GmbH	Marienwerderstrasse 3, 32339, Espelkamp	DE
 210	210	PHARMACIA AB	Box 181, 751 04, Uppsala	SE
 211	211	KIMBALL INTERNATIONAL, INC.	1549 Royal Street P.O. Box 460, 47546, JasperIndiana	US
@@ -216,10 +216,10 @@ line	appid	name	address	country
 215	215	Smith, David T.	2619 West Pratt Avenue, 60645, ChicagoIllinois	US
 216	216	Koninklijke Schelde Groep B.V.	Glacisstraat 165P.O. Box 16, NL-4381 SE, Vlissingen	NL
 217	217	Freche, Charles	9 rue Villebois-Mareuil, F-75017, Paris	FR
-218	218	BÜHLER AG	, 9240, Uzwil	CH
+218	218	BÜHLER AG	9240, Uzwil	CH
 219	219	AB WELIN	Fiskhamnsgatan 4, S-414 58, Göteborg	SE
 220	220	Byers, Edward Victor	Magnolia,Main Street, NG12 3EA, Kinoulton,Nottingham	GB
-221	221	Buser Print Systems Ltd.	, 3428, Wiler b. Utzenstorf	CH
+221	221	Buser Print Systems Ltd.	3428, Wiler b. Utzenstorf	CH
 222	222	Leveen, Robert F.	815 S. 94th Str., 68114, Omaha,Nebraska	US
 223	223	Hart, Robert T.	120 Windsor Drive, GA 31024, Eatonton	US
 224	224	Nigg, Jürg	Beckenhofstrasse 30, 8035, Zürich	CH
@@ -344,7 +344,7 @@ line	appid	name	address	country
 343	343	LONATI S.p.A.	Via della Cascina Grassa, 3, 25124, Brescia	IT
 344	344	Rheinzink GmbH & Co. KG	Bahnhofstrasse 90, 45711, Datteln	DE
 345	345	Harr, KLaus, Dr.	Am Römerhof 35, D-6000 90, Frankfurt	DE
-346	346	MALORDEAN LIMITED	'Fulwith Garth' 14 Fulwith Drive, HG2 8HW, Harrogate, West Yorkshire	GB
+346	346	MALORDEAN LIMITED	Fulwith Garth' 14 Fulwith Drive, HG2 8HW, Harrogate, West Yorkshir	GB
 347	347	COMPAGNIE FRANCAISE DE PRODUITS INDUSTRIELS	28, Boulevard Camélinat, F-92233, Gennevilliers	FR
 348	348	KASSAI KABUSHIKI KAISHA	16-1, Higashishimizu-machi Minami-ku, Osaka-shiOsaka-fu	JP
 349	349	W. C. Heraeus GmbH & Co. KG	Heraeusstrasse 12-14, 63450, Hanau	DE
@@ -370,7 +370,7 @@ line	appid	name	address	country
 369	369	ROTO FRANK Aktiengesellschaft	Postfach 10 01 58, 70745, Leinfelden-Echterdingen	DE
 370	370	OEUVRE REGIONALE DE TRANSFUSION SANGUINEDE TOULOUSE	Hôpital de Purpan Avenue de Grande-Bretagne B.P. 3, 31052, Toulouse Cedex	FR
 371	371	Ruffino, Paule	32. rue Waldeck Rousseau, 69006, Lyon	FR
-372	372	OKALUX Kapillarglas GmbH	, D-8771, Altfeld	DE
+372	372	OKALUX Kapillarglas GmbH	D-8771, Altfeld	DE
 373	373	SYMAC	6 avenue de l'Impératrice Joséphine, F-92500, Rueil-Malmaison	FR
 374	374	W Ö V Mischfutter und Viehverwertung Gesellschaft m.b.H.	Neuer Markt 2 Postfach 252, A-1010, Wien	AT
 375	375	J & P Coats, Limited	155 St. Vincent Street, G2 5PA, Glasgow	GB
@@ -445,7 +445,7 @@ line	appid	name	address	country
 444	444	Politechnika Gdanska	Ul. Gabriela Narutowicza 11/12, 80-233, Gdansk	PL
 445	445	Cordero, Luigi	Via Baracca, 7, I-10091, Alpignano (Torino)	IT
 446	446	LITTON INDUSTRIAL PRODUCTS, INC.	222 Roberts Street, 06108, East HartfordConnecticut	US
-447	447	WEYERHAEUSER COMPANY	, WA 98477, Tacoma	US
+447	447	WEYERHAEUSER COMPANY	WA 98477, Tacoma	US
 448	448	Floordress Reinigungsgeräte GmbH	Lorcher Strasse 30, D-73547, Lorch	DE
 449	449	Mckinley, Alexander Thompson	3 Amanda Road Camps Bay, Cape TownCape Province	ZA
 450	450	Dynamit Nobel GmbH	Explosivstoff- und Systemtechnik, Kaiserstrasse 1, 53840, Troisdorf	DE
@@ -463,8 +463,8 @@ line	appid	name	address	country
 462	462	FEDERAL-MOGUL CORPORATION	26555 Northwestern Highway, 48034, SouthfieldMichigan	US
 463	463	Etablissements Marcel COTTE	Les Sarraix - Celles-sur-Durolles, F-63250, Chabreloche	FR
 464	464	Törnqvist, Christopher	Barkassvägen 11, 181 35, Lidingö	SE
-465	465	Graf + Cie AG	, 8640, Rapperswil	CH
-466	465	GRAF + CIE AG	, 8640, Rapperswil	CH
+465	465	Graf + Cie AG	8640, Rapperswil	CH
+466	465	GRAF + CIE AG	8640, Rapperswil	CH
 467	467	SCHMID & WEZEL GmbH & Co.	Bahnhofstrasse 18/18a, D-75429, Maulbronn	DE
 468	468	Malbec, Edouard	Logis de Chalonne, F-10160, Le Gond Pontouvre	FR
 469	469	ICA S.p.A.	Via del Litografo, 7, I-40127, Bologna	IT
@@ -508,7 +508,7 @@ line	appid	name	address	country
 507	507	LITTLE ROCK LIMITED	92A, Villiers Road, NW2 5PJ, London	GB
 508	508	MECRON MEDIZINISCHE PRODUKTE GMBH	Nunsdorfer Ring 23-27, D-1000 48, Berlin	DE
 509	509	Kawasaki Steel Corporation	1-28, Kitahonmachidori 1-chome, 651, Chuo-ku, Kobe-shi, Hyogo	JP
-510	510	AUDI AG	, 85045, Ingolstadt	DE
+510	510	AUDI AG	85045, Ingolstadt	DE
 511	511	Todorov, Jelesko	Marienbader Ring 1, D-65549, Limburg	DE
 512	512	Hockman, Mark E.	672 Mount Road, P.A. 19014, Aston	US
 513	513	Schumacher, Hanns-Joachim, Dr. med. dent.	Millöckerweg 8a, D-22145, Hamburg	DE
@@ -741,7 +741,7 @@ line	appid	name	address	country
 740	740	Kerr Manufacturing Company (a Delaware corporation)	28200 Wick Road Box 455, 48174, Romulus, Michigan	US
 741	741	A/S NUNC	Kampstrupvej 90,Kampstrup, DK-4000, Roskilde	DK
 742	742	Ceriani, Roberto Luis, Dr.	1089 Via Roble, 94549, LafayetteCalifornia	US
-743	743	ETABLISSEMENTS CHARLES FRERES & CIE	, 42580, L'Etrat	FR
+743	743	ETABLISSEMENTS CHARLES FRERES & CIE	42580, L'Etrat	FR
 744	744	Schneider (Europe) AG	Schärenmoosstrasse 115, 8052, Zürich	CH
 745	745	Warman, Bloomfield James	67, King Harold's Way, BexleyheathKent	GB
 746	746	TROJAN TECHNOLOGIES INC.	3020 Gore Road, N5V 4T7, London, Ontario	CA
@@ -770,7 +770,7 @@ line	appid	name	address	country
 769	768	The University Of Sheffield	Firth Court,Western Bank, S10 2TN, Sheffield	GB
 770	768	University of Sheffield	Firth Court Western Bank, S10 2TN, Sheffield Yorkshire	GB
 771	771	MINING SUPPLIES (MINSUP) PTY. LTD.	1086 South Road, S.A. 5039, Edwardstown	AU
-772	772	GÜHRING AUTOMATION GMBH & CO.	, D-72510, Stetten	DE
+772	772	GÜHRING AUTOMATION GMBH & CO.	D-72510, Stetten	DE
 773	773	SEE, Brian	39 Worcester lane, B75 5NA, Sutton ColdfieldWest Midlands	GB
 774	774	AGRI CONTACT	Torupvejen 97, DK-3390, Hundested	DK
 775	775	Diringer & Scheidel GmbH & Co. Beteiligungs-KG	Wilhelm-Wundt-Strasse 19, 68199, Mannheim	DE
@@ -790,7 +790,7 @@ line	appid	name	address	country
 789	789	CARL-ZEISS-STIFTUNGtrading as SCHOTT GLAS	Hattenbergstrasse 10, 55122, Mainz	DE
 790	790	LORD CORPORATION	2000 West Grandview Boulevard, 16441, Erie Pennsylvania	US
 791	791	Holoplex Systems Ltd.	Beaulieu Stapley Lane Ropley, S024 0EL, Alresford, Hants.	GB
-792	792	Purcell, Martin	'Avondale'Clash Road, Little IslandCounty Cork	IE
+792	792	Purcell, Martin	Avondale'Clash Road, Little IslandCounty Cor	IE
 793	793	Lignoform Formsperrholz AG	Im Starrberg, CH-8717 SG, Benken	CH
 794	794	PRECISION VALVE AUSTRALIA PTY. LIMITED	Williamson Road, 2565, IngleburnNew South Wales	AU
 795	795	Athena Reproductions Limited	P.O. Box 13 13/14 Raynham Road, CM23 5PQ, Bishops StortfordHertfordshire	GB
@@ -845,13 +845,13 @@ line	appid	name	address	country
 844	844	Gebr. Schaad, Landmaschinen	Blumensteinstrasse 10, CH-4552, Derendingen	CH
 845	845	TSI, Incorporated	500 Cardigan Road, MN 55126, St. Paul	US
 846	846	Deutsche Tecalemit GmbH	Postfach 12 01 28, D-4800 12, Bielefeld	DE
-847	847	BURGESS POWER TOOLS LIMITED	, LE9 6JW, Sapcote, Leicester	GB
+847	847	BURGESS POWER TOOLS LIMITED	LE9 6JW, Sapcote, Leicester	GB
 848	848	Medical University Of South Carolina	171 Ashley Avenue, SC 29425-2230, Charleston	US
 849	849	Reader, Gordon Keith	49 Hayes Chase, BR4 0HX, West WickhamKent	GB
 850	850	DOWTY WOODVILLE POLYMER LIMITED	Alton Road, HR9 5NF, Ross-on-WyeHerefordshire	GB
 851	851	Université De Reims Champagne-Ardenne	9, boulevard de la Paix, 51097, Reims	FR
 852	852	Hans Holger Wiese GmbH & Co. KG	Fuhrberg, D-3006 2, Burgwedel	DE
-853	853	Paul Rauschert GmbH & Co. KG	, D-8644, Pressig	DE
+853	853	Paul Rauschert GmbH & Co. KG	D-8644, Pressig	DE
 854	854	Single Buoy Moorings, Inc.	Route de Fribourg 5, 1723, Marly	CH
 855	855	Kao Corporation	14-10, Nihonbashi Kayabacho 1-chome, 103, Chuo-Ku Tokyo	JP
 856	856	Energie Froide International SA	36 avenue Krieg, CH-1208, Genève	CH
@@ -895,7 +895,7 @@ line	appid	name	address	country
 894	894	VOSS-SCHRADER, Bertil	Korshamnsviken, S-139 00, Värmdö	SE
 895	895	DUPRAL B.V.	Nijverheidsweg 4, NL-3762 ER, Soest	NL
 896	896	Schmitt, Harold W.	121 Canterbury Road, TN 37830, Oak Ridge	US
-897	897	IBS Technik AG Engineering und Maschinenbau	, CH-9212, Arnegg	CH
+897	897	IBS Technik AG Engineering und Maschinenbau	CH-9212, Arnegg	CH
 898	898	Georg Utz AG	Augraben 4, CH-5620, Bremgarten	CH
 899	899	BLINDART POMEZIA S.P.A.	Via Laurentina, km 24,500, 00040, Pomezia	IT
 900	900	OLSEN, Randolffa Rudolph	Post Office Box 4615, Harare	RH
@@ -937,7 +937,7 @@ line	appid	name	address	country
 936	936	Hirschmann Automotive GmbH	Oberer Paspelsweg 6-8, 6830, Rankweil	AT
 937	937	Kunz, Gerhard, Dipl.-Chem. Dr. Ing.	Ruhrstrasse 111, D-42579, Heiligenhaus	DE
 938	938	SAMSUNG ELECTRONICS CO., LTD.	416 Maetan-dong, Paldal-gu, 442-373, Suwon City, Kyungki-do	KR
-939	939	Kramer-Werke GmbH	, D-7770, überlingen	DE
+939	939	Kramer-Werke GmbH	D-7770, überlingen	DE
 940	940	SUNFILTER s.r.l.	Via Manin 6, I-40033, Casalecchio di Reno	IT
 941	941	Veropa DKFM. Peter Vogt GmbH	Boerhavegasse 7, 1031, Wien	AT
 942	942	DEBARGE, Philippe	T.C.F., 2, quai de la Conférence, F-75008, Paris	FR
@@ -954,7 +954,7 @@ line	appid	name	address	country
 953	953	BECK, Erich	Wachenheimer Strasse 21, D-6520, Worms	DE
 954	954	Lintilhac, Philip M.	100 Harbor Road, VT 05401, Shelburne	US
 955	955	TEINTURERIE DE CHAMPAGNE	Boîte Postale no. 15215, rue des hauts-trévois, F-10005, Troyes Cédex	FR
-956	956	DOBEL AB	, S-78184, Borlänge	SE
+956	956	DOBEL AB	S-78184, Borlänge	SE
 957	957	Cobe Laboratories, Inc.	1201 Oak Street, 80215, LakewoodColorado	US
 958	958	Foldi Products Holland B.V.	Sinderenseweg 47, NL-7051 HH, Varsseveld	NL
 959	959	ISOLCELL ITALIA S.P.A.	Via Meucci Antonio 7, I-39055, Laives	IT
@@ -1011,7 +1011,7 @@ line	appid	name	address	country
 1010	1010	VITS-Maschinenbau GmbH	Winkelsweg 172, 40764, Langenfeld	DE
 1011	1011	MITTELBERGER, Viktor	Im Besch 11, FL-9494, Schaan	LI
 1012	1012	IBIS SYSTEMS INC.	5775 Lindero Canyon Road, CA 91360, West Lake Village	US
-1013	1013	QUAD/TECH	, PewaukeeWisconsin	US
+1013	1013	QUAD/TECH	PewaukeeWisconsin	US
 1014	1014	Firma Peter Aschauer	An der Dornwiese 3, D-8032, Gräfelfing	DE
 1015	1015	The Scripps Research Institute	Office of Patent Counsel 10550 North Torrey Pines, CA 92037, La Jolla	US
 1016	1016	MUHAMMED, Mamoun	Rasundavägen 4, S-171 52, Solna	SE
@@ -1054,7 +1054,7 @@ line	appid	name	address	country
 1053	1053	Henke-Sass, Wolf GmbH	Kronenstrasse 16, D-78532, Tuttlingen	DE
 1054	1054	O.M.S. - S.p.A. Officine Meccaniche Specializzate	Via Dante, 20, 35020, Caselle di Selvazzano	IT
 1055	1055	Optikon Limited	Shore Road, PA17 5BR, SkelmorlieAyrshire Scotland	GB
-1056	1056	Kabi Gen AB	, S-112 87, Stockholm	SE
+1056	1056	Kabi Gen AB	S-112 87, Stockholm	SE
 1057	1057	Ing. Sumetzberger GmbH	Leberstrasse 108, 1110, Wien	AT
 1058	1058	ENZYME SYSTEMS PRODUCTS INC.	P.O. Box 2033, 94550, LivermoreCalifornia	US
 1059	1059	SEMICONDUCTOR ENERGY LABORATORY CO., LTD.	398, Hase, 243-0036, Atsugi-shi, Kanagawa	JP
@@ -1113,7 +1113,7 @@ line	appid	name	address	country
 1112	1112	Wohngarten Möbelelemente GmbH & Co. KG	Mondstrasse 3, D-4934, Horn-Bad Meinberg	DE
 1113	1113	Galambos, Ludwig	Lawaetzweg 7, D-2000 50, Hamburg	DE
 1114	1114	De Sacadura Bretes, Manuel	Alameda das Linhas de Torres No. 256 - 4. Esq., P-1700, Lisboa	PT
-1115	1115	Baumann & Cie. AG	, 8630, Rüti	CH
+1115	1115	Baumann & Cie. AG	8630, Rüti	CH
 1116	1116	Azzolini, Graziano	Via S. Anna, 3/R, 41032, Cavezzo (Provence of Modena)	IT
 1117	1117	Huemer, Franz X.	Sonnenuhrgasse 4, A-1060, Wien	AT
 1118	1118	Vazzola, Luigi	Via Roveredo, 2, I-33170, Pordenone	IT
@@ -1152,7 +1152,7 @@ line	appid	name	address	country
 1151	1151	KOFLACH SPORTGESELLSCHAFT m.b.H. & Co. KG	Markt 44, A-5602, Wagrain	AT
 1152	1152	Sony Precision Technology Inc.	Toyo Bldg.,9-17 Nishigotanda 3-chome, 141-0031, Shinagawa-kuTokyo	JP
 1153	1153	EEV LIMITED	Waterhouse Lane, CM1 2QX, Chelmsford,Essex	GB
-1154	1154	Larousse Emballage	, 45510, Tigy	FR
+1154	1154	Larousse Emballage	45510, Tigy	FR
 1155	1155	Vidali, Marzio	Via Enrico Fermi 33, I-31040, Chiarano (Treviso)	IT
 1156	1156	Hosobuchi, Yoshio	116 Kinross Drive, 94901, San RafaelCalifornia	US
 1157	1157	Gourhant, Robert	3, rue Charles Péguy, F-77500, Chelles	FR
@@ -1231,7 +1231,7 @@ line	appid	name	address	country
 1230	1230	Zumbrunn & Junker AGIngenieurbüro für Hoch- und Tiefbauten	Schiltwiesenweg 7, CH-8404, Winterthur	CH
 1231	1231	Giroud, Jean-Marie	19, Route de Fully, CH-1920, Martigny	CH
 1232	1232	UNIVERSITY OF FLORIDA	223 Grinter Hall, 32611-5500, Gainesville,Florida	US
-1233	1233	Landaas, Viggo	, N-3740, Lunde	NO
+1233	1233	Landaas, Viggo	N-3740, Lunde	NO
 1234	1234	Higa, Jack	974 Esquimalt Avenue, B.C. V7T 1J9, West Vancouver	CA
 1235	1235	Nyffeler, Corti AG	Solothurnstrasse, CH-3422, Kirchberg	CH
 1236	1236	NITTO BOSEKI CO., LTD.	1, Aza Higashi,Gonome, 960-8161, Fukushima-shi,Fukushima	JP
@@ -1252,7 +1252,7 @@ line	appid	name	address	country
 1251	1251	Ellner, Karl Erik	Herserudsvägen 63, S-181 35, Lidingö	SE
 1252	1252	Hubert Waltermann, Eisenwarenfabrik und Gesenkschmiede GmbH & Co	Rötloh 4, D-5983 2-Garbeck, Balve	DE
 1253	1253	Hundegger, Hans	Kemptener Strasse 1, D-87749, Hawangen	DE
-1254	1254	Konrad Peter AG	, CH-4410, Liestal	CH
+1254	1254	Konrad Peter AG	CH-4410, Liestal	CH
 1255	1255	Nordin, Harald	Villa Amphion, Chemin du Chabloz 8, CH-1822, Chernex	CH
 1256	1256	AIR PRODUCTS AND CHEMICALS, INC.	7201 Hamilton Boulevard, PA 18105-1501, Allentown	US
 1257	1256	Air Products and Chemicals, Inc.	7201 Hamilton Boulevard, PA 18104, Allentown	US
@@ -1283,7 +1283,7 @@ line	appid	name	address	country
 1282	1282	ENGELMORE, Anthony R.	14001 Harbour Place, KY 40059, Prospect	US
 1283	1283	Barbisan, Luciano	Via Paolo Giovio, 29, I-20144, Milan	IT
 1284	1284	Ikeda Bussan Co., Ltd.	No. 771, Kozono, Ayase-shiKanagawa-ken	JP
-1285	1285	HER MAJESTY THE QUEEN IN RIGHTOF CANADA AS REPRESENTED BY THE MINISTER OF NATIONAL DEFENCE	, K1A OK2, Ottawa	CA
+1285	1285	HER MAJESTY THE QUEEN IN RIGHTOF CANADA AS REPRESENTED BY THE MINISTER OF NATIONAL DEFENCE	K1A OK2, Ottawa	CA
 1286	1286	ASCOMETAL	Immeuble Elysées,29, Le Parvis, F-92072 35, PARIS-LA DEFENSE CEDEX	FR
 1287	1287	Simard, Williams	8, rue de l'Orangerie, F-77200, Torcy	FR
 1288	1288	KLEIN, Gary G.	207 B South Prairie Road, WA 98532, Chehalis	US
@@ -1317,7 +1317,7 @@ line	appid	name	address	country
 1316	1316	IMR S.p.A.	Via Aquileia, Zona Industriale, 34076, Romans d'Isonzo (Gorizia)	IT
 1317	1317	AMELIORAIR S.A.Société dite	78, Faubourg des Vosges, F-68800, Thann	FR
 1318	1318	EPSTEIN, Robert H.	2001 Jefferson Davis Highway Suite 200, VA 22202, Arlington	US
-1319	1319	Meto-Bau AG	, CH-5303, Würenlingen	CH
+1319	1319	Meto-Bau AG	CH-5303, Würenlingen	CH
 1320	1320	POLYPURE INC.	2859 Paces Ferry Road, 30339, AtlantaGeorgia	US
 1321	1321	Allflex Europe	Route des Eaux ZI de Plague, 35500, Vitré	FR
 1322	1322	Goto, Naohisa	6-15-1-A514 Tsuchihashi Miyamae-ku, Kawasaki-shiKanagawa	JP
@@ -1364,7 +1364,7 @@ line	appid	name	address	country
 1363	1363	Wynn Oil Company	2600 East Nutwood Avenue, 92631, FullertonCalifornia	US
 1364	1364	Wacom Co., Ltd.	2-510-1, Toyonodai, Otonemachi, Kitasaitama-gun, 349-1148, Saitama-ken	JP
 1365	1364	Wacom Co., Ltd.	2-510-1, Toyonodai, Otone-machi, Kitasaitama-gun, 349-1148, Saitama, Saitama	JP
-1366	1366	WACKER-WERKE GmbH & Co. KG	, D-85084, Reichertshofen	DE
+1366	1366	WACKER-WERKE GmbH & Co. KG	D-85084, Reichertshofen	DE
 1367	1367	Glacier GmbH - Sollinger Hütte	Ausschnippe 72, D-3418 1, Uslar	DE
 1368	1368	Arnold, John D.	635 East 45th Street, Kansas City, Missouri	US
 1369	1369	MOLI ENERGY (1990) LIMITED	20000 Stewart Crescent, V2X 9E7, Maple Ridge, B.C.	CA
@@ -1408,13 +1408,13 @@ line	appid	name	address	country
 1407	1407	BRECKELL, Gregory Joseph	Lot3Euroka Street, NSW 2440, Euroka	AU
 1408	1408	LABORATOIRE CENTRAL DES PONTS ET CHAUSSEES	58 Boulevard Lefèbvre, 75732 15, Paris Cedex	FR
 1409	1409	VEIKI Villamosenergiaipari Kutato Intézet Részvénytarsasag	Zrinyi u. 1, H-1051 V, Budapest	HU
-1410	1410	VEGA Grieshaber KG	, 77709, Wolfach	DE
+1410	1410	VEGA Grieshaber KG	77709, Wolfach	DE
 1411	1411	TERAD International, Inc.	2555 Swaner Place, 84401, OgdenUtah	US
 1412	1412	ALL-SYSTEMBAU AG	Milacker 291, CH-4655, Stüsslingen	CH
 1413	1413	FUTURE APPARATUS CORPORATION	8211 Cook Road, V6Y 1V3, RichmondBritish Columbia	CA
 1414	1414	SUZUKI, Toshiro	Chiyozaki-jutaku 1-305,Chiyozaki-cho 2-71, Naka-ku, 231, Yokohama-shi, Kanagawa	JP
 1415	1415	Mycogen Corporation	5501 Oberlin Drive, 92121, San Diego,California	US
-1416	1416	CLAD METALS, INC.	, 15317, CanonsburgPennsylvania	US
+1416	1416	CLAD METALS, INC.	15317, CanonsburgPennsylvania	US
 1417	1417	FERRERO OFFENE HANDELSGESELLSCHAFT m.b.H.	Hainer Weg 120, 60599, Frankfurt	DE
 1418	1418	Williams, Michael O.	58 Shoreline Lane, MS 30053, Gulfport	US
 1419	1419	MARSHALL SONS AND COMPANY LIMITED	Beaumont Street, GainsboroughLincolnshire	GB
@@ -1439,7 +1439,7 @@ line	appid	name	address	country
 1438	1438	KHURI-YAKUB, Pierre	4151 Donald Drive, CA 94306, Palo Alto	US
 1439	1439	Erich Utsch KG	Marienhütte 49Postfach 31 03 62, D-57046, Siegen	DE
 1440	1440	MICROSOFT CORPORATION	One Microsoft Way, Building 4, 98052-6399, Redmond, Washington	US
-1441	1441	Biovitrum Aktiebolag	, 112 76, Stockholm	SE
+1441	1441	Biovitrum Aktiebolag	112 76, Stockholm	SE
 1442	1442	STADLER FAHRZEUGWERK UND BEHÄLTERBAU GMBH & CO.	Finninger Strasse 50, D-7910, Neu-Ulm	DE
 1443	1443	ENGLESSON, Per Torsten	Styrmansgatan 33, S-114 54, Stockholm	SE
 1444	1444	Braun & Connelly Ohg	Bogenstrasse 43, 20144, Hamburg	DE
@@ -1498,7 +1498,7 @@ line	appid	name	address	country
 1497	1497	Dinse GmbH	Königsreihe 12, D-22041, Hamburg	DE
 1498	1498	SALPLEX LIMITED	Boughton Road, CV21 1BU, RugbyWarwickshire	GB
 1499	1499	AMERICAN PRECISION INDUSTRIES INC	2777 Walden Avenue, 14225, Buffalo,New York	US
-1500	1500	'GALEPHAR'	rue de la Pastorale, 26-28, Molenbeek	BE
+1500	1500	GALEPHAR	rue de la Pastorale, 26-28, Molenbeek	BE
 1501	1501	Fritsch GmbH	Hauptstrasse 542, D-6580, Idar-Oberstein	DE
 1502	1502	KAMOSEIKO KABUSHIKI KAISHA	1166 Mitsukuri,Hujioka-cho, Nishikamo-gun,Aichi-ken	JP
 1503	1503	LA BATTERIA di M. TADIELLO S.r.l.	Via Polveriera, I-20062, Cassano d'Adda	IT
@@ -1507,7 +1507,7 @@ line	appid	name	address	country
 1506	1505	Drossbach GmbH & Co. KG	Max-Drossbach-Strasse 7, 86641, Rain am Lech	DE
 1507	1507	Thiebaud, Marius	301, Route de Suisse, CH-1298, Celigny	CH
 1508	1508	BANANA'S DEVELOPMENT CORP.	1278 Glenneyre, Suite N, CA 92651, Laguna Beach	US
-1509	1509	Bandfabrik Breitenbach AG	, CH-4226, Breitenbach	CH
+1509	1509	Bandfabrik Breitenbach AG	CH-4226, Breitenbach	CH
 1510	1510	ABIOMED, INC.	33 Cherry Hill Drive, MA 01923, Danvers	US
 1511	1510	Abiomed, Inc.	22 Cherry Hill Drive, 01923, Danvers, Massachusetts	US
 1512	1512	SEIBU ELECTRIC & MACHINERY CO., LTD.	868-1, Ooaza Kubo Koga-machi, Kasuya-gunFukuoka	JP
@@ -1526,7 +1526,7 @@ line	appid	name	address	country
 1525	1525	CEZUS Compagnie Européenne du Zirconium	Tour Manhattan - La Défense 26, Place de l'Iris, F-92400, Courbevoie	FR
 1526	1525	Compagnie Européenne du Zirconium CEZUS	Tour Manhattan6 place de l'Iris, F-92400, Courbevoie	FR
 1527	1527	HEPAX Limited	Meierhofstrasse 325, FL-9495, Triesen	LI
-1528	1528	Walter Rau Lebensmittelwerke GmbH & Co. KG	, D-4517 1, Hilter	DE
+1528	1528	Walter Rau Lebensmittelwerke GmbH & Co. KG	D-4517 1, Hilter	DE
 1529	1529	John D. Brush & Company, Inc.	900 Linden Avenue, 14625, RochesterNew York	US
 1530	1530	Gerd Eisenblätter GmbH	Jeschkenstrasse 10, D-82538, Geretsried	DE
 1531	1531	ATOTECH Deutschland GmbH	Erasmusstrasse 20-24, 10553, Berlin	DE
@@ -1684,7 +1684,7 @@ line	appid	name	address	country
 1683	1683	AIRCLEAN ENGINEERING PRODUCTS	56 Great Oak Drive, M9A 1N2, IslingtonOntario	CA
 1684	1684	AXERGIE	134, route de la Rochelle, F-17230, Marrans	FR
 1685	1685	OCEAN TECHNICAL SERVICES LIMITED	552/556 London Road, SM3 9AA, North Cheam,Surrey	GB
-1686	1685	Ocean Technical Services Limited	, SM2 7AU, Oceantech HouseStation ApproachCheam Sur	GB
+1686	1685	Ocean Technical Services Limited	SM2 7AU, Oceantech HouseStation ApproachCheam Sur	GB
 1687	1687	AGREN, Leif	övre Bondestad, S-665 00, Kil	SE
 1688	1688	TILTON EQUIPMENT COMPANY	4574 North Chatsworth Street, MN 55126, St. Paul	US
 1689	1689	ERIKSSON, Lennart	Björnsonsgatan 217, S-161 56, Bromma	SE
@@ -1785,8 +1785,8 @@ line	appid	name	address	country
 1784	1784	hanse chemie GmbH	Charlottenburger Strasse 9, D-21502, Geesthacht	DE
 1785	1785	Möllstam, Anders	Eriksviksvägen 8, S-132 36, Saltsjö-Boo	SE
 1786	1786	Assous, Charles	18, rue Edouard Liévain, F-93700, Drancy	FR
-1787	1787	'WERKHUIZEN LAPAUW'	Oude Ieperseweg 139, B-8710, Kortrijk-Heule	BE
-1788	1788	ESCORP INC	, San Luis ObispoCalifornia	US
+1787	1787	WERKHUIZEN LAPAUW	Oude Ieperseweg 139, B-8710, Kortrijk-Heule	BE
+1788	1788	ESCORP INC	San Luis ObispoCalifornia	US
 1789	1789	Secor, Alan	5 Foxglen, 82714, IrvineCalifornia	US
 1790	1790	Rösle Metallwarenfabrik GmbH & Co. KG	Johann-Georg-Fendt-Strasse 38, D-87610, Marktoberdorf	DE
 1791	1791	ALBRIGHT & WILSON UK LIMITED	P.O. Box 3,210-222 Hagley Road West, B68 0NN, Oldbury,Warley,West Midlands	GB
@@ -1850,14 +1850,14 @@ line	appid	name	address	country
 1849	1849	TELIA AB	Vitsandsgatan 9, 123 86, Farsta	SE
 1850	1850	KAAS, Povl	Th. Nielsens Gade 11 G, 7400, Herning	DK
 1851	1851	Dispen Pak Japan, Co., Inc.	5, Sengawa cho 2-chome, Chofu-shiTokyo	JP
-1852	1852	Motoren-Werke Mannheim Aktiengesellschaft	, D-68140, Mannheim	DE
+1852	1852	Motoren-Werke Mannheim Aktiengesellschaft	D-68140, Mannheim	DE
 1853	1853	MECO MINING MACHINERY LIMITED	Ashchurch, GL20 8JR, Tewkesbury,Gloucestershire	GB
 1854	1854	NGK INSULATORS, LTD.	2-56 Suda-cho, Mizuho-ku, 467-8530, Nagoya-City, Aichi Pref.	JP
 1855	1854	NGK Insulators, Ltd.	2-56, Suda-cho, Mizuho-ku, Nagoya City, Aichi Pref.	JP
 1856	1856	LINDAUER DORNIER GESELLSCHAFT M.B.H	Rickenbacher Strasse 119, 88131, Lindau	DE
 1857	1857	FUJIREBIO KABUSHIKI KAISHA	6-7, Shimoochiai 4-chome Shinjuku-ku, 161, Tokyo	JP
 1858	1858	Gosen, Martinus Cornelis	Lorentzstraat 18, NL-5707 EW, Helmond	NL
-1859	1859	Greengrass, Michael	'Evergreen' Newton Street, NR10 3AD, Newton Saint FaithNorwich	GB
+1859	1859	Greengrass, Michael	Evergreen' Newton Street, NR10 3AD, Newton Saint FaithNorwic	GB
 1860	1860	POLITECH, INC.	1150 Moraga Way Suite 160, 94556, Moraga, California	US
 1861	1861	S.N.D.	5/7, Boulevard Romain Rolland, F-92120, Montrouge	FR
 1862	1862	KITCHENS, William B.	P.O. Box 43471, AL 35243, Birmingham	US
@@ -1900,8 +1900,8 @@ line	appid	name	address	country
 1899	1899	THERMAFOIL PRODUCTS INC.	2639 Seaman Avenue, 91733, El MonteCalifornia	US
 1900	1900	Nakagawa, Robert M.	1812 Dakota Avenue, 95351, ModestoCalifornia	US
 1901	1901	WILLIAMS III, Thomas A.	4768 South 6th Street, 22204, Arlington,Virginia	US
-1902	1902	STO AKTIENGESELLSCHAFT	, D-79778, Stühlingen	DE
-1903	1902	STO AG	, 79780, Stühlingen	DE
+1902	1902	STO AKTIENGESELLSCHAFT	D-79778, Stühlingen	DE
+1903	1902	STO AG	79780, Stühlingen	DE
 1904	1902	STO AG	Ehrenbachstrasse 1, D-79780, Stühlingen	DE
 1905	1905	Nederlandse Organisatie voor toegepast-natuurwetenschappelijk onderzoek TNO	Schoemakerstraat 97, 2628 VK, Delft	NL
 1906	1905	Nederlandse Organisatie voor toegepast -natuurwetenschappelijk onderzoek TNO	Schoemakerstraat 97, 2628 VK, Delft	NL
@@ -1925,7 +1925,7 @@ line	appid	name	address	country
 1924	1924	CHEMSON POLYMER-ADDITIVE GESELLSCHAFT M.B.H.	Postfach 12, 9601, Arnoldstein	AT
 1925	1925	FABIAN, Karoly	31, Hunyadi u., H-1034, Budapest	HU
 1926	1926	Kanto Kagaku Kabushiki Kaisha	2-8, Nihonbashihoncho 3-chome, 103, Chuo-kuTokyo	JP
-1927	1927	GIVAUDAN-ROURE (INTERNATIONAL) S.A.	, CH-1214, Vernier, Genève	CH
+1927	1927	GIVAUDAN-ROURE (INTERNATIONAL) S.A.	CH-1214, Vernier, Genève	CH
 1928	1928	AQUATEC WATER SYSTEMS,INC.	2259 Via Burton, CA 92806, Anaheim	US
 1929	1929	MARUO CALCIUM COMPANY LIMITED	1455, Nishioka, Uozumi-cho Akashi-shi, 674-0084, Hyogo	JP
 1930	1930	Universite De Haute Alsace	2 rue des Frères Lumière, 68100, Mulhouse	FR
@@ -1992,7 +1992,7 @@ line	appid	name	address	country
 1991	1991	KAWASAKI LNP INC.	475 Creamery Way, 19341, Exton,PA	US
 1992	1992	ELFIN DESIGN LIMITED	134 Heath Road, TW1 4BN, Twickenham	GB
 1993	1993	Sabine, Martin John	2 Mossley Villas5 Derby Road, GB-Ambergate, Derbyshire	GB
-1994	1994	The University of Leeds	, LS2 9JT, Leeds	GB
+1994	1994	The University of Leeds	LS2 9JT, Leeds	GB
 1995	1995	JAPAN CROWN CORK CO., LTD.	3-1, Uchisaiwai-cho 1-chome, 100-0011, Chiyoda-ku,Tokyo	JP
 1996	1996	CAMEL ROBOT S.p.A.	Via Togliatti 24, I-20030, SenagoMilano	IT
 1997	1997	JAPAN VILENE COMPANY,LTD	16-2 Soto-Kanda 2-chome Chiyoda-ku, Tokyo	JP
@@ -2003,7 +2003,7 @@ line	appid	name	address	country
 2002	2002	BERBI Gesellschaft m.b.H.	Freyung 6/6/9, A-1010, Wien	AT
 2003	2003	NATIONAL AEROSPACE LABORATORY	44-1, Jindaijihigashimachi 7 chome, Chofu-shiTokyo	JP
 2004	2004	Holme, Stein	3349 King Richard Court, 23452, Virginia Beach,Virginia	US
-2005	2005	PAUL SCHERRER INSTITUT	, CH-5303, Würenlingen	CH
+2005	2005	PAUL SCHERRER INSTITUT	CH-5303, Würenlingen	CH
 2006	2006	Purac Biochem bv	Arkelsedijk 46, 4206 AC, Gorinchem	NL
 2007	2007	Mecaplastic SAS	Z.I. de Montifaut, 85700, Pouzauges	FR
 2008	2008	TRIMATE S.A.S. di Longo Silvana e C.	Via Pila, 3/4, I-40044, Pontecchio Marconi (Bologna)	IT
@@ -2025,7 +2025,7 @@ line	appid	name	address	country
 2024	2024	TALYSHINSKY, Israfil Teimurovich	ul. Serdobolskaya, 11-65, 197343, Leningrad	SU
 2025	2025	LIN DEVELOPPEMENT S.A.	133, rue de Warneton, F-59890, Quesnoy sur Deule	FR
 2026	2026	Rux Sales and Services GmbH	Neue Strasse 7, 58135, Hagen	DE
-2027	2027	Rohde & Grahl GmbH	, 31595, Steyerberg/Voigtei	DE
+2027	2027	Rohde & Grahl GmbH	31595, Steyerberg/Voigtei	DE
 2028	2028	ARPLAN	5, bd des Philosophes, 1205, Geneve	CH
 2029	2029	Garcia Ramos, Evaristo	General Yagüe, 15- 2 B, E-28020, Madrid	ES
 2030	2030	B.V. Grint- en Zandexploitatie Maatschappij v/h Gebr. Smals	Merumerkerkweg 1, NL-6049 BX, Herten	NL
@@ -2086,7 +2086,7 @@ line	appid	name	address	country
 2085	2085	ETABLISSEMENTS JEAN ROUANET S.A.	Rue de la Pépinière Aussillon, F-81203, Mazamet	FR
 2086	2086	UNDERHAUG A/S	P.O. Box 70, N-4350, Naerbo	NO
 2087	2087	THEAULT TECHNOLOGIES SARL	Allée des Tennis Tracy-sur-Mer, F-14117, Arromanches Les Bains	FR
-2088	2088	Deutsche Telekom AG	, 53113, Bonn	DE
+2088	2088	Deutsche Telekom AG	53113, Bonn	DE
 2089	2089	Henkel, Wolfgang Eberhard	Ketscher Strasse 8, D-6832, Hockenheim (Am Luxhof)	DE
 2090	2090	Broomhall, Keith	Newhall Sneath Road, NR15 2DS, AslactonNorwichNorfolk	GB
 2091	2091	NEC ENVIRONMENT ENGINEERING, LTD.	7-15, Shiba 5-chome Minato-ku, 108, Tokyo	JP
@@ -2181,7 +2181,7 @@ line	appid	name	address	country
 2180	2180	MIEDEMA LANDBOUWWERKTUIGENFABRIEK B.V.	P.O. Box 5, NL-8830 AA, Winsum	NL
 2181	2181	CERAMESH LIMITED	Edward Street Business Centre, Edward Street, OX16 2SA, Banbury,Oxon	GB
 2182	2182	Goldblatt, Jeffrey S.	18 Huntington Lane, 06360, NorwichConnecticut	US
-2183	2183	Landis & Gyr Technology Innovation AG	, 6301, Zug	CH
+2183	2183	Landis & Gyr Technology Innovation AG	6301, Zug	CH
 2184	2184	Bayer Materialscience AG	100 Bayer Road, 51368, Leverkusen	DE
 2185	2185	ENDRESS + HAUSER CONDUCTA GESELLSCHAFT FÜR MESS UND REGELTECHNIK mbH & Co.	Dieselstrasse 24, 70839, Gerlingen	DE
 2186	2185	ENDRESS + HAUSER CONDUCTA GESELLSCHAFT FüR MESSUND REGELTECHNIK mbH & Co.	Dieselstrasse 24, 70839, Gerlingen	DE
@@ -2257,7 +2257,7 @@ line	appid	name	address	country
 2256	2256	Presidents and Fellows of Harvard College	17 Quincy Street, MA 02138, Cambridge	US
 2257	2257	AISENS CO. LTD.	No. 11-9, Nishi Shimbashi 2-chome Minato-ku, Tokyo	JP
 2258	2258	MOLECULAR BIOSYSTEMS, INC.	10030 Barnes Canyon Road, 92126, San DiegoCA	US
-2259	2259	INITIAL INVESTMENTS N.V.	, WillemstadCuracao	AN
+2259	2259	INITIAL INVESTMENTS N.V.	WillemstadCuracao	AN
 2260	2260	Aquarius, Pieter Theodorus Joseph	Prinses Beatrixstraat 45, NL-6039 CH, Stramproy	NL
 2261	2261	Kö NIG MASCHINENBAU GmbH	Industriestrasse 3, D-63654, Büdingen	DE
 2262	2262	POLARTECHNICS LTD	Level 1, 140 William Street, 2000, SydneyNew South Wales	AU
@@ -2389,7 +2389,7 @@ line	appid	name	address	country
 2388	2388	LOGO	7, rue de la Liberté, 94340, Joinville le Pont	FR
 2389	2389	Instrumentarium Oy	Kuortaneenkatu 2, SF-00510, Helsinki	FI
 2390	2390	SAKOVICH, Gennady Viktorovich	ul. Radischeva, 2/2-35, 659322, Altaisky kraiBiisk	SU
-2391	2391	Ling, Wei Chuen	'B' 11/F., 324 Nathan Road, Kowloon	HK
+2391	2391	Ling, Wei Chuen	B' 11/F., 324 Nathan Road, Kowloo	HK
 2392	2392	MDT CORPORATION	1777 East Henrietta Road, P.O. Box 23077, 14692-3077, Rochester, New York	US
 2393	2393	THE JOHNS HOPKINS UNIVERSITY SCHOOL OF MEDICINE	550 North Broadway, MD 21205, Baltimore	US
 2394	2394	Marzullo, Luigi	Via A. Frank, 8, I-43044, Collecchio (Parma)	IT
@@ -2702,7 +2702,7 @@ line	appid	name	address	country
 2701	2701	METRICOM, INC.	980 University Avenue, 95030-2375, Los Gatos,California	US
 2702	2702	Miura, Tanetoshi	1-11-20 Minami-cho, Kokubunji-shi,Tokyo	JP
 2703	2703	FUJI KIKO Co., Ltd.	2028, Washizu, 431-0431, Kosai-shi,Shizuoka	JP
-2704	2704	Ligno Tech Sweden AB	, S-468 82, Vargön	SE
+2704	2704	Ligno Tech Sweden AB	S-468 82, Vargön	SE
 2705	2705	Becton Dickinson France S.A.S	Rue Aristide Bergès, 38800, Le Pont de Claix	FR
 2706	2706	Fisher-Rosemount Systems, Inc.	Research Park Plaza Building III 12301 Research Bo, TX 78759, Austin	US
 2707	2706	Fisher-Rosemount Systems, Inc.	12301 Research Boulevard Suite 3, TX 78759-2372, Austin	US
@@ -2757,7 +2757,7 @@ line	appid	name	address	country
 2756	2756	KELLOGG COMPANY	One Kellogg Square Post Office Box 3599, MI 49016-3599, Battle Creek	US
 2757	2756	KELLOGG COMPANY	One Kellogg Square, P. O. Box 3599, MI 49016-3423, Battle Creek	US
 2758	2758	UPONOR ALDYL COMPANY	7234 Lancaster Pike, Suite 300-A, 19707, Hockessin,Delaware	US
-2759	2759	HAMPEL-Zö LLNER,Gesellschaft für klassisches Fenster-Design mbH	, D-86391, Stadtbergen	DE
+2759	2759	HAMPEL-Zö LLNER,Gesellschaft für klassisches Fenster-Design mbH	D-86391, Stadtbergen	DE
 2760	2760	ERATEC ENGINEERING AG	Hochfuhrenweg 4, CH-3250, Lyss	CH
 2761	2761	ANAG A. Nussbaumer AG	Bonnstrasse 18, 3186, Düdingen	CH
 2762	2762	MICO-DATA ELEKTRONISCHE STEUEREINRICHTUNGEN GmbH	Zum Henkerberg 12, D-88696, Owingen	DE
@@ -2779,7 +2779,7 @@ line	appid	name	address	country
 2778	2778	Kabushiki Kaisha Yaskawa Denki	2-1, Kurosaki-shiroishi, Yahatanishi-ku, 806-0004, Kitakyushu-shi, Fukuoka	JP
 2779	2778	Kabushiki Kaisha Yaskawa Denki	2-1, Kurosaki-Shiroishi Yahatanishi-ku, 806-0004, Kitakyushu-shi, Fukuoka	JP
 2780	2780	LIQUINET, INC.	2 Blue Hill Plaza, 10965, Pearl River,New York	US
-2781	2781	Ovako Steel AB	, 813 82, Hofors	SE
+2781	2781	Ovako Steel AB	813 82, Hofors	SE
 2782	2782	RONHILL SPORTS LIMITED	Peaco House Dawson Street, SK14 1RD, Hyde,Cheshire	GB
 2783	2783	HUBER & SUHNER AG	Degersheimerstrasse 14, CH-9100, Herisau	CH
 2784	2784	SILICON STORAGE TECHNOLOGY, INC.	1208 Apollo WAy, Suite 502, CA 94086, Sunnyvale	US
@@ -2816,7 +2816,7 @@ line	appid	name	address	country
 2815	2815	NEC Electronics Corporation	1753 Shimonumabe Nakahara-ku, 211-8668, Kawasaki-shi, Kanagawa	JP
 2816	2816	INTRACEL CORPORATION	2005 N.W. Sammamish Road, WA 98027, Issaquah	US
 2817	2817	WESTWIND AIR BEARINGS LIMITED	Holton Road,Holton Heath, BH16 6LN, Poole, Dorset	GB
-2818	2818	Telefonaktiebolaget L M Ericsson (Publ)	, 164 83, Stockholm	SE
+2818	2818	Telefonaktiebolaget L M Ericsson (Publ)	164 83, Stockholm	SE
 2819	2819	VIRGINIA TECH INTELLECTUAL PROPERTIES, INC.	2200 Kraft Drive Suite 1050, VA 24060, Blacksburg	US
 2820	2820	Alcoa Inc.	Alcoa Corporate Center, 201 Isabella Street, PA 15212, Pittsburgh	US
 2821	2820	Alcoa Inc.	Alcoa Corporate Center 201 Isabella Street, PA 15212-5858, Pittsburgh	US
@@ -2972,7 +2972,7 @@ line	appid	name	address	country
 2971	2971	Nelson Metal Products Corp.	2851 Prairie SW, 49418, Grandville, Michigan	US
 2972	2972	bio Mérieux S.A.	Chemin de l'Orme, 69280, Marcy l'Etoile	FR
 2973	2972	Biomérieux S.A.	Chemin de l'Orme, 69280, Marcy L'Etoile	FR
-2974	2974	GREENE, George H	, NY 10520, Croton-Hudson	US
+2974	2974	GREENE, George H	NY 10520, Croton-Hudson	US
 2975	2975	FAUN Umwelttechnik GmbH & Co.	Neuwieder Strasse 16, 90411, Nürnberg	DE
 2976	2976	Atmel Corporation	2325, Orchard Parkway, CA 95131, San Jose	US
 2977	2977	FAMAG-WERKZEUGFABRIKFRIEDRICH AUG. MÜHLHOFF	Rather Strasse 29 - 31, D-42855, Remscheid	DE
@@ -3015,7 +3015,7 @@ line	appid	name	address	country
 3014	3014	Alexander, Nicholas	3 Glencraig Heights, BT36 5QJ, Newtownabbey	GB
 3015	3015	SUMITOMO RUBBER INDUSTRIES LIMITED	6-9 Wakinohamacho, 3 Chome, Chuo-Ku, Kobe-shi,Hyogo-ken	JP
 3016	3016	HOSTMANN-STEINBERG GmbH	Bremer Weg 125, D-29223, Celle	DE
-3017	3017	Fagerhults Belysning Aktiebolag	, 566 80, Habo	SE
+3017	3017	Fagerhults Belysning Aktiebolag	566 80, Habo	SE
 3018	3018	ALPHA ENTERPRISES, INC.	330 S. Wood Street, 44730, East Canton,Ohio	US
 3019	3019	NEWMONT GOLD CO.	1 United Bank Center,1700 Lincoln Street, 80203, Denver,Colorado	US
 3020	3020	OMS Investments, Inc.	Suite 1300, 1105 N. Market Street, DE 19899-8985, Wilmington	US
@@ -3103,12 +3103,12 @@ line	appid	name	address	country
 3102	3102	RIOTINTO MINERA S.A.	C/ Profesor Garcia Gonzalez S/N, E-41012, Sevilla	ES
 3103	3103	Romero Aleta, Rafael	C/ Profesor Garcia Gonzalez S/N, E-41012, Sevilla	ES
 3104	3104	CLANCY, Martin	Dromiskin, Dundalk,Co. Louth	IE
-3105	3105	UNIVERSITY OF QUEENSLAND	, QLD 4072, St. Lucia	AU
+3105	3105	UNIVERSITY OF QUEENSLAND	QLD 4072, St. Lucia	AU
 3106	3105	The University of Queensland	Old Cooper Rd, 4072, St.Lucia, Queensland	AU
 3107	3107	Seidel, Gunter	Paulinenstraße 1, 65189, Wiesbaden	DE
 3108	3108	Imation Corp.	1 Imation Place, P.O. Box 64898, 55164-0898, St. Paul, Minnesota	US
 3109	3109	Jeng, Jieh-Chin	No. 8, Lane 732,Chung-Cheng Road, Yung-Kang Hsiang,Tainan Hsien	TW
-3110	3110	Blagden Chemicals Limited	, CF64 5YU, Sully,Vale of Glamorgan	GB
+3110	3110	Blagden Chemicals Limited	CF64 5YU, Sully,Vale of Glamorgan	GB
 3111	3111	HALLIBURTON ENERGY SERVICES, INC.	2135 Highway 6 South, 77242, Houston,Texas	US
 3112	3112	NTT DOCOMO, INC.	Sanno Park Tower, 36th Floor 11-1, Nagata-cho 2-ch, 100-6150, Tokyo	JP
 3113	3113	BOSSU, Jean-Marie	11, rue de la Sourdière, F-75001, Paris	FR
@@ -3282,7 +3282,7 @@ line	appid	name	address	country
 3281	3281	UNIK FILTERSYSTEM ApS	c/o Advokat Svarrer, Jernbanegade 54, DK-6000, Kolding	DK
 3282	3282	FN Herstal	Voie de Liège 33, 4040, Herstal	BE
 3283	3283	Intercat, Inc.	104 Union Avenue Manasquan, 08736, New Jersey	US
-3284	3284	FRISBA AG	, CH-6275, Ballwil	CH
+3284	3284	FRISBA AG	CH-6275, Ballwil	CH
 3285	3285	Clayton, Mike	Gronaustrasse 29, D-53844, Troisdorf	DE
 3286	3286	Instituto Nacional de Investigacion y Tecnologia Agraria y Alimentaria	Ctra. de A Coruna Km. 7,5, E-28040, Madrid	ES
 3287	3286	Instituto Nacional de Investigación y Tecnología Agraria y Alimentaria (INIA)	Ctra de la Coruna, Km 7,5, 28040, Madrid	ES
@@ -3318,7 +3318,7 @@ line	appid	name	address	country
 3317	3317	STANLEY, Melvin C.	800 Howerton Lane, MO 63025, Eureka	US
 3318	3318	OVAL CORPORATION	10-8, Kamiochiai 3-chome,Shinjuku-ku, Tokyo	JP
 3319	3319	K J Manufacturing Company	48553 West Road, MI 48393, Wixom	US
-3320	3320	SELANTIC INDUSTRIER A/S	, N-5363, Agotnes	NO
+3320	3320	SELANTIC INDUSTRIER A/S	N-5363, Agotnes	NO
 3321	3320	Selantic AS	Kokstadflaten 19, 5863, Bergen	NO
 3322	3322	TRANS-MED CORPORATION	P.O. Box 1953, TX 77478, Sugar Land	US
 3323	3323	S.I.SV.EL. S.p.A.	Via Sestriere 100, 10060 (TO), None	IT
@@ -3384,7 +3384,7 @@ line	appid	name	address	country
 3383	3383	EGE GmbH	Ravensberg 34, D-24214, Gettorf	DE
 3384	3384	ITT MANUFACTURING ENTERPRISES, INC.	1105 North Market Street, 19801, Wilmington,Delaware	US
 3385	3384	ITT MANUFACTURING ENTERPRISES, INC.	1105 North Market Street, Suite 1217, 19801, Wilmington, Delaware	US
-3386	3384	ITT Manufacturing Enterprises, Inc.	, 19801, Wilmington,Delaware	US
+3386	3384	ITT Manufacturing Enterprises, Inc.	19801, Wilmington,Delaware	US
 3387	3387	Sodero, Maria Assunta	Via T.Levi Civita, I-73100, Tricase (Lecce)	IT
 3388	3388	Arrow Interventional, Inc.	9 Plymouth Street, 02149, Everett,MA	US
 3389	3389	D'ANGELO, Joseph	20 Northwest 181st Street, FL 33169, Miami	US
@@ -3424,7 +3424,7 @@ line	appid	name	address	country
 3423	3423	SOCIETE DES AUTOROUTES DU NORD ETDE L'EST DE LA FRANCE	41 bis Avenue Bosquet, F-75007, Paris	FR
 3424	3424	SOCIETE CENTRALE D'ETUDES ET DE REALISATIONS ROUTIERES	41 bis Avenue Bosquet, F-75007, Paris	FR
 3425	3425	BURT, Peter Raymond	Brook Cottage,City, SY16 4HH, Sarm,Powys	GB
-3426	3426	NORMAN, David George	'Jindabyne',Plump Hill, GL17 0ET, Mitcheldean,Gloucestershire	GB
+3426	3426	NORMAN, David George	Jindabyne',Plump Hill, GL17 0ET, Mitcheldean,Gloucestershir	GB
 3427	3427	WELFIDE CORPORATION	6-9, Hiranomachi 2-chome, Chuo-ku, Osaka-shi	JP
 3428	3428	KATOH, Keiichi	305 Cosumo Miyazakidai Abanseed,1634-1 Maginu,Miya, 216, Kawasaki-shi,Kanagawa-ken	JP
 3429	3429	Sumitomo Wiring Systems, Ltd.	1-14, Nishisuehiro-cho, Yokkaichi-shi, Mie	JP
@@ -3576,7 +3576,7 @@ line	appid	name	address	country
 3575	3575	JAPAN CASH MACHINE CO., LTD.	3-15, Nishiwaki 2-chome, Hirano-ku, 547, Osaka-shi,Osaka	JP
 3576	3576	Bricmont, Inc.	South Pointe Industrial Park,500 Technology Drive, 15317-9584, Cannonsburg,PA	US
 3577	3577	SOLARIA RESEARCH ENTERPRISES LTD.	440 Phillip Street,Unit 21, N2L 5R9, Waterloo,Ontario	CA
-3578	3578	Volvo Aero Aktiebolag	, 46181, Trollhättan	SE
+3578	3578	Volvo Aero Aktiebolag	46181, Trollhättan	SE
 3579	3579	St. Jude Children's Research Hospital	262 Danny Thomas Place, TN 38105, Memphis	US
 3580	3580	DYNAGEN, INC.	99 Erie Street, MA 02139, Cambridge	US
 3581	3581	GN Re Sound as	Maarkaervej 2A Postbox 224, 2630, Taastrup	DK
@@ -3642,7 +3642,7 @@ line	appid	name	address	country
 3641	3640	Celanese International Corporation	A Corporation of State Delaware 1601 West LBJ Free, TX 75234, Dallas	US
 3642	3642	Hinderink, Marco Jan Wout	12, Burg. Boerstraat, NL-2761 VP, Zevenhuizen	NL
 3643	3643	Lancien, Patrick Pierre Roger	32 Rue St. Nicolas, F-72300, Sable sur Sarthe	FR
-3644	3644	Atkins Limited	, KT18 5BW, Woodcote Grove, Ashley RoadEpsom, Surrey	GB
+3644	3644	Atkins Limited	KT18 5BW, Woodcote Grove, Ashley RoadEpsom, Surrey	GB
 3645	3645	FLAEM NUOVA S.p.A.	221 Via Colli Storici, I-25010, San Martino Della Battaglia (Brescia)	IT
 3646	3646	Röver, Hermann	Steinbreite 25, D-34346, Hann. Münden	DE
 3647	3647	KE-KELIT Kunststoffwerk Gesellschaft m.b.H.	Ignaz-Mayer-Strasse 17, A-4017, Linz	AT
@@ -3655,7 +3655,7 @@ line	appid	name	address	country
 3654	3653	ARQULE, INC.	Suite 3600,200 Boston Avenue, MA 02155, Medford	US
 3655	3655	Fanja Ltd.	P.O. Box 589, JE4 9XA, St. Helier,Jersey	GB
 3656	3656	MACCONNELL, William P.	1849 Rubenstein Drive, CA 92007, Cardiff	US
-3657	3657	CG Cash-Automation GmbH	, D-15827, Dahlewitz	DE
+3657	3657	CG Cash-Automation GmbH	D-15827, Dahlewitz	DE
 3658	3658	EXCELSIOR DEVELOPMENT INC.	1013 Centre Road, DE 19805, Wilmington	US
 3659	3659	Vlastuin B.V.	Guldenhoflaan 23, 3740 AC, Baarn	NL
 3660	3660	Bipore, Inc.	252 Livingston Street, 07647, Northville,New Jersey	US
@@ -3712,10 +3712,10 @@ line	appid	name	address	country
 3711	3711	Caljan Rite-Hite ApS	Ved Milepaelen 6-8, 8361, Hasselager	DK
 3712	3712	MOLARDI, Marco	Via Papini, 41/43, I-43036, Fidenza	IT
 3713	3713	Emory University	1784 North Decatur Road, North Decatur Building, S, 30322, Atlanta, Georgia	US
-3714	3714	STUDSVIK RADWASTE AB	, 611 82, Nyköping	SE
+3714	3714	STUDSVIK RADWASTE AB	611 82, Nyköping	SE
 3715	3715	Gauff, Uwe	Kolberger Weg 17, D-61348, Bad Homburg	DE
 3716	3716	Levy, Salvador	23/25 Boulevard Carnot, F-78100, Le Vésinet	FR
-3717	3717	AB Volvo Personvagnar	, 405 08, Göteborg	SE
+3717	3717	AB Volvo Personvagnar	405 08, Göteborg	SE
 3718	3718	Crane Electronics Ltd	Watling Drive Sketchley Meadows, LE10 3EY, Hinckley, Leicestershire	GB
 3719	3719	PETROLEUM ENERGY CENTER	3-9,Toranomon 4-chome,Minato-ku, 105-0001, Tokyo	JP
 3720	3720	RKC Instruments Inc.	16-6, Kugahara 5-chome,Ohta-ku, 146, Tokyo	JP
@@ -3835,7 +3835,7 @@ line	appid	name	address	country
 3834	3834	NIPPON LIGHTING ELECTRIC CO. LTD.	13-4, Kasuga-cho 2-chome, 179, Nerima-ku,Tokyo	JP
 3835	3835	RITVIK HOLDINGS INC./GESTIONS RITVIK INC.	5151 Thimens, H4R 2C8, Montreal, Quebec	CA
 3836	3836	E.M.B.-REDMAN LIMITED	Empire Industrial Park,Empire Close, WS9 8UQ, Aldrige,Walsall	GB
-3837	3837	Bayer Health Care AG	, 51368, Leverkusen	DE
+3837	3837	Bayer Health Care AG	51368, Leverkusen	DE
 3838	3838	Tieber, Friedrich	Blütenweg 10, 82178, Puchheim	DE
 3839	3839	Dentsply De Trey GmbH	Postfach 10 10 74, D-63303, Dreieich	DE
 3840	3840	Mc INTOSH, Glen Elvis	2310 Dennison Lane, CO 80303, Boulder	US
@@ -3873,7 +3873,7 @@ line	appid	name	address	country
 3872	3872	SMITH, James Richard	Flat2,193 Sutherland Avenue,Little Venice, W9 1ET, London	GB
 3873	3873	University of Miami	P.O.Box 016960, FL 33101, Miami	US
 3874	3873	University of Miami	Office of Technology Transfer P.O. Box 016960 (M81, FL 33101, Miami	US
-3875	3875	University of Wollongong	, NSW 2522, Wollongong	AU
+3875	3875	University of Wollongong	NSW 2522, Wollongong	AU
 3876	3876	Hoffmann, Jürgen, Prof. Dipl.-Ing.	Menzelstrasse 22, 12157, Berlin	DE
 3877	3877	Grammercy Limited	5-11 Mortimer Street, W1N 7RH, London	GB
 3878	3878	American Express Travel Related Services Co., Inc.	General Counsel's Office 3 World Financial Center, NY 10285-4900, New York	US
@@ -3967,10 +3967,10 @@ line	appid	name	address	country
 3966	3966	SICIS S.r.l.	Via Canala, 75/79, 48100, Ravenna	IT
 3967	3967	Research Institute Of Industrial Science&Technology	San 32 Hyoja-dong Nam-ku Pohang-shi, 790-300, Kyungsangbook-do	KR
 3968	3968	Bour, Jean	21, rue du Stade, F-57730, Petit-Ebersviller	FR
-3969	3969	Fuchsbichler, Kevin Johan	'Melrose',Belka Road South, WA 6418, Bruce Rock	AU
+3969	3969	Fuchsbichler, Kevin Johan	Melrose',Belka Road South, WA 6418, Bruce Roc	AU
 3970	3970	Villadsen, Jan Alexander	Eskimovej 3, 8200 N, Arhus	DK
 3971	3971	SPECTRAL DIAGNOSTICS INC.	135 - Unit 2, The West Mall, M9C 1C2, Toronto,Ontario	CA
-3972	3971	Spectral Applied Research Inc.	, 9078 11Richmond L4B, Leslie Street, unit HillOntario	CA
+3972	3971	Spectral Applied Research Inc.	9078 11Richmond L4B, Leslie Street, unit HillOntario	CA
 3973	3973	Hecker & Krolsch GmbH & CO. KG	Aachener Strasse 100, D-53909, Zülpich	DE
 3974	3974	TV Miles International B.V.	De Lairessestraat 119, 1075 HH, Amsterdam	NL
 3975	3975	Spyra, Thomas	Richard-Wagner-Strasse 5, 71332, Waiblingen	DE
@@ -4044,7 +4044,7 @@ line	appid	name	address	country
 4043	4043	Keown, Wendy J.	6100 Laguna Cedar Court, CA 95758, Elk Grove	US
 4044	4044	TEXON MATERIALES, S.L.	Ramon Turro, 109 - 5a planta,Apartado 21083, 08005, Barcelona	ES
 4045	4045	Kabushiki Kaisha Equos Research	2-19-2, Sotokanda, Chiyoda-ku, Tokyo-to	JP
-4046	4046	Imagination Technologies Limited	, WD4 8LZ, Kings Langley,Hertfordshire	GB
+4046	4046	Imagination Technologies Limited	WD4 8LZ, Kings Langley,Hertfordshire	GB
 4047	4047	COULON, Jean-Claude	6, rue des Chantereines,B.P. 6, 78490, Montfort l'Amaury	FR
 4048	4048	E. HELLER & COMPANY	6114 La Salle Avenue 427, CA 94611, Oakland	US
 4049	4049	SOPHOS PLC	21 The Quadrant,Abingdon Science Park, OX14 3YS, Abingdon,Oxfordshire	GB
@@ -4278,8 +4278,8 @@ line	appid	name	address	country
 4277	4277	Hildebrand, Roland A.	1908 Windlea, TX 76040, Euless	US
 4278	4278	Ditechna, Sarl	Rue de l'Albeck,Z.I de Petite Synthe, 59640, Dunkerque	FR
 4279	4279	MITSUBISHI JIDOSHA KOGYO KABUSHIKI KAISHA	33-8, Shiba 5-chome Minato-ku, 108-8410, Tokyo	JP
-4280	4280	'FARMER' Engineering Gesellschaft m.b.H.	Esslinggasse 2, 1010, Wien	AT
-4281	4281	United States of America, as represented by The Secretary of Agriculture	, DC 20250-1400, Washington	US
+4280	4280	FARMER' Engineering Gesellschaft m.b.H	Esslinggasse 2, 1010, Wien	AT
+4281	4281	United States of America, as represented by The Secretary of Agriculture	DC 20250-1400, Washington	US
 4282	4282	Gentium S.p.A.	Piazza XX Settembre 2, 22079, Civello di Villa Guardia (Como)	IT
 4283	4283	Softonex Oy Ltd	Lukkosepänkatu 10, 20320, Turku	FI
 4284	4284	Gill, Norman Douglas	21 Widney Close,Bentley Heath,Knowle, B93 9AS, Solihull	GB
@@ -4388,7 +4388,7 @@ line	appid	name	address	country
 4387	4387	Zahntechnisches Atelier Lothar Glass GmbH	Kirchackerweg 10, 71384, Weinstadt	DE
 4388	4388	Davanzo, Nadia	Via Ca' Pesaro, 31056, Vallio di Roncade (Treviso)	IT
 4389	4389	Keller, Gottfried	Siedlung Nr. 4, 97956, Werbach/Wenkheim	DE
-4390	4390	Thermosoft Klimatechnik GmbH	, 64646, Heppenheim	DE
+4390	4390	Thermosoft Klimatechnik GmbH	64646, Heppenheim	DE
 4391	4391	AIRSEP CORPORATION	290 Creekside Drive, NY 14228-2070, Buffalo	US
 4392	4392	Cray Inc.	901 Fifth Avenue, WA 98164, Seattle	US
 4393	4393	Ngo, John-Thomas, Calderon	719 Liverpool Way, CA 94087, Sunnyvale	US
@@ -4486,7 +4486,7 @@ line	appid	name	address	country
 4485	4485	Grains Research and Development Corporation	40 Blackall Street Level 1, ACT 2600, Barton	AU
 4486	4486	Merge Technologies, Inc.	Suite N5408B,1126 South 70th Street, WI 53214, Milwaukee	US
 4487	4487	Eschmann Holdings Limited	Peter Road Lancing, BN15 8TJ, West Sussex	GB
-4488	4488	The United States of America, represented by the Administrator of the National Aeronautics and Space	, DC 20546, Washington	US
+4488	4488	The United States of America, represented by the Administrator of the National Aeronautics and Space	DC 20546, Washington	US
 4489	4489	Benkel, Gérard	61, Avenue du Petit-Clamart, 92140, Clamart	FR
 4490	4490	Kim, Bok Lae	503-1204 Sinwha Apt.,Jungja-dong,Pundang-gu, Sungnam,Kyuggi-do	KR
 4491	4491	Sachsenring Automobiltechnik GmbH	Crimmitschauer Strasse 67, 08058, Zwickau	DE
@@ -4609,7 +4609,7 @@ line	appid	name	address	country
 4608	4607	James Hardie International Finance B.V.	Legal Department Atrium 8th Floor Strawinskylaan 3, 1077 ZX, Amsterdam	NL
 4609	4609	Science & Engineering Associates	Suite 700, 6100 Uptown Boulevard N.E., NM 87110, Albuquerque	US
 4610	4610	Bytecraft Research Pty. Ltd.	23-27 Fonceca Street, VIC 3195, Mordialloc	AU
-4611	4611	Laval University	, G1K 7P4, Quebec	CA
+4611	4611	Laval University	G1K 7P4, Quebec	CA
 4612	4612	OSAKA Titanium Technologies Co., Ltd.	1, Higashihama-cho, 660-8533, Amagasaki-shi, Hyogo	JP
 4613	4613	GENZYME CORPORATION	15 Pleasant Street Connector, P.O. Box 9322, MA 01702-9322, Framingham	US
 4614	4614	Paul Kristen, Inc.	252 Fillmore Avenue, NY 14150, Tonawanda	US
@@ -4719,7 +4719,7 @@ line	appid	name	address	country
 4718	4718	Thornton, Curtis W.	103 Indigo Drive, NC 27513, Cary	US
 4719	4719	Sumitomo Chemical Takeda Agro Company, Limited	13-10, Nihonbashi 2-chome,Chuo-ku, 103-0027, Tokyo	JP
 4720	4720	INNOGENETICS N.V.	Industriepark Zwijnaarde 7,Box 4, B-9052, Zwijnaarde	BE
-4721	4721	Ciments Vigier SA	, 2603, Péry	CH
+4721	4721	Ciments Vigier SA	2603, Péry	CH
 4722	4722	Benninghoven, Alfred	Kösters Kämpken 30, 48161, Münster	DE
 4723	4723	Fiabila	Z.I. de Maingournois, 28130, Maintenon	FR
 4724	4724	The Gates Corporation	(a Delaware U.S.A. Corporation) 1551 Wewatta Stree, CO 80202, Denver	US
@@ -4814,7 +4814,7 @@ line	appid	name	address	country
 4813	4813	Prysmian Communications Cables and Systems USA, LLC	700 Industrial Drive, SC 29073, Lexington	US
 4814	4814	Eurocine AB	Karolinska Institutet, Science Park, Fogdevreten 2, 171 77, Stockholm	SE
 4815	4814	Eurocine Vaccines AB	Karolinska Science Park Fogdevreten 2, 171 77, Stockholm	SE
-4816	4816	ABB Technology FLB AB	, 113 96, Stockholm	SE
+4816	4816	ABB Technology FLB AB	113 96, Stockholm	SE
 4817	4817	LKH-Kunststoffwerk GMBH & CO. KG	Industriestrasse 16, 35702, Haiger	DE
 4818	4818	Krampitz, Michael, Dr.	Bertha-von-Suttner-Str. 4, 39108, Magdeburg	DE
 4819	4819	Ker.Av. S.r.l.	Via L. Musso, 3/5, 41053, Maranello (Prov. of Modena)	IT
@@ -4889,7 +4889,7 @@ line	appid	name	address	country
 4888	4888	Brookes, Thomas Joseph	7/51 Darley Street, NSW 2103, Mona Vale	AU
 4889	4889	F & S Manufacturing Inc.	R.R. No.1,Marriotts Cove, BOJ 1KO, Chester Basin,Novasotta	CA
 4890	4890	Precor Incorporated	20031 142nd Avenue N.E., 98072-4002, Woodinville, Washington	US
-4891	4891	The Boeing Company	, Seattle,Washington	US
+4891	4891	The Boeing Company	Seattle,Washington	US
 4892	4892	Bilfinger + Berger Bauaktiengesellschaft	Sprottauer Strasse 51, 90475, Nürnberg	DE
 4893	4893	ATTAVET	160, avenue de Jouques, ZI Les Paluds, 13685, Aubagne	FR
 4894	4894	Maatschappij voor Beheer en Innovatie Prins B.V.	Wilhelminaweg 35, 2042 NN, Zandvoort	NL
@@ -4908,7 +4908,7 @@ line	appid	name	address	country
 4907	4907	Meta System S.p.A.	via Majakovskij, 10/B, 42100, Reggio Emilia	IT
 4908	4908	Chiang, Long Y.	4th Fl., No. 15, Lane 97, Sec. 1, Hsin-Sheng S. Ro, Taipei	TW
 4909	4909	Polaris Pools Systems, Inc.	1709 La Costa Meadows Drive, CA 92069-5194, San Marcos	US
-4910	4910	Atlas Copco Rock Drills AB	, SE-701 91, Orebro	SE
+4910	4910	Atlas Copco Rock Drills AB	SE-701 91, Orebro	SE
 4911	4911	Leica Microsystems Nussloch GmbH	Heidelberger Strasse 17-19, 69222, Nussloch	DE
 4912	4912	ASSEMBLEON NV	De Run 1110, 5503 LA, Veldhoven	NL
 4913	4913	Pflanzer, Hans	Im Schlehbusch 13, 75397, Simmozheim	DE
@@ -4983,7 +4983,7 @@ line	appid	name	address	country
 4982	4982	Rag Aktiengesellschaft	Shamrockring 1, 44623, Herne	DE
 4983	4983	Yamamoto Kogaku Co., Ltd.	25-8, Chodo 3-chome Higashiosaka-shi, 577-0056, Osaka	JP
 4984	4984	PPG - SIPSY	Z.l. la Croaix-Cadeau, B.P. 79, 49242, Avrillé cedex	FR
-4985	4985	Lanxess Inc.	, N7T 7M2, Sarnia, Ontario	CA
+4985	4985	Lanxess Inc.	N7T 7M2, Sarnia, Ontario	CA
 4986	4986	Hans u. Ottmar Binder GbR	Ulmer Weg 36-40, 89558, Böhmenkirch	DE
 4987	4987	Equipe Trivellato S.r.l.	Via Galvani 16, 28060, San Pietro Mosezzo (No)	IT
 4988	4988	Press Kogyo Co., Ltd.	1-1 Shiohama 1-chome, Kawasaki-ku, 210-8512, Kawasaki-shi,Kanagawa	JP
@@ -5213,7 +5213,7 @@ line	appid	name	address	country
 5212	5212	Kertels, Peter	Klosterstrasse 24, 54338, Schweich	DE
 5213	5213	Center for Coal Utilization,Japan Tokyo Nissan Building 7F	2-31, Roppongi 6-chome,Minato-ku, 106-0032, Tokyo	JP
 5214	5214	ZFB Zentrum für Bucherhaltung GmbH	Mommsenstrasse 7, 04329, Leipzig	DE
-5215	5215	DÄTWYLER AG SCHWEIZERISCHE KABEL-, GUMMI- UND KUNSTSTOFFWERKE	, 6467, Schattdorf	CH
+5215	5215	DÄTWYLER AG SCHWEIZERISCHE KABEL-, GUMMI- UND KUNSTSTOFFWERKE	6467, Schattdorf	CH
 5216	5216	Fuhrimann, Fritz	Dorfstrasse 18, 6103, Schwarzenberg Lu	CH
 5217	5217	Mayekawa Mfg. Ltd.	13-1, Botan 2-chome, Koto-ku, 135-8482, Tokyo	JP
 5218	5218	Magneti Marelli S.p.A.	Viale Aldo Borletti 61/63, 20011 (MI), Corbetta	IT
@@ -5259,7 +5259,7 @@ line	appid	name	address	country
 5258	5258	Veralex International N.V.	Scharlooweg 81, Curacao	AN
 5259	5259	UNIVERSITY OF TENNESSEE RESEARCH FOUNDATION	1534 White Avenue, TN 37996, Knoxville	US
 5260	5259	University of Tennessee Research Foundation	1534 White Avenue, TN 37996, Knoxville	US
-5261	5261	Billerud Skärblacka AB	, 617 10, Skärblacka	SE
+5261	5261	Billerud Skärblacka AB	617 10, Skärblacka	SE
 5262	5262	WEGLER, George	Storvretsv 85 nb, 142 31, Skogas	SE
 5263	5263	IXOS Holdings Ltd	Dormer Road, OX9 3UD, Thame Industrial EstateThameOxfordshire	GB
 5264	5264	STUART ENERGY SYSTEMS CORPORATION	5101 Orbitor Drive, L4W 4V1, Mississauga,Ontario	CA
@@ -5274,7 +5274,7 @@ line	appid	name	address	country
 5273	5273	Prolume, Ltd.	1085 William Pitt Way, PA 15236, Pittsburgh	US
 5274	5274	Holtec International, Inc.	555 Lincoln Drive West, NJ 08053, Marlton	US
 5275	5275	Pacific Lithium New Zealand Limited	2 Mana Place, Manukau City, Auckland	NZ
-5276	5276	Toyota Material Handling Europe AB	, 595 81, Mjölby	SE
+5276	5276	Toyota Material Handling Europe AB	595 81, Mjölby	SE
 5277	5277	Silicon Automation Systems PVT. Ltd	3008, 12th'B' Main, 8th Cross, Hal 2nd Stage, Indi, Bangalore-560 008	IN
 5278	5278	PC Electric Ges.m.b.H.	Diesseits 145, 4973, St. Martin	AT
 5279	5279	Brem, Harold	2500 Johnson Avenue, Apt. 3D, NY 10463, Bronx	US
@@ -5354,7 +5354,7 @@ line	appid	name	address	country
 5353	5353	Acousta-Fil Limited	4, Appleton Street, Winnington, CW8 4DD, Northwich, Cheshire	GB
 5354	5354	Technical Graphics Security Products, LLC	50 Meadowbrook Industrial Park, NH 03055, Milford	US
 5355	5355	Peugeot Citroën Automobiles	route de Gizy, 78140, Velizy-Villacoublay	FR
-5356	5355	PEUGEOT CITROËN AUTOMOBILES S.A.	, 78140, Velizy Villacoublay	FR
+5356	5355	PEUGEOT CITROËN AUTOMOBILES S.A.	78140, Velizy Villacoublay	FR
 5357	5357	Baumgartner, Ernst, Dr.	Beethovenstrasse 32, 3073, Gümligen	CH
 5358	5358	MORTON INTERNATIONAL, INC.	100 North Riverside Plaza, Randolph Street at the, 60606, Illinois	US
 5359	5359	Kriegl, Walter	HNr. 136, 6771, St. Anton i.M.	AT
@@ -5437,7 +5437,7 @@ line	appid	name	address	country
 5436	5436	Hyosung Corporation	450 Kongduk-dong, Mapo-gu, 121-020, Seoul	KR
 5437	5436	Hyosung Corporation	450 Kongduk-dong,Mapo-ku, Seoul	KR
 5438	5438	Z - Laser, Optoelektronik GmbH	Bertholdstrasse 47, 79098, Freiburg	DE
-5439	5439	Kongskilde Industries A/S	, 4180, Sorö	DK
+5439	5439	Kongskilde Industries A/S	4180, Sorö	DK
 5440	5440	Eurocare Environmental Services Limited	Unit 2, Fisher Street Industrial Estate, NE6 4LT, Newcastle upon Tyne	GB
 5441	5441	Schröder, Jens-J.	Im Beckfelde 21, 31319, Sehnde	DE
 5442	5442	Hagen Method PTY. Limited	1st floor, 8-10 Waratah Street, NSW 2103, Mona Vale	AU
@@ -5552,7 +5552,7 @@ line	appid	name	address	country
 5551	5551	The Coca-Cola Company	One Coca-Cola Plaza N.W., GA 30313, Atlanta	US
 5552	5552	Nord Engineering di Armando Lodovico & C.s.n.c.	Strada Nazionale 80, 12020 S. (CN), Defendente di Cervasca	IT
 5553	5553	H B Fuller Licensing & Financing Inc.	1200 Willow Lake Blvd, Box 64683, MN 55164-0683, St. Paul	US
-5554	5554	The Texas A & M System	, TX 77843-4467, College Station	US
+5554	5554	The Texas A & M System	TX 77843-4467, College Station	US
 5555	5555	Schuler, Franz	Räbengasse 3, 6422, Steinen	CH
 5556	5556	Denkmayr, Wolfgang	Hauptstrasse 107/11/6, 2372, Giesshübl	AT
 5557	5557	Capres A/S	Diplomvej 373, 2800, Lyngby	DK
@@ -5672,7 +5672,7 @@ line	appid	name	address	country
 5671	5671	Fillafer, Friedrich	Struberstrasse 9, 5204, Strasswalchen	AT
 5672	5672	Mystix Limited	Parkway House,1 Pityme Business Centre, PL27 6PH, St. Minver,Wadebridge,Cornwall	GB
 5673	5673	Forest, Katrina T.	1720 Vilas Avenue, WI 53711, Madison	US
-5674	5674	Hööks Hästsport AB	, 501 77, Boras	SE
+5674	5674	Hööks Hästsport AB	501 77, Boras	SE
 5675	5675	INOX MECCANICA S.R.L.	Strada Solarolo, 20/B C D, 46040, Goito (Prov. of Mantova)	IT
 5676	5676	New Pharma Research Sweden AB	Ideon,Delta 6,Scheelevägen 19:F2, 223 63, Lund	SE
 5677	5677	Happy Arts & Crafts (Ningbo) Co., Ltd.	35 Fengyang Second road, Dagang Industrial City, X, 315800, Beilun,Ningbo	CN
@@ -5748,7 +5748,7 @@ line	appid	name	address	country
 5747	5747	Östgös AB	Hallingsby Gard, 614 96, Östra Ryd	SE
 5748	5748	Asilomar Pharmaceuticals, Inc.	2995 Woodside Road 400, CA 94062-2446, Woodside	US
 5749	5749	International Truck Intellectual Property Company, LLC	4201 Winfield Road, IL 60555, Warrenville	US
-5750	5750	AUDI AG	, 85057, Ingolstadt	DE
+5750	5750	AUDI AG	85057, Ingolstadt	DE
 5751	5751	Gyurcsanszky, Laszlo	Farkasdi u. 13, 8000, Székesfehérvar	HU
 5752	5752	Revivicor Inc.	1700 Kraft Drive Suite 2400, VA 24060, Blacksburg	US
 5753	5753	Trustees Of Boston University	One Silber Way, MA 02215, Boston	US
@@ -5760,7 +5760,7 @@ line	appid	name	address	country
 5759	5759	Olivero, Silvia Emilia	Washington 537, Pcia. de Buenos Aires	AR
 5760	5760	Biomedical Research Group Inc.	10-21, Higashitamagawa 1-chome Setagaya-ku, 158-0084, Tokyo	JP
 5761	5760	Bio Medical Research Group Inc.	10-21, Higashitamagawa 1-chome, 158-0084, Setagaya-kuTokyo	JP
-5762	5762	Stark S.R.L.	, 32/442017, Via Provinciale Nord, Novellara	IT
+5762	5762	Stark S.R.L.	32/442017, Via Provinciale Nord, Novellara	IT
 5763	5763	Astronics Advanced Electronic Systems Corp.	9845 Willows Road N.E., WA 98052-2540, Redmond	US
 5764	5764	Aalborg Universitet	Frederik Bajers Vej 7F, 9220, Aalborg	DK
 5765	5765	Brigham Young University	A-285,ASB,P.O. Box 21231, UT 84602-1231, Provo	US
@@ -5823,7 +5823,7 @@ line	appid	name	address	country
 5822	5822	Glaser, Alan	Unit H Field Way, Metropolitan Park, UB6 8UN, Greenford,Middlesex	GB
 5823	5823	Zohar Lightomatic Ltd.	P.O. Box 274, 20101, Karmiel	IL
 5824	5824	Eagle Picher Technologies, LLC	C and Porter Streets, MO 64801, Joplin	US
-5825	5824	Eagle Picher Technologies, LLC	'C' and Porter Streets, MO 54801, Joplin	US
+5825	5824	Eagle Picher Technologies, LLC	C' and Porter Streets, MO 54801, Jopli	US
 5826	5826	Hauswirth, William W.	University of Florida, Dept. of Ophthalmology, P.O, FL 32611, Gainesville	US
 5827	5827	Sintokogio, LTD.	28-12, Meieki 3-chome Nakamura-ku, 450-0002, Nagoya-shi, Aichi	JP
 5828	5828	Université Joseph Fourier-Grenoble 1	621 Avenue Centrale, 38400, Saint Martin d'Heres	FR
@@ -6035,7 +6035,7 @@ line	appid	name	address	country
 6034	6034	Oldenburg, Jörg	Sportplatz 15, 21734, Oederquart	DE
 6035	6035	Rhenotherm Kunststoffbeschichtungs GmbH	Peter-Jakob-Busch-Str. 8, 47906, Kempen	DE
 6036	6036	Monsanto Technology LLC	800 North Lindbergh Boulevard, Mail Code E2NA, MO 63137, St. Louis	US
-6037	6037	Wiltshire, John, David	, 27 CO6 1UH, Stoneham StreetCoggeshallEssex	GB
+6037	6037	Wiltshire, John, David	27 CO6 1UH, Stoneham StreetCoggeshallEssex	GB
 6038	6038	Atra S.r.l.	Via Pordenone, 17, 33080 (PN), San Quirino	IT
 6039	6039	SKF Aerospace France	1 avenue Marc Seguin, 26240, Saint-Vallier	FR
 6040	6040	Hanada, Masahiro	111-14, Sakuraoka 1-chome, Kuriyama-cho, 069-1501, Yubari-gun,Hokkaido	JP
@@ -6046,7 +6046,7 @@ line	appid	name	address	country
 6045	6045	Halyak, George	640 Long Valley Road, NV 89410, Gardnerville	US
 6046	6046	Wiegand, Gerald	25200 Carlos Bee Boulevard, Apt. 382, CA 94542, Hayward	US
 6047	6047	MICROSOFT CORPORATION	One Microsoft Way Redmond, 98052, Washington	US
-6048	6048	Yarmut, Yehuda	, 20 600, Moshava Yokneam	IL
+6048	6048	Yarmut, Yehuda	20 600, Moshava Yokneam	IL
 6049	6049	Tibotec Pharmaceuticals	Eastgate Village Eastgate Little Island, Co Cork	IE
 6050	6050	Eyeweb, Inc.	8th Floor 36 west 25th Street, NY, NY 10010	US
 6051	6051	FTS Computertechnik Ges.mbH	Föhrenweg 8, 2500, Baden-Siegenfeld	AT
@@ -6122,7 +6122,7 @@ line	appid	name	address	country
 6121	6121	Zuberbühler, Ines	Kaiser Wilhelm Strasse 236, 47169, Duisburg	DE
 6122	6122	National Center for Scientific Research Demokritos Institute of Microelectronics	Patriarchou Gregoriou Street, 15310, Aghia Paraskevi,Attika	GR
 6123	6122	National Center for Scientific Research Demokritos	Terma Patriarchou Gregoriou, 15310, Aghia Paraskevi,Attiki	GR
-6124	6122	National Center for Scientific Research Demokritos	, 15310, Aghia Paraskevi,Attika	GR
+6124	6122	National Center for Scientific Research Demokritos	15310, Aghia Paraskevi,Attika	GR
 6125	6125	Dresdner Kleinwort Wasserstein Limited	P O Box 18075, Riverbank House, 2 Swan Lane, EC4R 3UX, London	GB
 6126	6126	Mombaerts, Peter	504 E 63rd 25 R, NY 10021, New York	US
 6127	6127	Al-Jassim, Rawaa	2578 River Wood Drive, 60565, Napperville,Illinois	US
@@ -6179,7 +6179,7 @@ line	appid	name	address	country
 6178	6178	Nishan Systems, Inc.	3850 North First Street, CA 95134-1702, San Jose	US
 6179	6179	Beilin, Isabella Ingenieurbüro	Neustrasse 2a, 52223, Stolberg	DE
 6180	6180	Lattice Energy LLC	175 N. Harbor Drive, Suite 3205, 60601-7346, Chicago,Illinois	US
-6181	6181	Martinsons Trä AB	, 937 80, Bygdsiljum	SE
+6181	6181	Martinsons Trä AB	937 80, Bygdsiljum	SE
 6182	6182	JOT Automation Oy	Automaatiotie 1, 90460, Oulunsalo	FI
 6183	6183	Kim, Casey Ilsun	447 4th Street 100, NJ 07650, Palisades Park	US
 6184	6184	Técnicas Reunidas, S.A.	C/Arapiles 13. Planta 11, 28015, Madrid	ES
@@ -6339,7 +6339,7 @@ line	appid	name	address	country
 6338	6338	Ultimate Security Systems Corporation	5020 Campus Drive, CA 92660, Newport Beach	US
 6339	6339	Superderivatives, Inc.	7 Times Square, Suite 3501, NY 10036, New York	US
 6340	6340	Lefkowitz, Yisroel	477 Bedford Avenue, NY 11211, Brooklyn	US
-6341	6341	Helen of Troy Limited	, 13 8th 836ESt., AvenueBellevilleP.O. Box Michael	BB
+6341	6341	Helen of Troy Limited	13 8th 836ESt., AvenueBellevilleP.O. Box Michael	BB
 6342	6342	E. I. DU PONT DE NEMOURS AND COMPANY	4417 Lancaster Pike, DE 19805, Wilmington	US
 6343	6343	Capital Bio Corporation	18 Life Science Parkway, 102206, ChangpingBeijing	CN
 6344	6344	CP & P Co. Ltd.	8F. Azis Building, 107-45 Banpo-dong, Seocho-gu, 137-040, Deoul	KR
@@ -6387,11 +6387,11 @@ line	appid	name	address	country
 6386	6386	Albrecht, Rainer	Honigmannstrasse 54, 45141, Essen	DE
 6387	6387	MITSUBISHI PLASTICS INC.	5-2, Marunouchi 2-chome, Chiyoda-ku, 100-0005, Tokyo	JP
 6388	6388	Oriedo, Vincent B. Jeremiah	1310 Ashly Court, MI 48640, Midland	US
-6389	6389	Fachhochschule Aachen	, 52428, Jülich	DE
+6389	6389	Fachhochschule Aachen	52428, Jülich	DE
 6390	6390	Ayoub, Abby	14-13 28th Street, NJ 07047, North Bergen	US
 6391	6391	Schlumberger Malco	9800 Reistertown Road, MD 21117, Owings Mills	US
 6392	6392	N2IT Holding B.V.	Ellermanstraat 12-3, 1099 BW, Amsterdam	NL
-6393	6393	Adelan Limited	'Wycherley', Tower Road, Ashley Heath, Market Dray, TF9 4PY, Shropshire	GB
+6393	6393	Adelan Limited	Wycherley', Tower Road, Ashley Heath, Market Dray, TF9 4PY, Shropshir	GB
 6394	6394	Msafe Ltd.	12 Hamada Street,Park Tamar, 76703, Israel	IL
 6395	6395	Isaak, Klaus	Eichenweg 19, 74653, Künzelsau-Gamberg	DE
 6396	6396	Teijin Dupont Films Japan Limited	2-1-1, Uchisaiwai-cho Chiyoda-ku, Tokyo-to	JP
@@ -6707,7 +6707,7 @@ line	appid	name	address	country
 6706	6706	Bücker, Arno	Leopoldstrasse 9, 52349, Düren	DE
 6707	6707	Turan, Servet	Hasan Polatkan Bulvari Haci Kazim Bey Apt. No, 20/, Eskisehir	TR
 6708	6708	Voestalpine Stahl GmbH	Voest-Alpine-Strasse 3, 4031, Linz	AT
-6709	6709	Alonim Holding Agricultural Cooperative Society Ltd.	, 30040, Kibbutz Alonim	IL
+6709	6709	Alonim Holding Agricultural Cooperative Society Ltd.	30040, Kibbutz Alonim	IL
 6710	6710	Plurion Limited	180 St. Vincent Street, G2 5SG, Glasgow Central	GB
 6711	6711	Bawden, Lawrence Jr.	3720 Devon Court, CA 95762, El Dorado Hills	US
 6712	6712	NIEN MADE ENTERPRISE CO., LTD.	Nien Ming, 19F-1, No. 236, Sec.2, Wuchiuan W. Rd., 408, Taichung	TW
@@ -6721,7 +6721,7 @@ line	appid	name	address	country
 6720	6720	AISIN AW Industries CO., Ltd.	38, Ikenokami-cho, 915-0873, Takefu-shi,Fukui	JP
 6721	6721	SAMSUNG ELECTRONICS CO., LTD.	416 Maetan 3-dong, Yeongtong-gu, Suwon-si,Gyeonggi-do	KR
 6722	6722	Heger, François Marc	Rieterstrasse 27, 8002, Zürich	CH
-6723	6723	Aficor S.A.	, 1409, Chaneaz	CH
+6723	6723	Aficor S.A.	1409, Chaneaz	CH
 6724	6724	University Hospital of Basel	Hebelstrasse 30, 4031, Basel	CH
 6725	6725	Mic Measuring Ideas Consulting GmbH	Altdorfstrasse 48, 79312, Emmendingen	DE
 6726	6726	Kogan, Alex	307 Eight Street, NJ 07072, Carlstadt	US
@@ -6743,7 +6743,7 @@ line	appid	name	address	country
 6742	6742	Witte Van Moort	Westeinde 632,BP 23, 7670 AA, Vrizenveen	NL
 6743	6743	Wu, Jialin	88 Jialing Road, 610043, Chengdu,Sichuan	CN
 6744	6744	Panasonic Communications Co., Ltd.	3-8, Shimo-Meguro, 2-chome, Meguro-ku, Tokyo	JP
-6745	6745	Svenska Skogsplantor AB	, 694 36, Hallsberg	SE
+6745	6745	Svenska Skogsplantor AB	694 36, Hallsberg	SE
 6746	6746	L'Oréal USA Creative, Inc.	575 Fifth Avenue, NY 10017, New York	US
 6747	6747	Papageorgiou, Nikolaos	60 Terpsitheas, 153 41, Agia paraskevi	GR
 6748	6748	Rodrigues, Pedro	Stubengasse 30, 44135, Dortmund	DE
@@ -6995,7 +6995,7 @@ line	appid	name	address	country
 6994	6994	Sustech GmbH & Co. KG	Petersenstrasse 20, 64287, Darmstadt	DE
 6995	6995	Mc Master University	Mc Master Industry Liaison Office 175 Longwood Roa, L8P 0A1, Hamilton, Ontario	CA
 6996	6996	DEINES, Kent, L.	13992 Dodder Ct., CA 92064-2287, Poway	US
-6997	6997	Sunco Ltd	, Kowloon,Hong Kong	CN
+6997	6997	Sunco Ltd	Kowloon,Hong Kong	CN
 6998	6998	Torres, Manel	28 Mackie Road, SW2 2EB, London	GB
 6999	6999	VHIT S.P.A. VACUUM & HYDRAULIC PRODUCTS ITALY	Via Cavalli 53/A, 26013, Crema	IT
 7000	7000	Bindesböl, Tommy	Söndergade 13, 7280, Sdr. Felding	DK
@@ -7098,11 +7098,11 @@ line	appid	name	address	country
 7097	7097	A.R.I. Flow Control Accessories Agricultural Cooperative	Kibbutz Kfar Charuv, 12932 D.N., Ramat Hagolan	IL
 7098	7098	Huper Optik International Pte. Ltd.	12 Jalan Kilang Barat, 159354, Singapore	SG
 7099	7099	Mitsui Bussan Logistics Inc.	Suite 1480, 5910 N. Central Expressway, TX 75206, Dallas	US
-7100	7100	Mok, Kwan Ho	, 161-1202 2-cha 1-don, Hyundei Sungwoo Apt.Sanghyeon MaeulSangh	KR
-7101	7101	Rantrua, Jean	'Giroune', 81630, Montgaillard	FR
+7100	7100	Mok, Kwan Ho	161-1202 2-cha 1-don, Hyundei Sungwoo Apt.Sanghyeon MaeulSangh	KR
+7101	7101	Rantrua, Jean	Giroune', 81630, Montgaillar	FR
 7102	7102	Quiachon, Perfecto B. Jr.	P.O. Box 610340, CA 95161-0340, San Jose	US
 7103	7103	Aptina Imaging Corporation	Regatta Office Park West Bay Road, Y1-1205, Grand Cayman	KY
-7104	7104	Powercell Sweden AB	, SE 40508, Göteborg	SE
+7104	7104	Powercell Sweden AB	SE 40508, Göteborg	SE
 7105	7105	INSTITUTO NACIONAL DE PSIQUIATRIA RAMON DE LA FUENTE MUNIZ	Calzada México-Xochimilco No. 101 Col. San Lorenzo, 14370 D.F., Delegación TlalpanC.P. México	MX
 7106	7106	Sugerman, Gerald	8 Cambridge Drive, NJ 07401, Allendale	US
 7107	7107	Endovascular Devices, Inc.	10203 Birchridge Drive, Suite 400, TX 77338, Humble	US
@@ -7226,7 +7226,7 @@ line	appid	name	address	country
 7225	7225	Siegfried AG	Untere Brühlstrasse 4, 4800, Zofingen	CH
 7226	7226	Yu, Li-Ying	Rakentajantie 10C 33, 00370, Helsinki	FI
 7227	7227	Advanced Flow Technology Inc.	4-18-19, Minato-ku, 108, Chiba	JP
-7228	7228	Veritainer Corporation	, 1127 201St. 94574, Pope Street, Suite Helena, California	US
+7228	7228	Veritainer Corporation	1127 201St. 94574, Pope Street, Suite Helena, California	US
 7229	7229	Scivax Corporation	Kanagawa Science Park East 502, 3-2-1 Sakado Takat, 2130012, Kanagawa	JP
 7230	7230	Swipro AG	Rudolf Kamm, Hauptstrasse 62, 8872, Weesen	CH
 7231	7231	Euromid S.r.l.	Via Piedimonte, 12, 23868 (LC), Valmadrera	IT
@@ -7507,7 +7507,7 @@ line	appid	name	address	country
 7506	7506	Passport Systems, Inc.	15 Craig Road, MA 01720, Acton	US
 7507	7507	Graff, Richard A.	400 N. Michigan Ave., Suite 1616, IL 60611, Chicago	US
 7508	7508	AEA S.r.l.	Via Fiume, 16 Frazione Angeli, (AN), Rosora	IT
-7509	7509	Diana Naturals	, 35560, Antrain	FR
+7509	7509	Diana Naturals	35560, Antrain	FR
 7510	7510	Lein Applied Diagnostics Limited	27 The Junipers, Wokingham, RG41 4UX, Berkshire	GB
 7511	7511	WINEGARD COMPANY	3000 Kirkwood Street, IA 52601-2000, Burlington	US
 7512	7512	Smith, Derek	7872 Camino Kiosco, CA 92122, San Diego	US
@@ -7625,7 +7625,7 @@ line	appid	name	address	country
 7624	7624	STREX INCORPORATION	2-7-20, Minamisemba Chuo-ku Osaka-shi, 542-0081, Osaka	JP
 7625	7625	Nexco Inc.	19 Legault Street P.O. Box 23040, P1A 4K6, North Bay, Ontario	CA
 7626	7626	Fred Hutchinson Cancer Research Center	1100 Fairway Avenue North, J5-110 P.O. Box 19024, WA 98109-1024, Seattle	US
-7627	7627	Adphil Limited	, 18 CB23 3XJ, Wimbish RoadPapworth, EverardCambridge	GB
+7627	7627	Adphil Limited	18 CB23 3XJ, Wimbish RoadPapworth, EverardCambridge	GB
 7628	7628	Eco Cath-Lab Systems, INC.	1645 Hillwood Drive, 48304-2414, Bloomfield Hills, Michigan	US
 7629	7629	Comau, Inc.	21000 Telegraph Road, MI 48033, Southfield	US
 7630	7630	Cogoni, Manolo	Via E. Malatesta, 2, 01034 VT, Fabrica di Roma	IT
@@ -7634,7 +7634,7 @@ line	appid	name	address	country
 7633	7633	USA as represented by the administrator of the NASA	NASA Headquarters 300 E Street SW, DC 20024-3210, Washington	US
 7634	7634	SPI Scientific Precision Instruments GmbH	Wormser Strasse 32, 55276, Oppenheim	DE
 7635	7635	Nagasaki University, National University Corporation	1-14 Bunkyo-machi, 852-8521, Nagasaki-shiNagasaki	JP
-7636	7636	Immune Targeting Systems	, 45 GU21 4TD, Meadway DriveWokingSurrey	GB
+7636	7636	Immune Targeting Systems	45 GU21 4TD, Meadway DriveWokingSurrey	GB
 7637	7637	Seymour, Lindsey Brenda	12 Orchard Road Orchards, Johannesburg2119	ZA
 7638	7638	Zhang, Hongyu	3359 Mentone Avenue 7, CA 90034, Los Angeles	US
 7639	7639	Vosejpka, Paul C.	706 E. Chippewa River Road, MI 48640, Homer Twp	US
@@ -7660,7 +7660,7 @@ line	appid	name	address	country
 7659	7659	Laudenbach, Katharina	Gehrenstrasse 42, 78559, Gosheim	DE
 7660	7660	zeta AG Bioprocess Systems	Büelgasse 1a, 8855 SZ, Wangen	CH
 7661	7661	Paju, Annuka	Maratontie 25 A 1, 01280, Vantaa	FI
-7662	7662	Blue Spark Technologies, Inc.	, 806 OH 44145, Sharon Drive, Suite GWestlake	US
+7662	7662	Blue Spark Technologies, Inc.	806 OH 44145, Sharon Drive, Suite GWestlake	US
 7663	7663	De Beuil, Michel	71, rue du Chateau, 60240, Fay-les-Etangs	FR
 7664	7664	Sensible Solutions AB	Kroken, 851 71, Sundsvall	SE
 7665	7665	Measurement Technology Laboratories Corporation	10901 Nesbitt Avenue South, MN 55437, Minneapolis	US
@@ -7674,7 +7674,7 @@ line	appid	name	address	country
 7673	7673	Aepsilon Rechteverwaltungs GmbH	Lochhamer Schlag 6, 82166, Gräfelfing	DE
 7674	7674	Glaxosmithkline Australia PTY Ltd.	1061 Mountain Highway, VIC 3155, Boronia	AU
 7675	7675	Pulmonox Technologies Corporation	4231 Glenhaven Crescent, BC V7G 1B8, North Vancouver	CA
-7676	7676	Nanojetlink Ltd.	, 54B NE23 1WF, South Nelson Industrial EstateCramlingto	GB
+7676	7676	Nanojetlink Ltd.	54B NE23 1WF, South Nelson Industrial EstateCramlingto	GB
 7677	7677	Landmark Graphics Corporation	A Halliburton Company 2101 City West Blvd. Buildin, TX 77042-3021, Houston	US
 7678	7678	Jennings Technology	970 Mc Laughlin Avenue, CA 95122, San Jose	US
 7679	7679	Addepalli, Pratima	524 Woodway Bluff Circle, NC 27513, Cary	US
@@ -7704,7 +7704,7 @@ line	appid	name	address	country
 7703	7703	Koroski Holding d.o.o.	Pod gradom 4, 2380, Slovenj Gradec	SI
 7704	7704	David, Leonard	40 Davina Crescent, NSW 2171, Cecil Hills	AU
 7705	7705	Pace, Susan	361 Union Boulevard, NY 11795, West Islip	US
-7706	7706	Jimenez, Albert	, 53 TA1 4LG, Scafell CloseTaunton	GB
+7706	7706	Jimenez, Albert	53 TA1 4LG, Scafell CloseTaunton	GB
 7707	7707	KIERNAN, Doug	725 Corbett Ave No. 14, CA 94131, San Francisco	US
 7708	7708	Loiselet, Michel	Le Causse, 12490, Montjaux	FR
 7709	7709	Recurrent Engineering LLC	11814 S. Election Road, Ste. 100, UT 84020, Draper	US
@@ -7734,7 +7734,7 @@ line	appid	name	address	country
 7733	7733	Amiad Filtration Systems (1997) Ltd.	Kibbutz Amiad, 12335 D.N. 1, Upper Galil	IL
 7734	7734	Spider Technologies Security Ltd.	7 Lev Pesach Street Northern Industrial Zone, 71293, Lod	IL
 7735	7735	Wadsworth, Jeremy E.	3131 South Princess Circle, CO 80020, Broomfield	US
-7736	7736	Minor, Michael W.	, 19 TW18 4XE, Manor ParkStainesMiddlesex	GB
+7736	7736	Minor, Michael W.	19 TW18 4XE, Manor ParkStainesMiddlesex	GB
 7737	7737	Motiva LLC	8156 Campden Lakes Blvd, OH 43016, Dublin	US
 7738	7738	BONGIOVI, Anthony	649 SW Whitmore Drive, FL 34984, Port St. Lucie	US
 7739	7739	Pigeon Corporation	4-4, Nihonbashi Hisamatsucho, Chuo-kuTokyo1038480	JP
@@ -7744,7 +7744,7 @@ line	appid	name	address	country
 7743	7743	Sylentis S.A.	Calle José Abascal 2, 28003, Madrid	ES
 7744	7744	Tripod Components Pty Ltd	468 Great Eastern Highway, WA 6104, Ascott	AU
 7745	7745	Bamford, Anthony S.	Little Craigo Craigo, DD10 9JT, Montrose	GB
-7746	7746	Croft, Guy Cameron	, 3B - LN6 3QT, Unit Whisby RoadLincoln	GB
+7746	7746	Croft, Guy Cameron	3B - LN6 3QT, Unit Whisby RoadLincoln	GB
 7747	7747	Lehner, Christoph	Hildastrasse, 9, 69115, Heidelberg	DE
 7748	7748	MEDICAL INSTRUMENTS S.p.A.	Via Speranza 3/b, 40068 BO, San Lazzaro Di Savena	IT
 7749	7749	Obergfell, Manfred	Ahornweg 1, 78144, Tennenbronn	DE
@@ -7890,7 +7890,7 @@ line	appid	name	address	country
 7889	7889	Mordelt, Olaf Karl-Heinz	Sindringer Strasse 12, 74249, Jagsthausen	DE
 7890	7890	SA Cryolog	89-93 Avenue Paul Vaillant Couturier, 94250, Gentilly	FR
 7891	7891	ROSHDY, Osama Kamal El-Sayed	2A Al-Riad St., Al-Kawmia, Post code: 44111, Zagazig	EG
-7892	7892	Zakrytoe Aktsionernoe Obschestvo 'Technoexan'	, 26St.Petersburg, 194, Ul. Politekhnicheskaya	RU
+7892	7892	Zakrytoe Aktsionernoe Obschestvo 'Technoexan'	26St.Petersburg, 194, Ul. Politekhnicheskaya	RU
 7893	7893	Bocchiotti S.p.A. Societa' per l'Industria Elettrotecnica	Via Vittor Pisani, 16, I-20124, Milano	IT
 7894	7894	N-Crypt, Inc.	2293-1 Nakamura-cho, 512-8044, Yokkaichi-shi, Mie	JP
 7895	7895	Cowan, Michael L.	117 Gerrard St. E., Apt. 903, ON M5B 2L4, Toronto	CA
@@ -7922,7 +7922,7 @@ line	appid	name	address	country
 7921	7921	MONSANTO EUROPE S.A.	Haven 627 Scheldelaan 460, 2040, Antwerpen	BE
 7922	7922	East Jordan Iron Works, Inc.	Post Office Box 439, MI 49727, East Jordan	US
 7923	7923	Ception Therapeutics, Inc.	101 Lindenwood Drive, Suite 400, PA 19355, Malvern	US
-7924	7924	Durouge, Henri	, Noël84110, Résidence Empereur Hadrien, Rue Bernard	FR
+7924	7924	Durouge, Henri	Noël84110, Résidence Empereur Hadrien, Rue Bernard	FR
 7925	7925	Logipack Partner Company GmbH & Co. KG	Greifswalder Chaussee 84-85, 18439, Stalsund	DE
 7926	7926	Holburn Therapeutics Inc.	1100 Bennett Road, ON L1C 3K5, Bownmanville	CA
 7927	7927	Toombs, Marcus	38 Calder Road, Melton Park, IP12 1TP, Woodbridge Suffolk	GB
@@ -8076,7 +8076,7 @@ line	appid	name	address	country
 8075	8075	Cancercure Technology AS	Camilla Colletts vei 20, 0258, Oslo	NO
 8076	8076	Zonnewater B.V.	Roosstraat 64, 3333 SM, Zwijndrecht	NL
 8077	8077	Reynolds, Kim	435 Lantern Lane, PA 19312, Berwyn	US
-8078	8078	Scarborough, Robert James	, 6, NG31 8BG, Number Albion Street,GranthamLincolnshir	GB
+8078	8078	Scarborough, Robert James	6, NG31 8BG, Number Albion Street,GranthamLincolnshir	GB
 8079	8079	Streeb, Martin	Schonblickstrasse 22, 76597, Loffenau	DE
 8080	8080	3GSolar Ltd.	3 Hamarpe Street Har Hotzvim, 97774, Jerusalem	IL
 8081	8081	Pan, Xiaoming	Mujia Village, Changzhou213000, Jiaoxi Town, Wujin DistrictJiangsu	CN
@@ -8175,9 +8175,9 @@ line	appid	name	address	country
 8174	8174	DELAWARE POWER SYSTEMS CORP.	12280 Horseshoe Way, BC V7A 4Z1, Richmond	CA
 8175	8175	DPS Techniek	Braakmanweg 1, 4521 PV, Biervliet	NL
 8176	8176	Vertegen, Inc.	7 Fair Oaks Terrace, MA 02421, Lexington	US
-8177	8177	Specialist Process Technologies Limited	, 3469Road, Geneva PlaceWaterfront DriveP.O. Box Tow	VG
+8177	8177	Specialist Process Technologies Limited	3469Road, Geneva PlaceWaterfront DriveP.O. Box Tow	VG
 8178	8178	Bodrozic, Sinisa	Nordstrasse 60, 8200, Schaffhausen	CH
-8179	8179	Yttersian, Torstein	, 7260, Sistranda	NO
+8179	8179	Yttersian, Torstein	7260, Sistranda	NO
 8180	8180	Hyundai Rotem Company	85, Daewon-dong, 641-808, Changwon	KR
 8181	8181	PRL USA Holdings, Inc	650 Madison Avenue, NY 10022, New York	US
 8182	8182	Nicoullaud, Alain Yves	19 Bis Avenue Bellevue, 06100, Nice	FR
@@ -8241,7 +8241,7 @@ line	appid	name	address	country
 8240	8240	Ageratec AB	Herrebro, 605 97, Norrköping	SE
 8241	8241	Menon & Associates	12282 Libelle Court, CA 92131, San Diego	US
 8242	8242	Venkatraman, Guruprasad	9 First Street, Kamaraj Nagar Nagalkeni-Chromepet, 600 011, Chennai Tamilnadu	IN
-8243	8243	Thornton, Thomas John Oliver	, 17 SE11 4 UD, St Marys GardensLondon	GB
+8243	8243	Thornton, Thomas John Oliver	17 SE11 4 UD, St Marys GardensLondon	GB
 8244	8244	Dart, Ernst Antony	14 School Street, QLD 4680, Tannum Sands	AU
 8245	8245	STS Group	8 Rue Saint Augustin, 75002, Paris	FR
 8246	8246	DESALACION INTEGRAL SYSTEMS, S.L.	C/Alfonso X El sabio, 11, 30008, Murcia	ES
@@ -8378,7 +8378,7 @@ line	appid	name	address	country
 8377	8377	Korea Delphi Automotive Systems Corporation	580-1, Buk-Ri Nongong-Eup Dalseong-Gun, 711-712, Daegu	KR
 8378	8378	Kabushiki Kaisha Topcon	75-1 Hasunuma-cho Itabashi-ku, Tokyo-toTokyo	JP
 8379	8379	INTA Instituto Nacional de Técnica Aeroespacial	Carretera de Torrejón a Ajalvir, Km. 4,2, 28850, Torrejón de Ardoz	ES
-8380	8380	Rofin-Sinar UK Ltd	, HU10 6HD, York Way, WillerbyKingston upon Hull	GB
+8380	8380	Rofin-Sinar UK Ltd	HU10 6HD, York Way, WillerbyKingston upon Hull	GB
 8381	8381	Taiwan Network Computer & Electronic Co., Ltd.	No. 95, Cheng Ho Street Lu-Chou District, New Taipei City	TW
 8382	8382	STZ Mechatronik	W.-von-Siemens-Strasse 12, 98693, Ilmenau	DE
 8383	8383	HTC Corporation	No. 23, Xinghua Rd., Taoyuan CityTaoyuan County	TW
@@ -8468,7 +8468,7 @@ line	appid	name	address	country
 8467	8467	Casey, Paul	Philippseich 1, 63303, Dreieich	DE
 8468	8468	Kine ehf	Baejarhraun 8, 220, Hafnarfjordur	IS
 8469	8469	Jormay, Inc.	3411 Preston Road Suite C-13-216, TX 75034, Fisco	US
-8470	8470	Gordon, John Howard	, 958 UT 84093, North Terrace Hills DriveSalt Lake City	US
+8470	8470	Gordon, John Howard	958 UT 84093, North Terrace Hills DriveSalt Lake City	US
 8471	8471	Chongquing institute of Ecological Materia Medica Co Limited	90-3-1 Wanshou Garden, NanpingChonquin	CN
 8472	8472	Peg Biosciences	11 Deer Park Drive, Suite 2002, NJ 08852, Monmouth Junction	US
 8473	8473	Oktay Kutlu	Resatbey Mah. 16.Sk Yalcinkaya Apt. No:10 K: 8D, 16 01120, Seyhan-Adana	TR
@@ -8552,7 +8552,7 @@ line	appid	name	address	country
 8551	8551	Viasat SpA	Via Tiburtina, 1180, 00156, Roma	IT
 8552	8552	Inter Control Hermann Köhler GmbH & Co. KG	Schafhofstr. 30, 90411, Nürnberg	DE
 8553	8553	Furuno Electric Co., Ltd.	9-52, Ashihara-cho, 662-8580, Nishinomiya-City, Hyogo	JP
-8554	8554	Epstein, Gordon	, 592 CA 94566, Rosso CourtPleaseton	US
+8554	8554	Epstein, Gordon	592 CA 94566, Rosso CourtPleaseton	US
 8555	8555	Squell Systemgetränke Gmbh	Friederikenstrasse 122-124, 26871, Papenburg	DE
 8556	8556	Tachoulas, George	35 General Sarafis Str., 38222, Volos	GR
 8557	8557	Bergh, Siri	Henrik Mathiesens Vei 28, 7015, Trondheim	NO
@@ -8562,7 +8562,7 @@ line	appid	name	address	country
 8561	8561	INSERM (Institut National de la Santé et de la Recherche Scientifique)	7 Rue Watt, 75013, Paris	FR
 8562	8562	Seesaw Networks Inc.	220 Montgomery Street Suite 545, CA 94104, San Francisco	US
 8563	8563	Adready, Inc.	146 N. Canal Street Suite 340 Seattle, WA 98103	US
-8564	8564	Mcintosh, John Richard	, 2, 25 B32 4AW, Bucknell CrescentBartley GreenBirmingham	GB
+8564	8564	Mcintosh, John Richard	2, 25 B32 4AW, Bucknell CrescentBartley GreenBirmingham	GB
 8565	8565	Tan, Yi	Building 5, Peng Hua Industry Park Heping Road Bao, 518000, Guangdong	CN
 8566	8566	Northeastern University	No.11, Lane 3 Wenhua Road, 110004, Heping DistrictShenyangLiaoning	CN
 8567	8567	Chen, Hon-Wen	No. 3, Alley 8 Lane 86 Taishan Rd. Yilan City, Yilan County	TW
@@ -8646,7 +8646,7 @@ line	appid	name	address	country
 8645	8645	SAEG S.r.l.	Corso di Vittorio Giuseppe 51, 27029 (PV), Vigevano	IT
 8646	8646	Byd Company Limited	No. 3001, Hengping Road Pingshan Longgang District, 518118, ShenzhenGuangdong	CN
 8647	8647	Meccanica Vadese S.r.l.	Via Flaminia s.n. Frazione San Martino del piano, 61034, Fossombrone	IT
-8648	8648	Eroglu, Yakup	, 15 34150BayrampasaIs, Tuna cad. No.	TR
+8648	8648	Eroglu, Yakup	15 34150BayrampasaIs, Tuna cad. No.	TR
 8649	8649	Supcon Group CO., LTD.	Supcon Park No.309, Liuhe Road Binjiang District H, 310053, Zhejiang	CN
 8650	8650	Beyer, André	Vulsiekshof 43, 33619, Bielefeld	DE
 8651	8651	Armstrong, Ralph	30 Greenfield Drive, CT 06883, Weston	US
@@ -8659,7 +8659,7 @@ line	appid	name	address	country
 8658	8658	Hörmann, Jan	Falkenstrasse 18, 33803, Steinhagen	DE
 8659	8659	Caruncho Torga, Enrique	c/ Argensola, 10, 2º Ext, 28004, Madrid	ES
 8660	8660	2138357 Ontario Inc.	110-5925 Airport Road Airway Centre, L4V 1W1, Mississauga, Ontario	CA
-8661	8661	Gutierrez, Ana	, 4090PenalolenSantiag, Av. Alvaro Casanova	CL
+8661	8661	Gutierrez, Ana	4090PenalolenSantiag, Av. Alvaro Casanova	CL
 8662	8662	Metalbuttons S.p.A.	Via Della Republica, 59, 24060 (BG), Cividino	IT
 8663	8663	Bruch, Jochen	Grossherzog-Karl-Strasse 4, 78050, Villingen-Schwenningen	DE
 8664	8664	Schmutzenhofer, Michael	Ulmenweg 73, 86169, Augsburg	DE
@@ -8667,7 +8667,7 @@ line	appid	name	address	country
 8666	8666	The Arizona Board of Regents for and on behalf of Arizona State University	1475 N. Scottsdale Road, Skysong - Suite 200, 85257, Scottsdale, Arizona	US
 8667	8667	União Brasileira De Educação E Assistência - Mantenedora Da Pucrs	Av. Ipiranga 6.681, prédio 96C Sala 119, CEP: 90670-020 - RS, Porto Alegre	BR
 8668	8668	Haidinger, Andreas	Ammerhof 10, 82396, Pähl	DE
-8669	8669	Bakhar, Vasily Pavlovich	, 5Nikolo-UryupinoKras, Ul. Sokolniki, raionMoskovskaya obl.	RU
+8669	8669	Bakhar, Vasily Pavlovich	5Nikolo-UryupinoKras, Ul. Sokolniki, raionMoskovskaya obl.	RU
 8670	8670	Spliethoff's Bevrachtingskantoor B.V.	Radarweg 36, 1042 AA, Amsterdam	NL
 8671	8671	Stresspro Biomedicine Incorporation	No.4, Aly 9, Lane 799 Chung-hua Road Sec.6 Hsiangs, Taiwan	CN
 8672	8672	Hitachi Consumer Electronics Co. Ltd.	2-1, Otemachi 2-chome Chiyoda-ku, 100-0004, Tokyo	JP
@@ -8708,12 +8708,12 @@ line	appid	name	address	country
 8707	8707	Hein, Viktoria	Sudetenstrasse 10, 63762, Grossostheim	DE
 8708	8708	Nintendo Co., Ltd.	11-1, Hokotate-Cho Kamitoba, 601-8501, Minami-kuKyoto	JP
 8709	8709	Ostmeier, Hubert, Dipl.-Ing.	Rodderbergstrasse 68, 53179, Bonn	DE
-8710	8710	Puramed Bioscience INC.	, 1326 WI 54476, Schofield AvenueSchofield	US
+8710	8710	Puramed Bioscience INC.	1326 WI 54476, Schofield AvenueSchofield	US
 8711	8711	Etubics Corporation	1124 Columbia Street, 98104, Seattle, Washington	US
-8712	8712	Medy-Tox, INC.	, 641-4 363-883, Kak-riOchang-eupCheongwon-gunChungcheong	KR
+8712	8712	Medy-Tox, INC.	641-4 363-883, Kak-riOchang-eupCheongwon-gunChungcheong	KR
 8713	8713	Ludwig, Jürgen	Kelzer Busch 12, 50171, Kerpen	DE
 8714	8714	AWS Ocean Energy Limited	13 Henderson Road Longman Industrial Estate, IV1 1SN, Inverness	GB
-8715	8715	The Nottingham Trent University	, Nottingham, Nottinghamshire	GB
+8715	8715	The Nottingham Trent University	Nottingham, Nottinghamshire	GB
 8716	8716	Canyon Co., Ltd.	3-28, Minamioi 3-chome, 140-0013, Shinagawa-kuTokyo	JP
 8717	8717	Smart Light S.r.l.	Via Bottelli s.n.c., 44020 (FR), Ostellato	IT
 8718	8718	Eguren Berasategui, José	Barrio Salbatore 17, 20200, Beasain (Gipuzkoa)	ES
@@ -8751,13 +8751,13 @@ line	appid	name	address	country
 8750	8750	Nobbe, Martin	Eichendorffstrasse 1, 49565, Bramsche-Engter	DE
 8751	8751	H2O Concepts International Inc.	1518 W. Knudsen Drive Drive 100, AZ 85027, Phoenix	US
 8752	8752	Tebian Electric Apparatus Stock CO., LTD	No.52 South Yan'an Road, 831100, Changji, Xinjiang	CN
-8753	8753	Paiva Araujo Dos Scheiba-Zorron, Ricardo	, 135, s/606Lebion2244, Av. Ataulfo de Paiva, Rio de Janeiro	BR
+8753	8753	Paiva Araujo Dos Scheiba-Zorron, Ricardo	135, s/606Lebion2244, Av. Ataulfo de Paiva, Rio de Janeiro	BR
 8754	8754	Bagm8 Limted	City House 2nd Floor Suite 268-272 Holdenhurst Roa, BH8 8AY, Bournemouth, Dorset	GB
 8755	8755	Fundació Privada Ascamm	Av. Universitat Autònoma 23, 08290, Cerdanyola del VallèsBarcelona	ES
 8756	8756	Comde Computer Messtechnik Design und Entwicklungs GmbH	Kieler Strasse 9, 14532, Stahnsdorf	DE
 8757	8757	Alcon, Inc.	Bösch 69, Hünenberg	CH
 8758	8758	Hee, Julienne Marie	88-11-01 Silverton Condominium Gurney Drive, 10250, Penang	MY
-8759	8759	Mantikas, Dimitrios	, 84600, Pyrgi Mykonos	GR
+8759	8759	Mantikas, Dimitrios	84600, Pyrgi Mykonos	GR
 8760	8760	Veglio, Bruno	Via Nuova, 27, 12060 (CN), Roddi d'Alba	IT
 8761	8761	Colotex Industrial Co., Ltd.	5F, No.13, Lane 35, Jihu Rd., Neihu Dist Taipei City	TW
 8762	8762	Yang, Huawei	No. 16 Hongda North Road Catic Bda, 100176, Beijing	CN
@@ -8773,7 +8773,7 @@ line	appid	name	address	country
 8772	8772	Albritton, Ford D. IV	3112 Greenbrier Drive, TX 75225, Dallas	US
 8773	8773	Universidade Federal De Santa Catarina (UFSC)	Autarquia Federal de Regime Especial Campus Univer, 88040-900 - SC, Florianópolis	BR
 8774	8774	Citrox Limited	Unit 11 Harvard Industrial Estate Kimbolton, PE28 0NJ, Cambridgeshire	GB
-8775	8775	Confection Textile de l'Isère Le Mas	, 38460, Moras	FR
+8775	8775	Confection Textile de l'Isère Le Mas	38460, Moras	FR
 8776	8776	Lin, Tso-Tung	No. 3 Lane 127 Sec. 1 Chung Cheng Road He He Li, M, Kaohsiung Hsien	TW
 8777	8777	Universitätsklinikum Jena	Erlanger Allee 101, 07747, Jena	DE
 8778	8778	Nano-H S.A.S.	Parc d'Activités GVIO 2 Place de l'Europe Bâtiment, 38070, Saint-quentin-fallavier	FR
@@ -8783,11 +8783,11 @@ line	appid	name	address	country
 8782	8782	Siovation, LLC	P.O. Box 768, GA 30046, Lawrenceville	US
 8783	8783	Wki Isoliertechnik Gmbh	Feldtmannstr. 147, 13088, Berlin	DE
 8784	8784	Bepart B.V.	Spijkerstraat 8, 3513 SL, Utrecht	NL
-8785	8785	Budderfly Ventures, LLC	, 10 CT 06460, Laurel AvenueMilford	US
+8785	8785	Budderfly Ventures, LLC	10 CT 06460, Laurel AvenueMilford	US
 8786	8786	Wasserman, Randall T.	9483 Camino Ruiz, Suite B, CA 92126, San Diego	US
 8787	8787	Handelsmaatschappij Willy Deweerdt BVBA	Brusselbaan 192, 9320, Erembodegem	BE
-8788	8788	UNIVERSITY OF BATH	, BA2 7AY, Claverton DownBathAvon	GB
-8789	8789	Sericol Limited	, CT10 2LE, Pysons RoadBroadstairs, Kent	GB
+8788	8788	UNIVERSITY OF BATH	BA2 7AY, Claverton DownBathAvon	GB
+8789	8789	Sericol Limited	CT10 2LE, Pysons RoadBroadstairs, Kent	GB
 8790	8790	Ciggybag Gmbh	Lilienthalstrasse 30 B, 9020, Klagenfurt am Wörthersee	AT
 8791	8791	ET Industry Co., Ltd.	155 Yongheung-ri Yongjin-myeon Wanju-gun, 565-813, Jeonbuk	KR
 8792	8792	Novega Produktonssysteme Gmbh	Gewerbepark 2, 87477, Sulzberg	DE
@@ -8833,18 +8833,18 @@ line	appid	name	address	country
 8832	8832	Prat, M. Grégoire	69 Avenue de Wagram, 75017, Paris	FR
 8833	8833	Dongyang Electronics. CO,. LTD.	A-608 Dae Woo Techno Park 187-7 Dodang-dong Wonmig, 420-130, Gyeongki-do	KR
 8834	8834	Picard, Alain	13 rue Compagnie Stéphane, 38610, Gieres	FR
-8835	8835	Tekoma Sàrl	, 41785, Route du Pra Rond Cressier	CH
+8835	8835	Tekoma Sàrl	41785, Route du Pra Rond Cressier	CH
 8836	8836	Pietrasanta Pharma S.p.A.	Via S. Francesco 67, 55049 (LU), Viareggio	IT
 8837	8837	Neuwald, Horst	Ernst-Becker-Strasse 61, 44532, Lünen	DE
 8838	8838	SCI Pharmatech, Inc.	Hai-Hu-Tsun Lu-Chu-Hsiang, Taoyuan	TW
-8839	8839	Hartmann, Frank	'Legend' Lyanmore Ardagh, County Longford	IE
+8839	8839	Hartmann, Frank	Legend' Lyanmore Ardagh, County Longfor	IE
 8840	8840	Heinrich Reutter Gmbh & Co. Kg	Bussardweg 11, 71334, Waiblingen	DE
 8841	8841	Cozzani, Roberto	Via Aleardo Aleardi, no. 6, 56028 (PI), San Miniato	IT
 8842	8842	Cetatech. Inc.	Technological Innovation Center For Mechanical Par, 664-953, Gyeongsangnam-do	KR
 8843	8843	Hetmaniok, Christoph	Grashofstrasse 25, 37671, Höxter	DE
 8844	8844	Monteresearch-Pharmaceutical Development Service	Via IV Novembre 94, 20021, Bollate	IT
 8845	8845	7L, LLC	903 Brooklawn, 80303, Boulder, Colorado	US
-8846	8846	Mccann, David	, PH1 3PA, Powbridge CottageTibbermorePerth	GB
+8846	8846	Mccann, David	PH1 3PA, Powbridge CottageTibbermorePerth	GB
 8847	8847	Rasmussen, Jan	Osterveien 34, 4631, Kristiansand	NO
 8848	8848	Resch, Kevin	94 Norman Street, N2L 1G5, Toronto, Ontario	CA
 8849	8849	Ganig, Nicholas J.	4712 Cherokee Street Apt. No. T4, MD 20740, College Park	US
@@ -8893,7 +8893,7 @@ line	appid	name	address	country
 8892	8892	Aweba Werkzeugbau Gmbh Aue	Damaschkestrasse 7, 08280, Aue	DE
 8893	8893	Lisker OY	Vähäkuja 3, 17200, Vääksy	FI
 8894	8894	Smith, Astley E.	4132 Tytahun Crescent, V6N 3M9, Vancouver, British Columbia	CA
-8895	8895	Franz Oberndorfer GmbH & Co KG	, 144623, Lambacherstrasse Gunskirchen	AT
+8895	8895	Franz Oberndorfer GmbH & Co KG	144623, Lambacherstrasse Gunskirchen	AT
 8896	8896	Pioneer Corporation	1-1, Shin-ogura Saiwai-ku, 212-0031, Kawasaki-shiKanagawa	JP
 8897	8897	Onestep Prophy Angle Llc	123 Marble Mill Road Suite B, GA 30060, Marietta	US
 8898	8898	RE. Solution3 SRL	Via Maniago 6/3, 33100, Udine	IT
@@ -9058,7 +9058,7 @@ line	appid	name	address	country
 9057	9057	Sunglass Design	8, Boulevard de la Foire, 1528, Luxembourg	LU
 9058	9058	Troutman, C. Michael	90 Sycamore Ridge, NY 14472, Honeoye Falls	US
 9059	9059	Linosport Spor Ve Kamp Malzemeleri Sanayi Ticaret Limited Sirket	Cevdet Pasa Cad. 7/9 Oral Ap. Bebek, Istanbul	TR
-9060	9060	The University Of Dundee	, 441 4HN, Dundee	GB
+9060	9060	The University Of Dundee	441 4HN, Dundee	GB
 9061	9061	Phoenix Pharmalabs, Inc.	525 West 465 North, Suite 150, 84332-5604, Providence, Utah	US
 9062	9062	Altavance Ltd.	Bahnhofstrasse 24, 3076, Worb	CH
 9063	9063	Campbell, Neil	4 Threipmuir Avenue, EH14 7EY, Balerno	GB
@@ -9365,7 +9365,7 @@ line	appid	name	address	country
 9364	9364	EPS Offshore Oil Trading PLC	8 Copthall P.O. Box 2331, Roseau	DM
 9365	9365	Stoneferry Technology, Inc.	2819 Rangewood Terrace, GA 30345, Atlanta	US
 9366	9366	BTP TECNO S.r.l.	Via Bosco I, 34, 84091, Battipaglia (Salerno)	IT
-9367	9367	DNA Interactif Fashion	't Hoge 49, 8500, Kortrijk	BE
+9367	9367	DNA Interactif Fashion	t Hoge 49, 8500, Kortrij	BE
 9368	9368	Bar Harbor Biotechnology, Inc.	18 River Field Road, 04605, Trenton, Maine	US
 9369	9369	Linnett, Laurie	Speedwell House Dirleton, EH39 5DZ, East Lothian	GB
 9370	9370	Greenidge, Darius	8387 Leeds Manor Road, VA 20106, Amissville	US
@@ -9415,11 +9415,11 @@ line	appid	name	address	country
 9414	9414	Park, Hyo Nam	2-201, Myeongwon Villa 688-3, Homaesil-dong Gwonse, 441-884, Suwon-si, Gyeonggi-do	KR
 9415	9415	Tsyhankov, Ivan Yurjevich	Ul. Shevchenko 17a Bogorodichin, 78238, Ivano-Frankovskaya obl.	UA
 9416	9416	Ontopx LED GmbH	Vor dem Thor 3, 65817, Eppstein-Ehlhalten	DE
-9417	9417	Duke University	, NC 27708-0083, Durham	US
+9417	9417	Duke University	NC 27708-0083, Durham	US
 9418	9418	ISB Water	29 rue des Petites Ecuries, 75010, Paris	FR
 9419	9419	Janowczyk, Andrew	2625 Silver Court, NY 11554, East Meadow	US
 9420	9420	Schneider, Peter	Blumenstraße 15, 87459, Pfronten	DE
-9421	9421	University Of Glasgow	, G12 8QQ, Glasgow	GB
+9421	9421	University Of Glasgow	G12 8QQ, Glasgow	GB
 9422	9422	Envitop OY	Riihitie 5, 90240, Oulu	FI
 9423	9423	Assa Abloy Entrance Systems AB	Box 131, 261 22, Landskrona	SE
 9424	9424	Siciliano, Alfredo	S.S. Pasubio 212, 36100, Vicenza	IT
@@ -9613,7 +9613,7 @@ line	appid	name	address	country
 9612	9612	Larcheveque, Jean-Marie Henri Daniel	10 rue Barrault, 75013, Paris	FR
 9613	9613	Wudarczyk, Krzysztof	Ul. Chopina 2 m. 5, 05-091, Zabki	PL
 9614	9614	Meta Sphere Technology AB	Upplagsvägen 28, 972 54, Luleå	SE
-9615	9615	Incozen Therapeutics Pvt. Ltd.	'Spectrum' Discovery Zone SP Biotech Park Phase I, 500 078, Hyderabad	IN
+9615	9615	Incozen Therapeutics Pvt. Ltd.	Spectrum' Discovery Zone SP Biotech Park Phase I, 500 078, Hyderaba	IN
 9616	9616	Fuel Matrix Ltd	Park House 10 Ray Park Avenue, SL6 8DS, Maidenhead, Berkshire	GB
 9617	9617	Nilsen, Tom Nils	Fjordgløttveien 15, 7054, Ranheim	NO
 9618	9618	Kim, We Sik	Village 1052 Singok-Ri Gochon-Myeon Gimpo-city 103, 415-759, Supsok, Gyeonggi-Do	KR
@@ -9695,7 +9695,7 @@ line	appid	name	address	country
 9694	9694	Montgomery Transport Limited	607 Antrim Road, BT36 8RF, Newtonabbey, Antrim	GB
 9695	9695	Hon Way Plastic & Metal Manufacturing Company Limited	Room 6, 17th Floor New Trend Centre 104 King Fuk S, Hong Kong	CN
 9696	9696	Zayin Technology, S.L.	Campus de la Universidad de Almeria Edificio Pita,, 04120 -, La Canada Almeria	ES
-9697	9697	Borgward, Marcel	, Oedheim	DE
+9697	9697	Borgward, Marcel	Oedheim	DE
 9698	9698	Rabey, Jose M.	3 Moshe Barazani Street, 69121, Ramat Aviv	IL
 9699	9699	Ningbo Blackpine Tools Co., Ltd	No.1118 Yufan East Road Zhenhai District, 315207, Ningbo, Zhejiang	CN
 9700	9700	442 Ventures, LLC	Suite 1800 400 West Market Street, 40202, Louisville, Kentucky	US
@@ -9788,7 +9788,7 @@ line	appid	name	address	country
 9787	9787	Parsons, James	3 Oakridge Park, BA21 3JY, Yeovil	GB
 9788	9788	Flow Med Ltd	26 Rosh Pina St., 49729, Petah Tikva	IL
 9789	9789	Føvling Træbyg Aps	Kløvermarken 3, 6683, Føvling	DK
-9790	9790	Dyb, Asbjørn Brevik	, 6050, Valderøy	NO
+9790	9790	Dyb, Asbjørn Brevik	6050, Valderøy	NO
 9791	9791	SARL Incidences Brest	Rue Alain Colas, 29200, Brest	FR
 9792	9792	Excel Dryer, Inc.	P.O. Box 365 357 Chestnut Street, 01028, East Longmeadow, Massachusetts	US
 9793	9793	Shade Saver, Inc.	3330 NW 95th Avenue Road, 34482, Ocala, Florida	US
