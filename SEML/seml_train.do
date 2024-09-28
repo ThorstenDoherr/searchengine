@@ -6,7 +6,7 @@
 //
 // Requires:
 // meta.txt or meta.dta - full meta export of the result
-// sample*.txt - scrutinized samples in ExtendedExport format 
+// *sample*.txt - scrutinized samples in ExtendedExport format, i.e. sample1.txt, export_sample.txt 
 // brain package for stata available at these sources:
 // - https://github.com/ThorstenDoherr/brain
 // - https://github.com/ThorstenDoherr/searchengine in the SEML/brain folder
@@ -114,7 +114,7 @@ if _rc != 0 {
 	}
 	
 	// preparing training data
-	local sample : dir "." files "sample*.txt"
+	local sample : dir "." files "*sample*.txt"
 	di as result `"`sample'"'
 	foreach f in `sample' {
 		di as text "importing " as result `"`f'"'
