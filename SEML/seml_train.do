@@ -19,7 +19,7 @@
 // seml_train.log - log file
 //
 // Remarks:
-// - equal has to be 1 (match) or 9 (non-match) in samples, exports and truths
+// - equal has to be 1 (match) or 9 (non-match) in samples
 // - a value in a block header of the scrutinized data (searched not empty, found empty) is the default value for the block (reduces typing)
 // - the default value in the block header is used for all missings and zeroes within a block
 // - you can define a global default value in the settings (see Settings below)
