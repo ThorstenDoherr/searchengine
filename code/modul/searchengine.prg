@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2024.09.28
+*    Date:       2025.04.28
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2024.09.28"
+	return "2025.04.28"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -248,6 +248,17 @@ define class LexArray as Custom
 	function init(str as String)
 		this.size = alines(this.lex,m.str,5," ")
 	endfunc
+
+	function append(lexarray as LexArray)
+	local size
+		if m.lexarray.size <= 0
+			return
+		endif	
+		m.size = this.size + m.lexarray.size
+		dimension this.lex[m.size]
+		acopy(m.lexarray.lex, this.lex, 1, m.lexarray.size, this.size+1)
+		this.size = m.size
+	endfunc
 enddefine
 
 define class LRCPD as Custom  && Least Character Position Delta
@@ -262,8 +273,7 @@ define class LRCPD as Custom  && Least Character Position Delta
 	scope = DEFLRCPDSCOPE
 	
 	function init()
-		this.setA("")
-		this.setB("")
+		this.reset()
 	endfunc
 	
 	function setDynamic(dynamic as Boolean)
@@ -290,6 +300,19 @@ define class LRCPD as Custom  && Least Character Position Delta
 		this.bla = createobject("LexArray",m.b)
 	endfunc
 	
+	function reset()
+		this.resetA()
+		this.resetB()
+	endfunc
+	
+	function resetA()
+		this.setA("")
+	endfunc
+	
+	function resetB()
+		this.setB("")
+	endfunc
+	
 	function compareAB()
 		return this._compare(this.ala,this.alen,this.bla)*this.weight
 	endfunc
@@ -300,9 +323,26 @@ define class LRCPD as Custom  && Least Character Position Delta
 
 	function compare()
 		if this.dynamic and this.blen > this.alen
-			return this._compare(this.bla,this.blen,this.ala)*this.weight
+			return this._compare(this.bla, this.blen, this.ala)*this.weight
 		endif
-		return this._compare(this.ala,this.alen,this.bla)*this.weight
+		return this._compare(this.ala, this.alen, this.bla)*this.weight
+	endfunc
+	
+	function append(lrcpd as LRCPD)
+		this.appendA(m.lrcpd)
+		this.appendB(m.lrcpd)
+	endfunc
+	
+	function appendA(lrcpd as LRCPD)
+		this.astr = this.astr + m.lrcpd.astr
+		this.alen = this.alen + m.lrcpd.alen
+		this.ala.append(m.lrcpd.ala)
+	endfunc
+
+	function appendB(lrcpd as LRCPD, settings as Boolean)
+		this.bstr = this.bstr + m.lrcpd.bstr
+		this.blen = this.blen + m.lrcpd.blen
+		this.bla.append(m.lrcpd.bla)
 	endfunc
 	
 	hidden function _compare(ala, alen, bla)
@@ -338,7 +378,7 @@ define class LRCPD as Custom  && Least Character Position Delta
 enddefine
 
 define class RunFilter as Custom
-	dimension run[256]
+	dimension run[255]
 	valid =  .f.
 	filtering = .f.
 	renumbering = .f.
@@ -453,9 +493,9 @@ define class RunFilter as Custom
 
 	function renumber(run as Integer)
 		if m.run <= 0 or m.run > this.maxorg
-			return 0
+			return m.run
 		endif
-		return this.num[m.run]
+		return evl(this.run[m.run], m.run)
 	endfunc
 	
 	function getMaxRun(original as Boolean)
@@ -1515,6 +1555,7 @@ define class SearchTypes as Custom
 		if m.basecnt <= 0
 			return -1
 		endif
+		rand(-1)
 		m.loop = max(evl(m.loop,250),1)
 		m.col = createobject("Collection")
 		dimension m.sample[m.loop]
@@ -3316,7 +3357,7 @@ define class ResultTable as BaseTable
 		this.resizeRequirements()
 	endfunc
 
-	function create(engine as SearchEngine, shuffle as Double, low as Double, high as Double, runFilter as String, newrun as boolean)
+	function create(engine as SearchEngine, shuffle as Double, weighted as Boolean, low as Double, high as Double, runFilter as String, newrun as Boolean)
 		if pcount() == 0
 			if BaseTable::create()
 				insert into (this.alias) (searched, found, identity, score, run) values (0, 0, -1, -1, chr(0))
@@ -3325,7 +3366,7 @@ define class ResultTable as BaseTable
 			return .f.
 		endif
 		local pa, lm, psl
-		local result, tmp, draw, sql, run
+		local result, tmp, draw, sql, run, max
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
@@ -3352,6 +3393,10 @@ define class ResultTable as BaseTable
 		endif
 		if not vartype(m.shuffle) == "N"
 			m.shuffle = -1
+		endif
+		if not vartype(m.weighted) == "L"
+			this.messenger.errormessage("Invalid weighting.")
+			return .f.
 		endif
 		if not inlist(vartype(m.low),"N","L")
 			this.messenger.errormessage("Invalid low range.")
@@ -3396,23 +3441,31 @@ define class ResultTable as BaseTable
 			this.useExclusive()
 		else
 			if m.shuffle > 0
+				rand(-1)
 				if empty(m.sql)
 					m.tmp = m.result
 					m.tmp.forceKey("searched")
 				else							
 					this.messenger.forceMessage("Filtering...")
 					m.tmp = createobject("TempAlias")
-					m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into cursor "+m.tmp.alias
+					m.sql = "select * from "+m.result.alias+" where searched == 0 or ("+m.sql+") into cursor "+m.tmp.alias+" readwrite" 
 					&sql
 					index on searched tag searched
 				endif
 				this.messenger.forceMessage("Shuffling...")
 				m.draw = createobject("TempAlias")
-				select distinct searched from (m.tmp.alias) where searched > 0 into cursor (m.draw.alias) readwrite
+				if m.weighted
+					select searched, count(*) as cnt from (m.tmp.alias) where searched > 0 group by 1 into cursor (m.draw.alias) readwrite
+					calculate max(cnt) to m.max
+					m.sql = "log(rand()*m.max/cnt)"
+				else
+					select distinct searched from (m.tmp.alias) where searched > 0 into cursor (m.draw.alias) readwrite
+					m.sql = "rand()"
+				endif
 				if m.shuffle < 1
 					m.shuffle = max(int(reccount(m.draw.alias) * m.shuffle + 0.5),1)
 				endif
-				m.sql = textmerge('select top <<int(m.shuffle)>> searched, cast(rand() as b) as rnd from <<m.draw.alias>> order by 2 into cursor <<m.draw.alias>> readwrite')
+				m.sql = textmerge('select top <<int(m.shuffle)>> searched, cast(<<m.sql>> as b) as rnd from <<m.draw.alias>> order by 2 into cursor <<m.draw.alias>> readwrite')
 				&sql
 				insert into (m.draw.alias) values (0, -1)
 				select a.* from (m.tmp.alias) a, (m.draw.alias) b where a.searched == b.searched into table (this.dbf)
@@ -3427,7 +3480,7 @@ define class ResultTable as BaseTable
 			endif
 			if m.runFilter.isRenumbering()
 				this.messenger.forceMessage("Renumbering...")
-				update (this.alias) set run = chr(m.runFilter.run[asc(run)]) where asc(run) != m.runFilter.run[asc(run)]
+				this.renumberRun(m.runFilter)
 			endif
 			calculate max(run) for searched > 0 to m.run
 			this.setRun(asc(m.run))
@@ -3441,6 +3494,190 @@ define class ResultTable as BaseTable
 		this.useShared()
 		return .t.
 	endfunc	
+
+	function strip(threshold as Double, cutoff as Integer, inverse as Boolean, runFilter)
+	local pa, lm, psl, key, result, i, sql, script, msg
+	local array run[1]
+		m.psl = createobject("PreservedSettingList")
+		m.psl.set("escape","off")
+		m.psl.set("talk","off")
+		m.psl.set("deleted","off")
+		m.psl.set("safety","off")
+		m.psl.set("exclusive","on")
+		m.pa = createobject("PreservedAlias")
+		m.lm = createobject("LastMessage",this.messenger)
+		this.messenger.forceMessage("Stripping...")
+		if not this.isValid()
+			this.messenger.errorMessage("ResultTable is not valid.")
+			return .f.
+		endif
+		m.threshold = iif(vartype(m.threshold) == "N", min(m.threshold,101), -1)
+		m.cutoff = iif(vartype(m.cutoff) == "N", m.cutoff, iif(m.inverse, 1, -1))
+		if not inlist(vartype(m.runFilter),"O","C","L")
+			this.messenger.errormessage("Invalid runFilter setting.")
+			return .f.
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter",m.runFilter)
+		endif
+		if not m.runFilter.isValid()
+			this.messenger.errormessage("Run filter expression is invalid.")
+			return .f.
+		endif
+		if not this.useExclusive()
+			this.messenger.errormessage("Unable to get exclusive access.")
+			return .f.
+		endif
+		if m.threshold <= 0 and m.cutoff <= 0
+			this.renumberRun(m.runFilter)
+			return .t.
+		endif
+		m.key = iif(m.inverse, "found", "searched")
+		m.result = createobject("BaseCursor", this.getPath())
+		m.result.close()
+		if m.runFilter.isFiltering()
+			dimension m.run[alen(m.runFilter.run)]
+			for m.i = 1 to alen(m.run)
+				m.run[m.i] = iif(m.runFilter.run[m.i] > 0,1,0)
+			endfor
+			m.sql = textmerge('select <<this.requiredstructure.getFieldList()>>, cast(m.run[asc(run)] as n(1)) as filter from <<this.alias>>')
+		else
+			m.sql = textmerge('select <<this.requiredstructure.getFieldList()>>, cast(1 as n(1)) as filter from <<this.alias>>')
+		endif
+		if m.cutoff > 0
+			if m.runFilter.isFiltering()
+				m.sql = m.sql + textmerge(' order by <<m.key>>, filter desc, identity desc')
+			else
+				m.sql = m.sql + textmerge(' order by <<m.key>>, identity desc')
+			endif
+		endif
+		m.sql = m.sql + textmerge(' into table <<m.result.dbf>>')
+		&sql
+		use
+		m.result.useExclusive()
+		select (m.result.alias)
+		go top
+		if searched == 0 or found == 0
+			skip
+		endif
+		this.messenger.startProgress("Stripped <<0>>/"+transform(reccount()-recno()+1)+" (<<0>>)")
+		this.messenger.startCancel("Cancel operation?","Stripping","Canceled.")
+		if m.cutoff <= 0
+			m.msg = 0
+			m.del = 0
+			scan rest
+				m.msg = m.msg + 1
+				if m.msg == 1000
+					this.messenger.incProgress(m.msg,1)
+					this.messenger.incProgress(m.del,2)
+					this.messenger.postProgress()
+					m.msg = 0
+					m.del = 0
+					if this.messenger.queryCancel()
+						exit
+					endif
+				endif
+				if filter == 0
+					loop
+				endif
+				if identity < m.threshold
+					m.del = m.del + 1
+					delete
+				endif	
+			endscan
+			this.messenger.incProgress(m.msg, 1)
+			this.messenger.incProgress(m.del, 2)
+			this.messenger.forceProgress()
+		else
+			text to m.script textmerge noshow flags 1 pretext 3
+			parameters threshold, cutoff, messenger
+			local key, start, next, min_identity, msg, del, cont, limit
+				select <<m.result.alias>>
+				m.key = 0
+				m.start = 0
+				m.next = 0
+				m.min_identity = 999
+				m.msg = 0
+				m.del = 0
+				scan rest
+					m.msg = m.msg + 1
+					if m.msg = 1000
+						m.messenger.incProgress(m.msg,1)
+						m.messenger.incProgress(m.del,2)
+						m.messenger.postProgress()
+						m.msg = 0
+						m.del = 0
+						if m.messenger.queryCancel()
+							exit
+						endif
+					endif
+					if not <<m.key>> == m.key
+						m.cont = recno()
+						m.limit = m.threshold
+						if m.next > m.cutoff
+							go m.start+m.cutoff-1
+							if identity >= m.threshold
+								m.limit = identity
+								m.next = m.next - m.cutoff
+								m.start = m.start + m.cutoff
+							endif
+						endif
+						if m.limit > m.min_identity
+							go m.start
+							delete next m.next for identity < m.limit
+							m.del = m.del + _tally
+						endif
+						go m.cont
+						m.key = <<m.key>>
+						m.start = recno()
+						m.next = 0
+						m.min_identity = 999
+					endif
+					if filter == 0
+						loop
+					endif
+					m.next = m.next + 1
+					if identity < m.min_identity
+						m.min_identity = identity
+					endif
+				endscan
+				if not m.messenger.wasCanceled()
+					m.limit = m.threshold
+					if m.next > m.cutoff
+						go m.start+m.cutoff-1
+						if identity >= m.threshold
+							m.limit = identity
+							m.next = m.next - m.cutoff
+							m.start = m.start + m.cutoff
+						endif
+					endif
+					if m.limit > m.min_identity
+						go m.start
+						delete next m.next for identity < m.limit
+						m.del = m.del + _tally
+					endif
+				endif
+				m.messenger.incProgress(m.msg,1)
+				m.messenger.incProgress(m.del,2)
+				m.messenger.forceProgress()
+			endtext
+			execscript(m.script, m.threshold, m.cutoff, this.messenger)
+		endif
+		if this.messenger.wasCanceled()
+			return .f.
+		endif
+		this.messenger.stopProgress()
+		this.messenger.stopCancel()
+		this.messenger.forceMessage("Stripping...")
+		m.sql = textmerge('select <<this.requiredstructure.getFieldList()>> from <<m.result.alias>> where not deleted() into table <<this.dbf>>')
+		this.erase()
+		&sql
+		use
+		this.useExclusive()
+		this.forcerequiredkeys()
+		this.renumberRun(m.runFilter)
+		return .t.
+	endfunc
 	
 	function isValid()
 		return this.hasValidStructure() and this.hasValidAlias()
@@ -3502,6 +3739,53 @@ define class ResultTable as BaseTable
 		return this.analyseResult(.f., m.type, m.ignore, m.from, m.to, m.step)
 	endfunc
 	
+	&& Renumbers the runs in case of an renumbering RunFilter.
+	&& The maximum run will be updated if actively renumbered.
+	function renumberRun(runFilter as Object)
+	local ps, pa, run, max_run
+		if not this.isValid()
+			return .f.
+		endif
+		if vartype(m.runFilter) == "C"
+			m.runFilter = createobject("RunFilter", m.runFilter)
+		endif
+		if not vartype(m.runFilter) == "O"
+			m.runFilter = createobject("RunFilter")
+		endif
+		if not m.runFilter.isValid()
+			return .f.
+		endif
+		m.run = this.getRun()
+		if m.run > 0 and m.runFilter.isRenumbering()
+			update (this.alias) set run = chr(m.runFilter.run[asc(run)]) where m.runFilter.run[asc(run)] > 0 and asc(run) != m.runFilter.run[asc(run)]
+			this.setRun(m.run)
+			if m.runFilter.getMaxRun() > m.run
+				this.setRun(m.runFilter.getMaxRun())
+			else
+				if not m.runFilter.renumber(m.run) == m.run
+					m.ps = createobject("PreservedSetting", "talk", "off")
+					m.pa = createobject("PreservedAlias")
+					select (this.alias)
+					go top
+					if searched == 0
+						skip
+						if eof()
+							m.run = 0
+						else
+							calculate max(run) rest to m.max_run
+							m.max_run = asc(m.max_run)
+						endif
+						if m.runFilter.renumber(m.run) >= m.max_run
+							this.setRun(m.runFilter.renumber(m.run))
+						endif
+					endif
+					go top
+				endif				
+			endif
+		endif
+		return .t.
+	endfunc
+
 	function compressRun()
 	local pa, ps1, run, sql
 		if not this.isValid()
@@ -5373,10 +5657,10 @@ define class MetaExportTable as mp_ExportTable
 	endfunc
 		
 	function create(engine, meta, nocomp)
-		local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from, to
-		local result, runs, s, searchCluster, join
-		local table, foundreg, searchedreg, stype, ipos, count
-		local tmp1, tmp2, sql, struc, main, local, global
+	local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from, to
+	local result, runs, s, searchCluster, join
+	local table, foundreg, searchedreg, stype, ipos, count
+	local tmp1, tmp2, sql, struc, main, local, global
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
@@ -5490,7 +5774,10 @@ define class MetaExportTable as mp_ExportTable
 			for m.i = 1 to this.compare
 				this.header = this.header+m.chr9+"CSF"+transform(m.i)+m.chr9+"CFS"+transform(m.i)
 			endfor
-			m.s = m.s+this.compare*2
+			if this.compare > 1
+				this.header = this.header+m.chr9+"CSF"+transform(m.i)+m.chr9+"CFS"+transform(m.i)
+			endif
+			m.s = m.s+this.compare*2+iif(this.compare > 1, 2, 0)
 			if this.rep > 0
 				this.header = this.header+m.chr9+"SCNT"+m.chr9+"RCNT"
 				for m.i = 1 to this.rep
@@ -5549,7 +5836,7 @@ define class MetaExportTable as mp_ExportTable
 		m.foundreg = m.engine.getRegistryTable()
 		m.table = m.searchCluster.getTable(1)
 		m.searchedreg = createobject("RegistryTable", m.table.getPath()+m.table.getPureName()+"_registry.dbf")
-		if m.searchedreg.isCreatable() or fdate(m.searchedreg.getDBF(),1) < fdate(m.table.getDBF(),1)
+		if m.searchedreg.isCreatable() or fdate(m.searchedreg.getDBF(),1) < fdate(m.table.getDBF(),1) or fdate(m.searchedreg.getDBF(),1) < fdate(m.foundreg.getDBF(),1)
 			m.searchedreg.close()
 			m.searchedreg.erase()
 			m.searchedreg = m.engine.expand(m.searchedreg)
@@ -5667,7 +5954,7 @@ define class MetaExportTable as mp_ExportTable
 	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target
 	local lexarray, rec, sMaxOcc, fMaxOcc, searchField
 	local inc, key, item, element, scnt, rcnt, freccount
-	local meta, metaitem, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer, tarpos
+	local meta, metaitem, comp, useField, lrcpdScope, searchTable, foundTable, searchCluster, foundCluster, preparer, tarpos
 	local array sx[MAXWORDCOUNT,3], fx[MAXWORDCOUNT,3], mx[MAXWORDCOUNT*2,4], rx[1], cx[1,2], lnmax[1,2]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to)
 		if m.from > m.to or m.to <= 0
@@ -5722,14 +6009,16 @@ define class MetaExportTable as mp_ExportTable
 					if this.compare > 0
 						m.metaitem.value4 = createobject("LRCPD")
 						m.metaitem.value4.setScope(m.lrcpdScope)
-						m.metaitem.value4.setDynamic(.f.)
-						m.metaitem.value4.setWeight(1)
 					endif
 					m.meta.add(m.metaitem)
 				endif
 				m.metaitem.value3.add(m.ftype)
 			endfor
 		endfor
+		if this.compare > 1
+			m.comp = createobject("LRCPD")
+			m.comp.setScope(m.lrcpdScope)
+		endif
 		if this.txt
 			m.chr9 = chr(9)
 			m.export.erase()
@@ -5742,7 +6031,7 @@ define class MetaExportTable as mp_ExportTable
 			dimension m.rx[this.rep]
 		endif
 		if this.compare > 0
-			dimension m.cx[this.compare,2]
+			dimension m.cx[this.compare+1,2]
 		endif
 		for m.rec = m.from to m.to
 			m.messenger.incProgress(1,1)
@@ -5843,6 +6132,13 @@ define class MetaExportTable as mp_ExportTable
 						endif
 					endfor
 				endfor
+				if this.compare > 1
+					m.comp.resetA()
+					for m.i = 1 to m.meta.count
+						m.metaitem = m.meta.item(m.i)
+						m.comp.appendA(m.metaitem.value4)
+					endfor
+				endif
 				asort(m.sx,1,m.sxcnt)
 				if this.rep > 0
 					m.scnt = m.again.count
@@ -5859,12 +6155,23 @@ define class MetaExportTable as mp_ExportTable
 					endfor
 				endif
 			endif
-			for m.i = 1 to this.compare
-				m.metaitem = m.meta.item(m.i)
-				m.metaitem.value4.setB(m.preparer.normize(alltrim(m.foundTable.getValueAsString(m.metaitem.value2))))
-				m.cx[m.i,1] = m.metaitem.value4.compareAB()
-				m.cx[m.i,2] = m.metaitem.value4.compareBA()
-			endfor
+			if this.compare > 0
+				for m.i = 1 to this.compare
+					m.metaitem = m.meta.item(m.i)
+					m.metaitem.value4.setB(m.preparer.normize(alltrim(m.foundTable.getValueAsString(m.metaitem.value2))))
+					m.cx[m.i,1] = m.metaitem.value4.compareAB()
+					m.cx[m.i,2] = m.metaitem.value4.compareBA()
+				endfor
+				if this.compare > 1
+					m.comp.resetB()
+					for m.i = 1 to this.compare
+						m.metaitem = m.meta.item(m.i)
+						m.comp.appendB(m.metaitem.value4)
+					endfor
+					m.cx[m.i,1] = m.comp.compareAB()
+					m.cx[m.i,2] = m.comp.compareBA()
+				endif
+			endif
 			m.fxcnt = 0
 			m.cluster = 1
 			m.index = m.base2reg.index.item(m.cluster)
@@ -5932,6 +6239,9 @@ define class MetaExportTable as mp_ExportTable
 			for m.i = 1 to this.compare
 				m.line = m.line+m.chr9+transform(m.cx[m.i,1])+m.chr9+transform(m.cx[m.i,2])
 			endfor
+			if this.compare > 1
+				m.line = m.line+m.chr9+transform(m.cx[m.i,1])+m.chr9+transform(m.cx[m.i,2])
+			endif
 			if this.rep > 0
 				m.line = m.line+m.chr9+transform(m.scnt)+m.chr9+transform(m.rcnt)
 				for m.i = 1 to this.rep
@@ -5991,7 +6301,7 @@ define class SearchEngine as custom
 	tag = ""
 
 	protected function init(path, slot)
-	local err, se
+	local err, se, ps1, ps2
 		set exclusive off
 		set reprocess to -1
 		this.advanced = version(5) >= 1001
@@ -6043,8 +6353,8 @@ define class SearchEngine as custom
 			messagebox("Library foxpro.fll version not supported.",16,"SearchEngine")
 			return .f.
 		endif
-		set path to (m.path)
-		set default to (m.path)
+		m.ps1 = createobject("PreservedSetting", "path", m.path)
+		m.ps2 = createobject("PreservedSetting", "default", m.path)
 		this.pfw = createobject("ParallelFoxWrapper")
 		if this.copy == .f.
 			this.mp(val(this.getConfig("mp")))
@@ -7752,33 +8062,56 @@ define class SearchEngine as custom
 		return m.rc
 	endfunc
 
-	function resultExport(table, shuffle, low, high, runFilter, newrun)
+	function resultExport(table, shuffle, weighted, low, high, runFilter, newrun)
 		local dp, rc, oldmes
 		if vartype(m.table) == "C"
 			m.table = createobject("ResultTable",m.table)
 		endif
 		m.dp = createobject("DynaPara")
-		m.dp.dyna("ONNNCL")
+		m.dp.dyna("ONLNNCL")
 		m.dp.dyna("O")
-		m.dp.dyna("ONNNL","1,2,3,4,6")
-		m.dp.dyna("ONNL","1,3,4,6")
-		m.dp.dyna("ONNCL","1,3,4,5,6")
-		m.dp.dyna("ONCL","1,2,5,6")
-		m.dp.dyna("ONL","1,2,6")
-		m.dp.dyna("OCL","1,5,6")
-		m.dp.dyna("OL","1,6")
-		if m.dp.para(@m.table, @m.shuffle, @m.low, @m.high, @m.runfilter, @m.newrun) == 0
+		m.dp.dyna("ONNNL","1,2,4,5,7")
+		m.dp.dyna("ONNL","1,4,5,7")
+		m.dp.dyna("ONNCL","1,4,5,6,7")
+		m.dp.dyna("ONCL","1,2,6,7")
+		m.dp.dyna("ONLL","1,2,3,7")
+		m.dp.dyna("OCL","1,6,7")
+		m.dp.dyna("OL","1,7")
+		m.dp.dyna("ONLNNL","1,2,3,4,5,7")
+		m.dp.dyna("ONLCL","1,2,3,6,7")
+		if m.dp.para(@m.table, @m.shuffle, @m.weighted, @m.low, @m.high, @m.runfilter, @m.newrun) == 0
 			this.messenger.errorMessage("Invalid parametrization.")
 			return .f.
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
 		try
-			m.rc = m.table.create(this, m.shuffle, m.low, m.high, m.runFilter, m.newrun)
+			m.rc = m.table.create(this, m.shuffle, m.weighted, m.low, m.high, m.runFilter, m.newrun)
 		catch
 			m.rc = .f.
 		endtry
 		m.table.setMessenger(m.oldmes)
+		return m.rc
+	endfunc
+	
+	function stripResult(threshold, cutoff, inverse, runfilter)
+	local dp, oldmes, rc
+		m.dp = createobject("DynaPara")
+		m.dp.dyna("NNLC")
+		m.dp.dyna("T","3")
+		m.dp.dyna("C","4")
+		m.dp.dyna("TC","3,4")
+		m.dp.dyna("NC","1,4")
+		m.dp.dyna("NNC","1,2,4")
+		m.dp.dyna("NNL","1,2,3")
+		if m.dp.para(@m.threshold, @m.cutoff, @m.inverse, @m.runfilter) == 0
+			this.messenger.errorMessage("Invalid parametrization.")
+			return .f.
+		endif
+		m.oldmes = this.result.getMessenger()
+		this.result.setMessenger(this.getMessenger())
+		m.rc = this.result.strip(m.threshold, m.cutoff, m.inverse, m.runFilter)
+		this.result.setMessenger(m.oldmes)
 		return m.rc
 	endfunc
 
@@ -8677,6 +9010,7 @@ define class SearchEngine as custom
 		local result, col, resultcnt
 		local found, engine, lastProgress, mess, messenger
 		local batch, advanced
+		local identity, searched, rec, limit, next
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Searching...")
@@ -8914,8 +9248,44 @@ define class SearchEngine as custom
 							exit
 						endif
 					endif
-					if m.cleaning
-						delete from (m.result.alias) where identity < m.refineLimit
+					if m.cleaning and reccount(m.result.alias) > 0
+						if this.darwin or this.zealous
+							select (m.result.alias)
+							go top
+							m.rec = recno()
+							m.identity = identity
+							m.searched = searched
+							scan
+								if searched != m.searched
+									if this.zealous
+										m.limit = min(m.refineLimit, m.identity)
+									else
+										m.limit = max(m.refineLimit, m.identity)
+									endif
+									m.next = recno()-m.rec
+									go m.rec
+									delete next m.next for identity < m.limit
+									skip
+									m.rec = recno()
+									m.searched = searched
+									m.identity = identity
+								else
+									if identity > m.identity
+										m.identity = identity
+									endif
+								endif
+							endscan
+							if this.zealous
+								m.limit = min(m.refineLimit, m.identity)
+							else
+								m.limit = max(m.refineLimit, m.identity)
+							endif
+							m.next = recno()-m.rec
+							go m.rec
+							delete next m.next for identity < m.limit
+						else
+							delete from (m.result.alias) where identity < m.refineLimit
+						endif
 					endif
 					select (this.result.alias)
 					append from (m.result.dbf)
@@ -8942,7 +9312,7 @@ define class SearchEngine as custom
 		endif
 		return not (this.messenger.wasInterrupted() or m.messenger.wasInterrupted())
 	endfunc
-	
+
 	function searching(from as Integer, to as Integer, result as Object, increment as Integer, messenger as Object)
 		local limit, invlimit, depth
 		local i, j, k, type, fback, fbackinv, start, end
@@ -9242,8 +9612,12 @@ define class SearchEngine as custom
 		m.dp = createobject("DynaPara")
 		m.dp.dyna("NNCL")
 		m.dp.dyna("")
-		m.dp.dyna("NN")
+		m.dp.dyna("NN","1,2")
 		m.dp.dyna("NNL","1,2,4")
+		m.dp.dyna("NNC","1,2,3")
+		m.dp.dyna("NCL","1,3,4")
+		m.dp.dyna("NC","1,3")
+		m.dp.dyna("NL","1,4")
 		m.dp.dyna("CL","3,4")
 		m.dp.dyna("L","4")
 		if m.dp.para(@m.identityMode, @m.scoreMode, @m.runFilter, @m.nonDestructiveOnly) == 0
@@ -9267,7 +9641,7 @@ define class SearchEngine as custom
 			m.identityMode = 1
 		endif
 		if not vartype(m.scoreMode) == "N"
-			m.scoreMode = 1
+			m.scoreMode = 0
 		endif
 		if m.identityMode < 0 or m.identityMode > 5
 			this.messenger.errormessage("Invalid identity mode.")
@@ -9885,6 +10259,7 @@ define class SearchEngine as custom
 		if m.from > m.to or m.to <= 0
 			return
 		endif
+		rand(-1)
 		if not vartype(m.messenger) == "O"
 			m.messenger = createobject("Messenger")
 			m.messenger.setSilent(.t.)
@@ -10116,7 +10491,7 @@ define class SearchEngine as custom
 				m.search[m.searchrows,2] = m.entry[m.i,1]
 				m.search[m.searchrows,3] = m.searchType.getShare()
 				m.search[m.searchrows,4] = m.searchType.getAvgOcc() && replaced with rIP
-				m.search[m.searchrows,5] = m.searchType.getMaxOcc()	&& replaced with occur
+				m.search[m.searchrows,5] = m.searchType.getMaxOcc()	&& replaced with occurs
 				m.search[m.searchrows,6] = 0 && active / inactive 
 				m.search[m.searchrows,7] = 0 && in case of softmax: IP without softmax for feedback
 			endif
@@ -10468,10 +10843,9 @@ define class SearchEngine as custom
 						m.tmp1[m.tmp1rows,8] = .t.
 						m.tmp1[m.tmp1rows,9] = max(m.searchType.getMaxOcc()+m.searchType.getOffset(),1) / m.tmp1[m.tmp1rows,7]
 						if m.searchType.getLog()
-							m.typx[type,3] = m.typx[type,3] + max(log(m.tmp1[m.tmp1rows,9]),1)
-						else
-							m.typx[type,3] = m.typx[type,3] + m.tmp1[m.tmp1rows,9]
+							m.tmp1[m.tmp1rows,9] = max(log(m.tmp1[m.tmp1rows,9]),1)
 						endif
+						m.typx[type,3] = m.typx[type,3] + m.tmp1[m.tmp1rows,9]
 						select (m.target.alias)
 					endif
 				endfor
@@ -11055,6 +11429,10 @@ define class SearchEngine as custom
 
 	function _result(result)
 		return this.setResultTable(m.result)
+	endfunc
+	
+	function _strip(threshold, cutoff, inverse, runFilter)
+		return this.stripResult(m.threshold, m.cutoff, m.inverse, m.runFilter)
 	endfunc
 
 	function _exportGrouped(table, cascade, basekey, low, high, exclusive, runFilter, notext, nosingle)

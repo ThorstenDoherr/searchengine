@@ -1,6 +1,6 @@
 *==========================================================================
 * Modul: 	 sheet.prg
-* Date:		 2024.08.14
+* Date:		 2025.03.03
 * Author:	 Thorsten Doherr
 * Procedure: custom.prg
 * Library:	 foxpro.fll
@@ -13,7 +13,7 @@
 #define SHEETHANDLE 17
 
 function version_of_sheet()
-	return "2024.08.14"
+	return "2025.03.03"
 endfunc
 
 function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)
@@ -159,6 +159,7 @@ define class InsheetTableCluster as TableCluster
 		m.psl.set("blocksize","64")
 		m.psl.set("compatible","off") && otherwise resizing of arrays kills content
 		m.psl.set("exclusive","off")
+		m.psl.set("exact","on")
 		m.lm = createobject("LastMessage",this.messenger)
 		m.pa = createobject("PreservedAlias")
 		this.messenger.forceMessage("Importing...")
@@ -233,7 +234,10 @@ define class InsheetTableCluster as TableCluster
 			m.linecnt = 0
 			for m.i = 1 to m.wc
 				m.table = m.local.item(m.i)
-				m.table.useExclusive()
+				if not m.table.useShared(.t.)
+					this.messenger.errormessage("Multiproccessing failed.")
+					return .f.
+				endif
 				select (m.table.alias)
 				if reccount(m.table.alias) < 254*256+1
 					this.messenger.errormessage("Unable to parse the text file.")
@@ -246,13 +250,13 @@ define class InsheetTableCluster as TableCluster
 						skip
 					endfor
 					m.chr = chr(evl(int(count),32))
-					if at(m.chr,"CNDJI ") < at(m.hist[m.j,m.k],"CNDJI ")
+					if at(m.chr,"CNDI ") < at(m.hist[m.j,m.k],"CNDI ")
 						m.hist[m.j,m.k] = m.chr
 					endif
 					skip
 				endfor
 				m.linecnt = m.linecnt+int(count)
-				m.table.erase()
+				* m.table.erase()
 			endfor
 		else
 			m.linecnt = this.parsing(1, m.filesize, SHEETHANDLE, @m.hist, m.separator, m.nonames, m.crlf, m.columns, this.messenger)
@@ -764,11 +768,11 @@ define class InsheetTableCluster as TableCluster
 				endif
 				loop
 			endif
-			if m.type == "D" or m.type == "J"
+			if m.type == "D"
 				loop
 			endif
 			if left(m.item,1) == "0" and m.val >= 1
-				m.hist[m.i,256] = "J"
+				m.hist[m.i,256] = "C"
 			else
 				m.hist[m.i,256] = "I"
 			endif
@@ -845,7 +849,7 @@ define class InsheetTableCluster as TableCluster
 					m.struc[m.i,3] = 8
 					loop
 				endif
-				if m.hist[m.i,256] == "J" or m.hist[m.i,256] == "I"
+				if m.hist[m.i,256] == "I"
 					if m.j > 9 
 						if m.k < 1
 							m.struc[m.i,2] = "C"
@@ -870,11 +874,6 @@ define class InsheetTableCluster as TableCluster
 					m.struc[m.i,2] = "N"
 					m.struc[m.i,3] = m.j+1
 					m.struc[m.i,4] = m.j-1
-					loop
-				endif
-				if m.hist[m.i,256] == "J" 
-					m.struc[m.i,2] = "C"
-					m.struc[m.i,3] = m.j
 					loop
 				endif
 				if m.hist[m.i,256] == "I"

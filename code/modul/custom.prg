@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2024.09.27
+*   Date:       2024.12.13
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -11,7 +11,7 @@
 #DEFINE HKEY_USERS         -2147483645  && BITSET(0,31)+3
 
 function version_of_custom()
-	return "2024.09.27"
+	return "2024.12.13"
 endfunc
 
 function mp_bracket(from as Integer, to as Integer)
@@ -1232,7 +1232,7 @@ define class Messenger as custom
 	endfunc
 
 	function println(str as String)
-		this.screen.print(evl(m.str,"")+chr(13))
+		this.screen.print(evl(m.str,"")+chr(10))
 	endfunc
 	
 	function reporting(text as String)
@@ -4231,11 +4231,12 @@ enddefine
 
 define class BaseTable as custom
 	protected requiredStructure, requiredKeys, optionalStructure
-	protected TableStructure, validAlias, validStructure, validKeys, validOptional, valid
-	protected Messenger, cursor, byalias
+	protected validAlias, validStructure, validKeys, validOptional, valid
+	protected cursor, byalias
 	protected memos
 	alias = ""
 	dbf = ""
+	tableStructure = .f.
 	validAlias = .f.
 	validStructure = .f.
 	validKeys = .f.
@@ -4243,6 +4244,7 @@ define class BaseTable as custom
 	errorCancel = .f.
 	byalias = .f.
 	memos = .f.
+	messenger = .f.
 
 	function init(table)
 		declare Sleep in kernel32 integer millis
@@ -5016,6 +5018,7 @@ define class BaseTable as custom
 		endif
 		if vartype(m.options) == "L" and m.required == .f.
 			m.required = m.options
+			m.options = .f.
 		endif
 		m.shared = this.isShared()
 		if m.required == .f. and not sys(9144) == "1" and sys(9144, 1) == "1" and not empty(cdx(1, this.alias))
