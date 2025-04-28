@@ -13,6 +13,22 @@ Windows
 It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.04.24
+- a new strip action allows to retroactively strip the result table of candidates
+  - apply a threshold and cutoff on existing results
+  - inverse cutoff strips the results to keep only the best search terms (searched) per candidate (found)
+  - stripping can be restricted for specific runs
+  - runs can be renumbered
+
+2025.03.19
+- included an option to draw weighted samples of the result table
+- when exporting meta data, an existing search table registry will be recreated after changes to the base registry
+
+2025.03.03
+- the zealous and darwininan settings are also applied after refinement for a more consistent behaviour
+- the import functions have been updated to properly separate ID fields with numbers and special characters from real number fields
+- in the result browser and quick search heuristics now show the correct feedback effect for search types with log smoothing
+
 2024.09.28
 - optimized the contraction of abbreviations with the "NOABBREV" preparer, respectively the underlying "cockle" function
 - internally, every index has a designated ".cdx" file, thus "\*\_index\_\#.cdx" files may appear to increase overall file size capacity
