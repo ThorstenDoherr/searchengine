@@ -1,5 +1,5 @@
 lparameters script, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17, para18, para19, para20, para21, para22, para23, para24
-public engine, mainForm, et
+public engine, oldengine, mainForm, et
 local path, psl, mess 
 _screen.icon = "SearchFox.ico"
 _screen.LockScreen = .t.
@@ -74,6 +74,8 @@ if not vartype(m.engine) == "O"
 endif
 m.engine.setLogHeader("* [version: "+version_of_searchengine()+"]["+strtran(ttoc(datetime(),3),"T"," ")+"]["+m.engine.getSlot()+"]")
 m.engine.tag = "NEW"
+m.oldengine = m.engine.toString()
+m.engineChanged = .F.
 do form se name m.mainForm linked
 do semenu.mpr with m.mainForm, .T.
 read events
