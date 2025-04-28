@@ -2,7 +2,7 @@
 The SearchEngine is a powerful tool for all kinds of linkages, especially the matching of large scale company databases. This manual will guide you through the installation, the functions of the graphical user interface (GUI) and their respective commands of the integrated script language. It describes exemplary use cases that may help you with designing your own search strategies and how to implement the SearchEngine Machine Learning approach SEML to filter out false positives from your matching results.  
 
 ## Discussion Paper
-To prepare yourself for all the technical terms used throughout this document, please read the discussion paper "The SearchEngine: A Holistic Approach to Matching" to gain insights about the search algorithm, applied heuristics and the general approach to matching projects. It is part of the Github package and can be found here: doc\HolisticMatching.pdf
+To prepare yourself for all the technical terms used throughout this document, it is suggested to read the discussion paper "The SearchEngine: A Holistic Approach to Matching" to gain insights about the search algorithm, applied heuristics and the general approach to matching projects. It is part of the Github package and can be found here: doc\HolisticMatching.pdf
 
 A citeable version of the discussion paper is available on the ZEW homepage:
 
@@ -23,7 +23,7 @@ You want to match patent data to a company database by the patent applicants, wh
 [[SEML]](#SEML)  
 
 ## Search Strategy
-All search strategies for the SearchEngine are driven by the fact that the search algorithm is not commutative respectively symmetric. The search always has a distinct direction. A base table constitutes the heuristic allowing the SearchEngine to efficiently retrieve the records that match a given search term. The retrieved base table records are called candidates as there is still a chance for false positives given the search parameters. The search terms are provided by search tables, which are tables that share mutual data in the form of search fields like names, addresses or other fuzzy criteria. A central feature of this setup is that the retrieval is completely unaffected by surplus words in the candidates not addresses by the search term. In that regard, the SearchEngine algorithm behaves like a web search where a found web page only needs to match the search term words within its whole site. To stress this analogy even more, the SearchEngine also uses frequencies to assign relevance to every single component of a search term (see <b>discussion paper</b>).
+All search strategies for the SearchEngine are driven by the fact that the search algorithm is not commutative respectively symmetric. The search always has a distinct direction. A base table constitutes the heuristic allowing the SearchEngine to efficiently retrieve the records that match a given search term. The retrieved base table records are called candidates as there is still a chance for false positives given the search parameters. The search terms are provided by search tables, which are tables that share mutual data in the form of search fields like names, addresses or other fuzzy criteria. A central feature of this setup is that the retrieval is completely unaffected by surplus words in the candidates not addressed by the search term. In that regard, the SearchEngine algorithm behaves like a web search where a found web page only needs to match the search term words within its whole site. To stress this analogy even more, the SearchEngine also uses frequencies to assign relevance to every single component of a search term (see <b>discussion paper</b>).
 
 To link two tables sharing a similar context, for example companies, persons, addresses, it is necessary that the representation of this context is congruent. If one table has multiple fields to represent an address with the sub-contexts street, city and postcode, while the other table has only one sweeping address field, you need to either separate the compound field or to conjoin the separate fields. Usually, having more sub-contexts is better but not always applicable considering the complexity of the underlying structure. When context congruency has been achieved, you have to decide which table should become the base table.
 
@@ -68,8 +68,8 @@ The following example shows a complete script of an incremental search of a pate
 <code>join("street")</code>  
 <code>join("postcode", "zip")</code>  
 <code>join("city")</code>  
-<code>reset()</code>
-<code>contain(5)</code>
+<code>reset()</code>  
+<code>contain(5)</code>  
 <code>darwinian(.t.)</code>  
 <code>threshold(85)</code>  
 <code>types("firm 70, firm 0, street 10, zip 10, city 10")</code>  
@@ -95,25 +95,41 @@ This is a basic setup for an incremental search. You can also experiment with we
 [[SEML]](#seml)  
 
 ### Compound Search
-A compound search is necessary when the base table has no clear representation of entities but is mere collection of occurrences. It is expected that a search term will retrieve multiple candidates, which are all variations of the searched entity. Compared to an <b>incremental search</b> on a <b>focused data source</b> the risk of retrieving candidates representing different entities is also much higher due to the general ambiguity. In a sense, a <b>compound search</b> is much easier to implement a an <b>incremental search</b> as the only decision is about the height of the <b>threshold</b>. Because for every search term you have to expect a multitude of candidates of variable identities you have to balance the recall of all potential variations with risk of attracting false positives. In general, you will only perform two search runs: one based on conventional search types and one by switching to destructive, linguistic search types if applicable. The <b>containment</b> should be more generous to accommodate the expected variation of valid candidates.
+A compound search is necessary when the base table has no clear representation of entities but is mere collection of occurrences. It is expected that a search term will retrieve multiple candidates, which are all variations of the searched entity. Compared to an <b>incremental search</b> on a <b>focused data source</b>, the risk of retrieving candidates representing different entities is also much higher due to the general ambiguity. In a sense, a <b>compound search</b> is much easier to implement as an <b>incremental search</b> as the only decision is about the height of the <b>threshold</b>. Because you have to expect a multitude of candidates of variable identities for every search term, the task is to balance the recall of all potential variations with the risk of attracting false positives. You have to adapt your strategy to the deficiencies of the base table, especially if <b>noise</b> is involved. In general, you will only perform search runs necessary to capture the issues with the data like partially missing fields but it does not make sense to gradually decrease the retrieval requirements if the results of runs will be merged anyway. The <b>containment</b> should be more generous to accommodate the expected variation of valid candidates or skipped completely if that number is difficult to assess. Noisy base tables may have more missing entries in the search fields, e.g. address fields, requiring to add search steps that ignore those fields. To achieve a consistent identity, it is advisable to impose an adjustment with the <b>research</b> action afterwards. If the search table is from a focused source, this fact can be exploited by stripping the results retroactively with the <b>strip</b> action imposing an inverse darwinian cutoff keeping only the best search term(s) per candidate. Conversely to an <b>incremental search</b>, this can only be done after all search runs instead of during the search. Such an approach is only viable with harmonized identities achieved by a final <b>research</b> action introducing a <b>feedback</b> effect.
 
-The following example script matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b>:
+The following example script matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b> and partially incomplete addresses. This search does not use linguistic search types due to the unfavorable relation between complexity and potential recall gains:
 
-<code>importbase("c:\\scopus\\affiliations.txt")</code>
-<code>create("affil NOABBREV, affil NOABBREV GRAM3, street SEPNUM, postcode, city")</code>  
+<code>importbase("c:\\scopus\\affiliations.txt")</code>  
+<code>create("affil NOABBREV, street SEPNUM, postcode, city")</code>  
 <code>importsearch("c:\\orbis\\firms.txt")</code>  
 <code>result("c:\\orbis\\firms_result")</code>  
 <code>join("firm", "affil")</code>  
 <code>join("street")</code>  
 <code>join("zip", "postcode")</code>  
 <code>join("city")</code>  
-<code>reset()</code>
-<code>contain(50)</code>
-<code>threshold(65)</code>  
-<code>types("affil 70, affil 0, street 10, postcode 10, city 10")</code>  
+<code>reset()</code>  
+<code>threshold(75)</code>  
+<code>types("affil 70, street 10, postcode 10, city 10")</code>  
 <code>search()</code>  
-<code>types("firm 0, firm 70, street 10, postcode 10, city 10")</code>  
-<code>search(2, 1)</code>  
+<code>types("affil 100 log, street 0, postcode 0, city 0")</code>  
+<code>threshold(95)</code>  
+<code>search(2)</code>  
+<code>types("affil 70 log, street 10, postcode 10, city 10")</code>  
+<code>save("orbis")</code>  
+<code>unjoin()</code>  
+<code>join("firm", "affil")</code>  
+<code>feedback(20)</code>  
+<code>research()</code>  
+<code>unjoin()</code>  
+<code>join("street")</code>  
+<code>join("zip", "postcode")</code>  
+<code>join("city")</code>  
+<code>feedback(0)</code>  
+<code>research(4)</code>  
+<code>load("orbis")</code>  
+<code>strip(.t.)</code>  
+
+This strategy example consists of two search steps. One requires at least some matching parts of the address with a threshold of 75% and a second one ignoring the address fields but with a higher threshold of 95%. Of course, an identity of 85% of the first run cannot be compared to the same identity of the second run. To harmonize the identities, we redistribute the search type priorities and apply a feedback of 20% only on the name by unjoining the address fields and calling the research action. To complete the identities in the result table, which now have a maximum of 70%, we unjoin the name and rejoin the address fields. The research action is additive and without feedback. By loading the previously saved settings, the original setup is restored and all fields properly joined again. The strip action conducts the inverse dawinian approach to exploit the fact of having a focused search table. The result table will be stripped of redundant linkages.  
 
 The <b>compound search</b> retrieves much more false positives than an <b>incremental search</b>. For large search projects that cannot be validated manually, it is recommended to process the results with the SearchEngine Machine Learning approach <b>SEML</b>.  
 [[Unfocused Data Sources]](#unfocused-data-sources)  
@@ -122,11 +138,15 @@ The <b>compound search</b> retrieves much more false positives than an <b>increm
 [[Containment]](#containment)  
 [[Noise]](#noise)  
 [[search]](#search)  
-[[threshold]](#threshold)
+[[threshold]](#threshold)  
+[[threshold]](#threshold)  
+[[feedback]](#feedback)  
+[[research]](#research)  
+[[strip]](#strip)  
 [[SEML]](#seml)  
 
 ### Self-referential Search
-The decision, which table should become the base table, is, of course, much easier when base and search table are the same. Self-referential searched have the purpose to identify duplicates in a table or to create clusters of representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. An <b>incremental search</b> would be pointless as every search record will find itself as best candidate. A <b>compound search</b>, on the other hand, should be more restrictive as in the normal case of linking two different tables. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will only bog down this process. Besides the restrictiveness, the search is not different to a normal search. The major difference is the post-search treatment of the results, which have to be clustered with the <b>exportgrouped</b> function implementing a rule based clustering algorithm.
+Of course, the decision, which table should become the base table, is trivial when base and search table are the same. Self-referential searched have the purpose to identify duplicates in a table or to create clusters of representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. An <b>incremental search</b> would be pointless as every search record will find itself as best candidate. A <b>compound search</b>, on the other hand, should be more restrictive as in the normal case of linking two different tables. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will only bog down this process. Besides the restrictiveness, the search is not different to a normal search. The major difference is the post-search treatment of the results, which have to be clustered with the <b>exportgrouped</b> function implementing a rule based clustering algorithm.
 
 In the following example a self-referential search is conducted on noisy company data scraped from webpages with downstream clustering:
 
@@ -136,13 +156,13 @@ In the following example a self-referential search is conducted on noisy company
 <code>create("name NOABBREV, name NOABBREV GRAM3, address SEPNUM")</code>  
 <code>join("name")</code>  
 <code>join("address")</code>  
-<code>contain(20)</code>
+<code>contain(20)</code>  
 <code>threshold(85)</code>  
 <code>types("name 90, name 0, address 10")</code>  
 <code>search()</code>  
 <code>types("name 0, name 90 log, address 10")</code>  
 <code>search(2, 1)</code>  
-<code>exportgrouped("c:\\big_haul\\generous_cluster", "min >= 90 @ 41", .f., .t.)</code>
+<code>exportgrouped("c:\\big_haul\\generous_cluster", "min >= 90 @ 41", .f., .t.)</code>  
 
 This is a simple example for a clustering rule allowing clusters up to a size of 40 based on intransitive connections, which is higher than the <b>containment</b> to include overlap between contained lists. Beyond that limit, cluster have to be based on bi-directional connections with at least 90% identity. Because clusters have to be independent from the starting node, this means a complete re-evaluation of the current cluster. As this is a very generous clustering, the export table will only report clusters with at least two members and the search fields for quality control. Assuming that the first effort was not satisfactory, a more complex ruleset based on the enforcement of bi-directional edges is applied:  
 
@@ -176,6 +196,8 @@ The meta data also contains string distances, overlap indicators across fields a
 ### Training Sample
 It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it with the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, in the last step we restore the original result table by replacing the sample with the <b>result</b> function. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, a sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
 
+The results may have a very skewed distribution with many candidates allocated to few search terms. You can check the distribution with the <b>statistics</b> function. To capture the outliers, it can be beneficial to draw a complementary sample weighted by the number of candidates especially in the case of a <b>compound search</b> without <b>containment</b>. Be cognizant that those samples are usually much larger and therefore require a smaller sample size pertaining search terms. The provided machine learning scripts can handle multiple training datasets.
+
 Import the exported training sample into any spreadsheet tool of your choice. The file is separated into blocks. The header of a block is the search term followed by the associated candidates. The fields "searched" and "found" refer to the record numbers in the base and search table. The labeling will be carried out in the "equal" field. Enter a "1" for a valid match (true positive) and a "9" for a wrong assignment (false positive). It is strongly discouraged to use a "0" in that context because it is associated with default values. You can reduce the typing by using the "equal" field of the search term line (header) as the default value for the whole block. Exceptions to the default value of the block and be marked in the "equal" field of the respective candidate ("9" default, "1" exception and vice versa). Another way to improve efficiency is to declare a sweeping default value for the whole training data based on the general tendency, i.e. all matches are defaulting to true positive when they are in the majority. Do not forget to realize this implicit rule in the data after labeling. The training script has a convenience setting for that purpose (see following section). 
 
 Do not expect wonders from the machine learning. The meta data does not carry any semantic information. It can only derive rules from consistent labeling that does not include too much human intuition into the decision process. If you accept subsidiaries and branches of a company in a firm match but exclude cantinas and other service oriented subsidiaries, there may not be enough information in the meta data too capture this behavior. If you have additional data available about the matched data sets related with the search context, you can avoid to confuse the AI by applying a rule based filtering process after the SEML approach. Remove all "true positives" with specific industry codes or create a rank among the surviving candidates for a search term that favors your intention. Assigning a patent applicant to the largest company among multiple candidates will also assign all patents to the parent company, which is the legal owner. In short, be as generous with the assignment of true positives as you can afford considering subsequent filtering or ranking options.  
@@ -184,6 +206,10 @@ Do not expect wonders from the machine learning. The meta data does not carry an
 [[exportresult]](#exportresult)  
 [[result]](#result)  
 [[exportextended]](#exportextended)  
+[[statistics]](#statistics)  
+[[Compound Search]](#compound-search)  
+[[Containment]](#containment)  
+  
 
 ### Machine Learning
 The Github package brings its own machine learning tool. You can find it in the sub-directory "SEML". Unfortunately, it requires STATA, a commercial statistical software. Of course, you can implement your own machine learning approach based on the meta and training sample. In that case, ignore the STATA references and derive the general steps. The "SEML" directory consists of two modules: "seml_train.do" for the machine learning part and "seml_think.do" to transfer what it learned on the whole meta data. The scripts require the "brain" module, which can also be found in the "SEML" directory. To install this module, you can copy its files into the ADO folder of your STATA installation or directly to the script file location. The latter will restrict the usage of the module on this directory. It is also available at the Statistical Software Components archive and can installed with the STATA command "ssc install brain". For more information about the "brain" module, call its help file. Copy the "seml_train.do" and "seml_think.do" scripts into a dedicated directory, usually also called "SEML", together with the meta data text file and the training sample.
@@ -203,7 +229,7 @@ The main menu has the following sections:
 
 **File** 
 - saving and loading of settings
-- export of results, meta data for machine learning, result table manipulation
+- export of results, meta data for machine learning, result table extraction and sampling
 - command window
 
 **Config**
@@ -215,9 +241,10 @@ The main menu has the following sections:
 **Action**
 - searching
 - identity manipulation with refine and research methods
+- stripping the results by retrocatively imposed search requirements
+- mirroring of results for self-referential searches
 - creating the index files for the search
 - registry adjustment
-- mirroring of results for self-referential searches
 
 **Tools**
 - interactive quick search
@@ -260,7 +287,7 @@ With this export function copies of result tables can be created that can be ass
 [[exportresult]](#exportresult)  
 
 #### File>Export>Meta Export
-You can export meta data about all matches in the result table providing variation potentially explaining the separation of false from true positives. The meta data is also the foundation for the SearchEngine Machine Learning approach called SEML. A neural network or any other machine learning device is trained based on the meta data and a training data set. The meta export has specific features to define a concise data framework to prevent over-specification.
+You can export meta data about all matches in the result table providing variation potentially explaining the separation of false from true positives. The meta data is also the foundation for the SearchEngine Machine Learning approach called SEML. A neural network or any other machine learning device is trained based on the meta data and a training data set. The meta export has specific features to define a concise data framework to prevent over-specification.  
 [[exportmeta]](#exportmeta)  
 
 #### File>Command
@@ -280,7 +307,7 @@ This command closes the SearchEngine application. If you have changed the settin
 In this section, all parameters for a search can be specified starting with the definition of the base table. Unless the SearchEngine is not created using the base table, all other search related options in this section are not available. You can define the search tables to be searched in the base table and the associated SearchEngine index files and the result table. Every search project should have its own result table. After the file specifications the linkage of the search fields of the base table and the corresponding fields in the search table is another required step in the configuration of a search project. The priority redistribution of the search types is an integral part of any search strategy and the corresponding menu will often be consulted multiple times over the course of a search project. The search settings define the key parameters of a search step like the general threshold for the identity, cutoff points and activation limits for the feedback to contain the inflation of weak search terms and switches for specific SearchEngine heuristics. Finally, you can change general preferences of the technical aspects of the SearchEngine like the search depth, location of temporary files and multi-processing.  
 
 #### Config>File Locations
-You should only specify the base table once per SearchEngine installation. The search tables will always be searched within the same base table. Depending on the setup, this may be a singular search project between two tables or a extensive framework catered for a multitude of search projects on a central base table. You should also assign a dedicated result table for every search project aka. search table. You can click on the "Auto" button next to the result table field to create an appropriate file name. The search and base table will be automatically imported into the database format of the SearchEngine if this conversion has not occurred yet. The result table will always be in Foxpro format (.dbf). The import option to truncate outliers can be activated if you consider field lengths beyond 254 characters as data artefacts.
+You should only specify the base table once per SearchEngine installation. The search tables will always be searched within the same base table. Depending on the setup, this may be a singular search project between two tables or a extensive framework catered for a multitude of search projects on a central base table. You should also assign a dedicated result table for every search project aka. search table. You can click on the "Auto" button next to the result table field to create an appropriate file name. The search and base table will be automatically imported into the database format of the SearchEngine if this conversion has not occurred yet. The result table will always be in Foxpro format (.dbf). The import option to truncate outliers can be activated if you consider field lengths beyond 254 characters as data artefacts.  
 [[importbase]](#importbase)  
 [[importsearch]](#importsearch)  
 [[result]](#result)  
@@ -318,7 +345,9 @@ The preferences set technical aspects of the SearchEngine. The search depth dete
 [[timer]](#timer)  
 
 ### Action
-This main section controls the major actions of the SearchEngine starting with the search itself. This action will retrieve the candidates according the search types and the search settings. The identity of already found candidates in the result table can be adjusted with the research action carrying out a "what-if" scenario based on the current settings. The research action ignores all settings related to controlling the size of candidate lists like cutoff or activation. With refine the identities can be reappraised using the string distance metric LRCPD to replace the frequency based heuristic. These options will be disabled unless the SearchEngine index files, consisting of the registry table and linkage files, have been created. Those files can be recreated if a misconception regarding the search type setup has occurred. In case a search requires a different search type setup, but the existing setup is still useful, a fresh installation into a different directory would be the more sensible procedure. A rarely used action is the expansion of the registry with the frequencies of the search table because the consequences are difficult to assess and control. Mirroring a result table after self-referential searches in conjunction with the research action provides bi-directional edges for the grouped export.  
+This main section controls the major actions of the SearchEngine starting with the search itself. This action will retrieve the candidates according the search types and the search settings. The identity of already found candidates in the result table can be adjusted with the research action carrying out a "what-if" scenario based on the current settings. The research action ignores all settings related to controlling the size of candidate lists like cutoff or activation. With refine the identities can be reappraised using the string distance metric LRCPD to replace the frequency based heuristic.  
+The actions Strip and Mirror affect an existing result table by either stripping unwanted or redundant results or by mirroring a result table after self-referential searches. The latter provides, in conjunction with the research action, the bi-directional edges for the grouped export.  
+These search related action will be disabled unless the SearchEngine index files, consisting of the registry table and linkage files, have been created. Those files can be recreated if a misconception regarding the search type setup has occurred. In case a search requires a different search type setup, but the existing setup is still useful, a fresh installation into a different directory would be the more sensible procedure. A rarely used action is the expansion of the registry with the frequencies of the search table because the consequences are difficult to assess and control. 
 
 #### Action>Search
 This is the main action of the SearchEngine. It will create the result table or expands an existing one with the candidates of a new search run. The general attitude of the SearchEngine can be adjusted in this window. The options to enforce refinement and to readjust the threshold afterwards are rarely used. The separate threshold is only available if refinement is initiated, either by the inclusion of destructive preparers or by enforcing it. The direction of the refinement can be specified if applicable. The most important setting is the interaction of the new results with the existing results. This determines if the search strategy is incremental or compound.  
@@ -332,6 +361,14 @@ The research action recalculates the identity according to the current settings 
 #### Action>Refine
 The refine action reappraises the identity with the string distance function LRCPD. No new candidates will be retrieved. The action can be restricted on specific runs. You can specify how the distance metric will replace the existing identity.  The direction of the comparison can be specified. Because the refine action was used to re-evaluate destructive search types to contain their volatility, there is an option to restrict the refinement on destructive search types. This was a cumbersome process requiring the manipulation of priorities. It is now completely integrated into the search action declaring the option as deprecated.  
 [[refine]](#refine)  
+
+#### Action>Strip
+The strip action allows you to retroactively (after the the search) impose a (higher) threshold or to cutoff on the results. The action can be restricted on specific runs. Complete runs can be removed with an unachievable treshold for selected runs. An inverse cutoff picks only the best search terms per candidate (instead of the best candidate per search term) to exploit the benefit of a curated search table. Run numbers can be changed or aggregated.  
+[[strip]](#strip)  
+
+#### Action>Mirror
+The result table of a self-referential search is comparable to a network definition. Every candidate will also be a search term because search records and candidates share the same table. Because of the threshold and the non-symmetric search algorithm, not every candidate of a search term will retrieve the search term as a candidate. With the mirror action, symmetry can be enforced by creating the missing reverse incidents. All creates candidates have an identity (and score) of zero. To assign an identity to the mirrored cases you have to use the research action specifying the mirror run. This will provide some information about how close the candidate is, especially when using smoothed search types. This information can be exploited for the cluster rule definition of the Grouped Export.  
+[[mirror]](#mirror)  
 
 #### Action>Create
 This action creates the SearchEngine by parsing the base table, collecting the words according to the search types to register them in the registry by counting their frequencies. During this process, linkage tables maintain a tight connection between the registry and the base table records. To define search types you have to assign preparers to base table fields. A preparer is a specific directive declaring how fields are normalized, beyond the basic normalization, and potentially tokenized. By default, all characters are transformed to upper case and special, non-alphanumeric characters are replaced with blanks. The SearchEngine understands most derivatives of European alphabets including nordic languages, greek and cyrillic. A word is everything separated by a blank after normalization. This definition can be changed using linguistic methods implemented by so-called destructive preparers. In general, you will only attach non-destructive preparers to your base table fields and only the most context relevant fields should get a second search type based on destructive (preferably GRAM) preparers. You do not want to waste time handling misspellings in auxiliary fields with a low priority.  
@@ -347,10 +384,6 @@ This action will delete an existing SearchEngine and create a new one. The dialo
 #### Action>Expand
 This action will use the current search table to reassign the frequencies of mutual words in the registry. Because the consequences of this action a difficult to assess, this feature is of a more experimental nature. You will always be able to undo this action with the "Rebuild Occurrences" option, which will use the internal linkage tables to restore the original frequencies.  
 [[expand]](#expand)  
-
-#### Action>Mirror
-The result table of a self-referential search is comparable to a network definition. Every candidate will also be a search term because search records and candidates share the same table. Because of the threshold and the non-symmetric search algorithm, not every candidate of a search term will retrieve the search term as a candidate. With the mirror action, symmetry can be enforced by creating the missing reverse incidents. All creates candidates have an identity (and score) of zero. To assign an identity to the mirrored cases you have to use the research action specifying the mirror run. This will provide some information about how close the candidate is, especially when using smoothed search types. This information can be exploited for the cluster rule definition of the Grouped Export.  
-[[mirror]](#mirror)  
 
 ### Tools
 You do not need them but you also cannot live without them. They allow to test the SearchEngine setting by manually entering search terms, to easily browse through your search results without exporting, to get valuable statistics about the distribution of candidates over search runs and to browse internal tables like the registry for educational purposes.
@@ -446,12 +479,13 @@ A script command performs a function of the SearchEngine. Usually, they correspo
 
 A parameter that does not begin with a capital letter can have multiple types according to its description. Parameters or sequences of parameters enclosed in brackets are optional and can be omitted for the default parameter value. Parameters are always separated by only one comma regardless of omitted parameters. For example, the function definition 
  
-<code>exportresult(Stable [, Nshuffle] [, Nlow, Nhigh] [, Srunfilter] [, Lnewrun])</code>  
+<code>exportresult(*Stable* [, *Nshuffle* [, *Lweighted*]] [, *Nlow*, *Nhigh*] [, *Srunfilter*] [, *Lnewrun*])</code>  
 
 will allow the following function calls  
 
 <code>exportresult("newresult.dbf", 1000)</code>   
-<code>exportresult("newresult.dbf", 1000, .t.)</code>  
+<code>exportresult("newresult.dbf", 1000, .f.)</code>   
+<code>exportresult("newresult.dbf", 1000, .f., .t.)</code>  
 <code>exportresult("newresult.dbf", 90, 100, "1-3")</code>  
 <code>exportresult("newresult.dbf", 90, 100, .t.)</code>  
 etc.
@@ -532,7 +566,7 @@ declares the expected number of candidates for a plausible match. This number de
 
 If <i>Icutoff</i> is larger than zero, the SearchEngine will pick the identity of the candidate at this position in the sorted list (descending by identity) and use it as the new threshold. This prevents inconsistent truncations of candidate lists but is useless if there is no variation among the candidates. Unfortunately, large candidate lists are caused by weak search terms with an inherent tendency for low variation. A weak search term has few and very common words providing not much opportunity for variance. Variance based on the relevance of surplus words of the candidates can be introduced with <b>feedback</b>. To apply this variance only if needed for <b>cutoff</b>, set the <b>activation</b> parameter to the same value as the <b>cutoff</b>. The <b>activation</b> parameter triggers <b>feedback</b> when the candidate list equals or exceeds its value. The variation will only be temporary to enable a truncation of the ordered list as close to the <i>Icutoff</i> position as possible. In general, a low <b>feedback</b> of 10% suffices for such an application.
 
-<b>cutoff</b> occurs after all other potential candidate list affecting settings, like <b>darwinian</b> or <b>zealous</b>, have taken place.  
+<b>cutoff</b> occurs after all other settings affecting potential candidate lists, like <b>darwinian</b> or <b>zealous</b>, have been carried out.  
 
 You can use the command <b>contain</b> as a shortcut for setting up a strategy for the <b>containment</b> of weak search terms.  
 [[Config>Settings]](#configsettings)  
@@ -596,7 +630,7 @@ uses the field "affil" to identify searched records and "firm_id" for found reco
 <code>export("D:\\se\\export100.txt", 100, 101)</code>  
 exports only candidates with 100% identity.  
 <code>export("D:\\se\\export90.txt", 90, 100, .t.)</code>   
-exports only candidates with identities greater equal 90 and lesser than 100 and no 100% candidates for the same search record.
+exports only candidates with identities greater equal 90 and lesser than 100 and no 100% candidates for the same search record.  
 <code>export("D:\\se\\export80.txt", 80, 90, .t.)</code>  
 exports only candidates with identities greater equal 80 and lesser than 90 and no better candidates for the same search record.  
 <code>export("D:\\se\\export123.txt", "affil", "firm_id", "1-3")</code>  
@@ -666,27 +700,43 @@ creates a intermediate network of clusters formed by the first cascade. The conn
 
 With <i>Srunfilter</i> you can restrict the export on specified search runs. <i>Srunfilter</i> is a list of comma separated search runs to be exported. Ranges can be defined with a minus sign, e.g. "1-3, 7, 9".  
 
+By default search fields will be exported for assessment of the clustering. With <i>Lnotext</i> equal .t., the reporting of the search fields will be suppressed. 
+
+With <i>Lnosingles</i> equal .t., the reporting of single member clusters can be suppressed.
+
 Examples:  
 <code>exportgrouped("D:\\patents\\abstracts.txt", "min >= 80 @ 11, min >= 90 @ 101")</code>  
 clusters patent abstracts with activation limit 11 and 101 as fallback.  
 <code>exportgrouped("D:\\patents\\applicants.txt", "min >= 90 @ 0; min >= 80 @ 6, min >= 90 @ 11", "app_id", "4-255", .f., .t.)</code>  
-clusters patent applicants with a nested cascade using a key field and including any run after the third skipping singles.  
+clusters patent applicants with a nested cascade using a key field and including any run after the third skipping singles but showing the search fields.  
 [[File>Export>Grouped Export]](#fileexportgrouped-export)  
 [[Discussion Paper]](#discussion-paper)  
 [[mirror]](#mirror)  
 [[research]](#research)   
 
 #### exportresult
-<code>exportresult(*Stable* [, *Nshuffle*] [, *Nlow*, *Nhigh*] [, *Srunfilter*] [, *Lnewrun*])</code>  
-extracts a filtered copy/sample of the result table. The exported <i>Stable</i> is always a Foxpro table (extension "dbf"). It is advised to not specify an extension or use ".dbf". With <i>Nshuffle</i> specified, a sample of the result table will be drawn. The sample size is a share, when <i>Nshuffle</i> is lesser than 1, or it is an absolute number, when <i>Nshuffle</i> is greater equal 1. The size relates to the number of search records and not to the number of candidates. When <i>Nshuffle</i> is 1000, it means that 1000 search records with all associated candidates will be exported. 
+<code>exportresult(*Stable* [, *Nshuffle*, [, *Lweighted*]] [, *Nlow*, *Nhigh*] [, *Srunfilter*] [, *Lnewrun*])</code>  
+extracts a filtered copy/sample of the result table. The exported <i>Stable</i> is always a Foxpro table (extension "dbf"). It is advised to not specify an extension or use ".dbf". With <i>Nshuffle</i> specified, a sample of the result table will be drawn. The sample size is a share, when <i>Nshuffle</i> is lesser than 1, or it is an absolute number, when <i>Nshuffle</i> is greater equal 1. The size relates to the number of search records and not to the number of candidates. When <i>Nshuffle</i> is 1000, it means that 1000 search records with all associated candidates will be exported. By default, the sample draw does not take into account the number of candidates for a search term. If <i>Lweighted</i> is .t., the search terms are weighted by the number of their candidates. Search terms with more candidates have a higher probability to be drawn. This can be beneficial to compose a training data after <b>compound searches</b>, which usually have very skewed canidate distributions due to necessarily weak <b>containment</b> (or none at all).  
 
-With <i>Nlow</i> and <i>Nhigh</i> an interval for the identity can be specified to filter the eligible records. <i>Nhigh</i> is excluded from the interval. With <i>Srunfilter</i> you can restrict the export on specified search runs. <i>Srunfilter</i> is a list of comma separated search runs to be filtered for export. Ranges can be defined with a minus sign, e.g. "1-3, 7, 9". You can change the run number for all entries in such a run list by appending the aggregate number after a colon, e.g. "1,5:1". To specify multiple aggregate run numbers separate those list with a semicolon. The list are parsed from left to right and can overwrite each other. An aggregate run number of 0 will exclude the runs of the preceding list. For example: "1-9:2; 4,5:1; 3:0" is equivalent to "4,5:1; 1,2,6-9:2". Be aware that any run not explicitly included in <i>Srunfilter</i> will be excluded.  
+With <i>Nlow</i> and <i>Nhigh</i> an interval for the identity can be specified to filter the eligible records. <i>Nhigh</i> is excluded from the interval. With <i>Srunfilter</i> you can restrict the export on specified search runs. <i>Srunfilter</i> is a list of comma separated search runs to be filtered for export. Ranges can be defined with a minus sign, e.g. "1-3, 7, 9". You can change the run number for all entries in such a run list by appending the aggregate number after a colon, e.g. "1,5:1". To specify multiple aggregate run numbers, separate those lists with a semicolon. The lists are parsed from left to right and can overwrite each other. An aggregate run number of 0 will exclude the runs from preceding lists. For example: "1-9:2; 4,5:1; 3:0" is equivalent to "4,5:1; 1,2,6-9:2". Be aware that any run not explicitly included in <i>Srunfilter</i> will be excluded. If <i>Lnewrun</i> is .t., the search runs will be resequenced to bridge gaps.
 
-This function can be used to remove unwanted runs from the result table or to draw a sample for a training dataset for the SearchEngine Machine Learning approach <b>SEML</b>. To replace a result table you have to declare the new one with the <b>result</b> function. In the context of SEML, the training sample will be exported with <b>exportextended</b>. After that, do not forget to reassign the original result table. Otherwise, you will be surprised if you try to draw a second sample from an already drawn sample. In case of removing unwanted runs, you can delete the old result table after assigning the new one.  
+This function can be used to remove unwanted runs from the result table or to draw a sample for a training dataset for the SearchEngine Machine Learning approach <b>SEML</b>. To replace a result table you have to declare the new one with the <b>result</b> function. In the context of SEML, the training sample will be exported with <b>exportextended</b>. After that, do not forget to reassign the original result table. Otherwise, you will be surprised if you try to draw a second sample from an already drawn sample. In case of removing unwanted runs, you can delete the old result table after assigning the new one. Alternatively, the **strip** function can also be used to remove and renumber runs directly without exporting the result table and the related hassle. As it directly affects the current result table, these actions cannot be reverted.  
+
+Examples:  
+<code>exportresult("D:\\patents\\result_sample", 1000)</code>  
+draws a sample of 1000 search terms with the corresponding candidates.  
+<code>exportresult("D:\\pulications\\result_sample", 200, .t.)</code>  
+draws a weighted sample maintaining the candidate distribution.  
+<code>exportresult("D:\\patents\\result_1", "1-3, 5", .t.)</code>  
+<code>result("D:\\patents\\result_1")</code>  
+creates a new result table by removing run number 4 from the current result table, closes the gap (run 5 becomes 4) and declares the modified table as new result table. Maybe something was wrong with run 4.  
 [[File>Export>Result Export]](#fileexportresult-export)  
 [[SEML]](#seml)  
 [[result]](#result)  
 [[exportextended]](#exportextended)  
+[[Compound Search]](#compound-search)  
+[[containment]](#containment)  
+[[strip]](#strip)  
 
 #### exportmeta
 <code>exportmeta(*Stable* [, *Smeta*] [, *Lnocomp*] [, *Nlow*, *Nhigh*] [, *Srunfilter*])</code>  
@@ -711,7 +761,7 @@ The runs 1 and 4 are using the same priority (weight) setting while the runs 2,3
 <code>exportmeta("d:\\abstracts\\meta.txt", "1=10", .t.)</code>  
 exports meta data of a search within patent abstracts skipping the LRCPD similarity metrics.  
 
-Besides the meta data defined by <i>Stable</i> the function also creates a registry table to account for the word frequencies of the search table. It will use the same search types as the main registry. The search table registry can be found in the same directory as the search table with the postfix "_registry.dbf" attached to the search table name. Keep this file because it will speed up meta exports for the same search and base table setups. Delete/rename this file, if something has changed in this setup. Unfortunately, the SearchEngine will not recognise a change in the base table or the search type configuration to initiate the creation of a new search table registry. You have to force it by deleting the file in such a case.
+Besides the meta data defined by <i>Stable</i> the function also creates a registry table to account for the word frequencies of the search table. It will use the same search types as the main registry. The search table registry can be found in the same directory as the search table with the postfix "_registry.dbf" attached to the search table name. Keep this file because it will speed up meta exports for the same search and base table setups. Delete/rename this file, if something has changed in this setup. Unfortunately, the SearchEngine will not recognise a change in the base table or the search type configuration to initiate the creation of a new search table registry. You have to force it by deleting the file in such a case.  
 [[File>Export>Meta Export]](#fileexportmeta-export)  
 [[Discussion Paper]](#discussion-paper)  
 [[SEML]](#seml)  
@@ -776,8 +826,9 @@ imports respectively declares the base table. If the file extension is \".txt\",
 
 <i>Lnomemos</i> prevents the usage of memo fields during import. Memo fields are required if text fields exceed the length of 254 characters. In the case of suppressed memo fields a data loss of 0.1% is considered tolerable to handle outliers as truncation is already authorized. Use memo fields if you expect longer texts in the data. Set <i>Lnomemos</i> to .t. if text fields longer than 254 characters can be considered unwanted outliers. Memo fields appear as type \"M\" and characters fields as type \"C\" in the table structure (see below).
 
-You can import the text file again by deleting the corresponding Foxpro table (everything with the same name and the extensions \.dbf, \.cdx, \.fpt, \.idx). This can be necessary if the file was affected by control characters in field columns. You can verify a proper import by checking the table structure of the base table in the structure string (look for \[BaseTable\]) shown in the main window of the GUI or displayed by the command [[show]](#show). The number of records, the field names and types should be as expected. Otherwise, check the source data for critical control characters.
-[[Config>File Locations]](#configfile-locations)
+You can import the text file again by deleting the corresponding Foxpro table (everything with the same name and the extensions \.dbf, \.cdx, \.fpt, \.idx). This can be necessary if the file was affected by control characters in field columns. You can verify a proper import by checking the table structure of the base table in the structure string (look for \[BaseTable\]) shown in the main window of the GUI or displayed by the command <b>show</b>. The number of records, the field names and types should be as expected. Otherwise, check the source data for critical control characters.
+[[Config>File Locations]](#configfile-locations)  
+[[show]](#show)  
 
 #### importsearch
 <code>importsearch(*Sfile* [, *Lnomemos*])</code>  
@@ -785,8 +836,9 @@ imports respectively declares the search table. If the file extension is \".txt\
 
 <i>Lnomemos</i> prevents the usage of memo fields during import. Memo fields are required if text fields exceed the length of 254 characters. In the case of suppressed memo fields a data loss of 0.1% is considered tolerable to handle outliers as truncation is already authorized. Use memo fields if you expect longer texts in the data. Set <i>Lnomemos</i> to .t. if text fields longer than 254 characters can be considered unwanted outliers. Memo fields appear as type \"M\" and characters fields as type \"C\" in the table structure (see below).
 
-You can import the text file again by deleting the corresponding Foxpro table (everything with the same name and the extensions \.dbf, \.cdx, \.fpt, \.idx). This can be necessary if the file was affected by control characters in field columns. You can verify a proper import by checking the table structure of the search table in the structure string (look for \[SearchTable\]) shown in the main window of the GUI or displayed by the command [[show]](#show). The number of records, the field names and types should be as expected. Otherwise, check the source data for critical control characters.  
+You can import the text file again by deleting the corresponding Foxpro table (everything with the same name and the extensions \.dbf, \.cdx, \.fpt, \.idx). This can be necessary if the file was affected by control characters in field columns. You can verify a proper import by checking the table structure of the search table in the structure string (look for \[SearchTable\]) shown in the main window of the GUI or displayed by the command <b>show</b>. The number of records, the field names and types should be as expected. Otherwise, check the source data for critical control characters.  
 [[Config>File Locations]](#configfile-locations)  
+[[show]](#show)  
 
 #### join
 <code>join(*Sfield* [, *Ssearchfield*])</code>  
@@ -850,7 +902,7 @@ appends a new line of text to the notes in the info section of the SearchEngine 
 defines a new log file for the command output. By default, a new file will be created respectively an existing file overwritten. If <i>Lappend</i> is .t., the output will be appended to an existing file, which will be created if necessary. If <i>Slogfile</i> is omitted, the current output file will be closed. Only one output file can be open at a time. Opening a new file will close the current one. By default, all output, including the commands, will be logged in the current output file as it is displayed in the command window. The keywords <b>loud</b> and <b>silent</b> control whether the commands are logged or only the output of the commands. If a script is called in <b>Batch Mode</b>, the output file can be specified as parameter.  
 
 Examples:  
-<code>output("d:\\se\\logfile.txt", .t.)</code> appends to the existing file logfile.txt 
+<code>output("d:\\se\\logfile.txt", .t.)</code> appends to the existing file logfile.txt  
 <code>output()</code> closes the current log file
 
 Do not confuse the output file with the "SearchEngine.log" file, which is reserved exclusively for logging activities in the GUI.  
@@ -891,7 +943,7 @@ The <b>refine</b> function is part of the <b>search</b> command and will automat
 3. Identities are set to zero for the results of the current run.
 4. The SearchEngine calls the <b>refine</b> method on the current run. It compares the original fields of the search and base table where the associated search types contain destructive preparers using the LRCPD method. This method returns a string similarity percentage which will be weighted by the priorities for the corresponding search types. This constitutes the "destructive search types" part of the identity.
 5. The remaining identity for the involved search types with non-destructive preparers is calulated by a final step using the <b>research</b> function, which is based on the frequency heuristic. This constitutes the "non-destructive search types" part of the identity.
-6. The composed identity replaces the candidate identity and has to pass the *threshold* again.
+6. The composed identity replaces the candidate identity.
 
 Because this process is already integrated into the <b>search</b> call, the <b>refine</b> function is only used when a string similarity metric should explicitly replace the frequency heuristic. The <b>refine</b> function will always compare all search and base table fields that are linked with the <b>join</b> function unless you set the <i>Ldestructiveonly</i> parameter to .t., which skips all search fields without a destructive search type (implementing a destructive preparer). To exclude search fields from the comparison you can <b>unjoin</b> them.
 
@@ -907,17 +959,17 @@ The value 4 (adding) is required if the identity is already only partial due to 
 
 The LRCPD comparison is not commutative (symetric). The LRCPD method like the frequency based heuristic is a directed comparison ignoring surplus words in the target term. The direction of the comparison can be adjusted with <i>Icomparemode</i>:
 
- 1 = compare searched terms with found target terms (default)  
- 2 = dynamic - compare in both directions choosing the minimum  
- 3 = compare found terms with searched target terms  
+1 = compare searched terms with found target terms (default)  
+2 = dynamic - compare in both directions choosing the minimum  
+3 = compare found terms with searched target terms  
 
- Option 2 (dynamic) can be used when there is not much leeway in regard of the search context, i.e. person names. Option 3 (found in searched) can be used when more noise is expected among the candidates. This may indicate, that the whole search direction should be switched.  
+Option 2 (dynamic) can be used when there is not much leeway in regard of the search context, i.e. person names. Option 3 (found in searched) can be used when more noise is expected among the candidates. This may indicate, that the whole search direction should be switched.  
  
- <i>Srunfilter</i> is a list of comma separated search runs to be filtered for refining. Ranges can be defined with a minus sign, e.g "1-3, 7, 9". This parameter allows to target the refinement on specific runs.  
+<i>Srunfilter</i> is a list of comma separated search runs to be filtered for refining. Ranges can be defined with a minus sign, e.g "1-3, 7, 9". This parameter allows to target the refinement on specific runs.  
 
 Because the LRCPD algorithm compares all combinations of word-tuples, the number of comparisons increases by the power of two with the number of words. Keep this in mind when applying refinement on larger text fields.   
 
- In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function.   
+In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function.   
 [[Action>Refine]](#actionrefine)  
 [[research]](#research)  
 [[search]](#search)  
@@ -940,7 +992,7 @@ removes a save slot with the name specified in <i>Sslot</i>. This has no effect 
 [[erase]](#erase)  
 
 #### research
-<code>research([*Iidentitymode*, *Iscoremode*] [, *Srunfilter*] [, *Lnondestructiveonly*])</code>  
+<code>research([*Iidentitymode* [, *Iscoremode*]] [, *Srunfilter*] [, *Lnondestructiveonly*])</code>  
 reapplies the current settings on existing matches in the result table. All parameters affecting the composition of the identity and the score (absolute identification potential) are re-evaluated. Together with <b>refine</b> this function belongs to the identity manipulation functions applied after retrieval of candidates. It uses the same mechanisms and heuristics as the retrieval by the <b>search</b> function. It is possible to apply *feedback* or redistribute priorities (weights) retroactively, allowing the separation of retrieval from the final evaluation of candidates. The new identities will not be affected by the *threshold*. 
 
 The <b>research</b> function is part of the <b>search</b> command and will automatically be called when destructive linguistic preparers are involved and post-search refinement is specified. The general process for such a search run is a follows:
@@ -950,7 +1002,7 @@ The <b>research</b> function is part of the <b>search</b> command and will autom
 3. Identities are set to zero for the results of the current run.
 4. The SearchEngine calls the <b>refine</b> method on the current run. It compares the original fields of the search and base table where the associated search types contain destructive preparers using the LRCPD method. This method returns a string similarity percentage which will be weighted by the priorities for the corresponding search types. This constitutes the "destructive search types" part of the identity.
 5. The remaining identity for the involved search types with non-destructive preparers is calculated by a final step using the <b>research</b> function, which is based on the frequency heuristic. This constitutes the "non-destructive search types" part of the identity.
-6. The composed identity replaces the candidate identity and has to pass the *threshold* again.
+6. The composed identity replaces the candidate identity.
 
 The main purpose of the <b>research</b> functionality is to reconstruct the identity after the application of the <b>refine</b> function for search types implementing destructive linguistic preparers to capture misspellings. Because only components of an identity associated with destructive search types are replaced with the LRCPD metric (see <b>refine</b>) the intermediate identity is limited by the total of the corresponding weights. The remaining non-destructive search types re-evaluated with the <b>research</b> function and both results combined define the new identity.
 
@@ -958,30 +1010,47 @@ You can <b>unjoin</b> search fields to restrict the effect of a <b>research</b> 
 
 The parameter <i>Iidentitymode</i> defines how the new identity relates to the existing identity for the respective candidate:
 
-0 = do not update existing identity  
+0 = do not update existing identity, i.e. to only update the score  
 1 = replace identity (default)  
 2 = maximize identity to overrule the existing identity if better  
 3 = minimize identity to enforce a worst case scenario  
-4 = add the refined identity to the existing identity  
-5 = calculate the average between the refined and existing identity  
+4 = add the researched identity to the existing identity  
+5 = calculate the average between the researched and existing identity  
 
 The value 4 (adding) is required if the identity is already only partial due to search field selection via <b>join</b> and <b>unjoin</b> or switching search types on and off via the priority (weight setting to zero/non-zero). <i>Identitymode</i> 2, 3 and 5 are of a more experimental nature. By default, the identity will be replaced (<i>Identitymode</i> = 1). This setting provides a high amount of flexibility to design your own composed identity to decouple the initial identity used for retrieval from bespoke similarity measures.
 
 In contrast to the <b>refine</b> function, the <b>research</b> function can also re-evaluate the absolute identification potential (score). The parameter <i>Iscoremode</i> defines how the new score and the existing score interact:
 
-0 = do not update existing score
-1 = always replace score (default)
-2 = maximize score by choosing the higher one
-3 = minimize score by choosing the lower one
+0 = do not update existing score, , i.e. to only update the identity (default)  
+1 = always replace score  
+2 = maximize score by choosing the higher one  
+3 = minimize score by choosing the lower one  
  
- <i>Srunfilter</i> is a list of comma separated search runs to be filtered for researching. Ranges can be defined with a minus sign, e.g "1-3, 7, 9". This parameter allows to target the research on specific runs.  
+<i>Srunfilter</i> is a list of comma separated search runs to be filtered for researching. Ranges can be defined with a minus sign, e.g "1-3, 7, 9". This parameter allows to target the research on specific runs.  
  
- In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function.   
+In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function. Still, it is useful to create an order among the candidates without interfering with the retrieval, for example by applying a small <b>feedback</b> on specific fields:  
+ 
+<code>types("firm 70, street 10, zip 10, city 10")</code> The search type setting may deviate from retrieval.  
+<code>unjoin()</code>  
+<code>join("applicant", "firm")</code> We only want to apply feedback on the firm search field and associated types.  
+<code>feedback(5)</code> applies a small feedback on the firm name to create an order among the candidates.  
+<code>research(1)</code> replaces the identity to a maximum of 70% (no update of the score).  
+<code>unjoin()</code> resets the linkage of the search fields to exclude the firm name.  
+<code>join("street")</code>  
+<code>join("postcode", "zip")</code> You only have to specify the search field if the name is different.  
+<code>join("street")</code>  
+<code>research(4)</code> adds up to 30% to the current partial identity according to the address similarity.  
+<code>unjoin()</code> restoring the order of the search field linkage.  
+<code>join("applicant", "firm")</code>   
+<code>join("street")</code>  
+<code>join("postcode", "zip")</code>  
+<code>join("street")</code>  
 [[Action>Research]](#actionresearch)  
 [[refine]](#refine)  
 [[search]](#search)  
 [[join]](#join)  
 [[unjoin]](#unjoin)  
+[[feedback]](#feedback)  
 
 #### reset
 <code>reset()</code>  
@@ -1049,18 +1118,20 @@ The LRCPD string comparison is used by the <b>refine</b> function to impose a vi
 #### screen
 <code>screen(*Sproperty* [, *value*])</code>  
 sets various screen properties determining the look of the execution window of the <b>Batch Mode</b> and to some extend of the command window:  
-screen(“width”, 550) sets the screen with to 550 pixel.  
-screen(“height”,400) sets the screen height to 400 pixel.  
-screen(“left”,100) sets the screen coordinate of the top left corner to 100 pixel.  
-screen(“top”,100) sets the screen coordinate of the top left corner to 100 pixel.  
-screen(“hide”) hides the screen.  
-screen(“maximize”) maximizes the screen.  
-screen(“minimize”) minimizes the screen.  
-screen(“normal”) switches the screen from maximized/minimized state into normal state .  
-screen(“backcolor”, “0,0,0”) sets the back color of the screen in RGB format.  
-screen(“forecolor”, “25,245,75”) sets the fore color of the screen in RGB format.  
-screen(“font”, “Courier New”) sets the font.  
-screen(“fontsize”, 9) sets the font size in points.  
+
+<code>screen("width", 550)</code> sets the screen with to 550 pixel.  
+<code>screen("height",400)</code> sets the screen height to 400 pixel.  
+<code>screen("left",100)</code> sets the screen coordinate of the top left corner to 100 pixel.  
+<code>screen("top",100)</code> sets the screen coordinate of the top left corner to 100 pixel.  
+<code>screen("hide")</code> hides the screen.  
+<code>screen("maximize")</code> maximizes the screen.  
+<code>screen("minimize")</code> minimizes the screen.  
+<code>screen("normal")</code> switches the screen from maximized/minimized state into normal state .  
+<code>screen("backcolor", "0,0,0")</code> sets the back color of the screen in RGB format.  
+<code>screen("forecolor", "25,245,75")</code> sets the fore color of the screen in RGB format.  
+<code>screen("font", "Courier New")</code> sets the font.  
+</code>screen("fontsize", 9)</code> sets the font size in points.  
+
 Only the font and color related properties are supported by the command window.  
 [[Batch Mode]](#batch-mode)  
 [[File>Command]](#filecommand)  
@@ -1081,15 +1152,15 @@ Placeholders can also be defined with command line parameters (therefore the "pa
 
 #### search
 <code>search([Iincrement] [, Icomparemode [, Lrefineforce] [, Nrefinelimit]])</code>  
-executes a search by sequentially transforming every record in the search table into a search term by transforming the search fields according to the associated search types. The heuristic for a search term is established by consulting the registry to attach frequencies to every word in the context of its search type. The frequencies are translated into relative identification potentials *RIP* weighted by the priority of the corresponding search type to represent a share of up to 100%. The settings defined by <b>ignorant</b> and <b>relative</b> may further influence the distribution of the *RIP*. The search algorithm retrieves candidates matching enough words with the search term that the total of the respective relative identification potentials meet the <b>threshold</b>. If the setting <b>zealous</b> is active, the <b>threshold</b> will be dynamically lowered to the highest identity of the candidates, if none of them will make it over the regular <b>threshold</b>. This initial list of candidates may undergo a <b>darwinian</b> selection process, allowing only those with the highest identity to advance.
+executes a search by sequentially transforming every record in the search table into a search term by transforming the search fields according to the associated search types. The heuristic for a search term is established by consulting the registry to attach frequencies to every word in the context of its search type. The frequencies are translated into relative identification potentials <i>RIP</i> weighted by the priority of the corresponding search type to represent a share of up to 100%. The settings defined by <b>ignorant</b> and <b>relative</b> may further influence the distribution of the <i>RIP</i>. The search algorithm retrieves candidates matching enough words with the search term that the total of the respective relative identification potentials meet the <b>threshold</b>. If the setting <b>zealous</b> is active, the <b>threshold</b> will be dynamically lowered to the highest identity of the candidates, if none of them will make it over the regular <b>threshold</b>. This initial list of candidates may undergo a <b>darwinian</b> selection process, allowing only those with the highest identity to advance.
 
-After that, if the size of the list equals or exceeds the <b>activation</b> limit, <b>feedback</b> will be applied to partially transform the identity into a Jaccard index by discounting surplus words according to their respective *RIP*. This introduces variation among the candidates to be exploited by the <b>cutoff</b> mechanism picking the identity at a given position as the individual *threshold* for the candidate list, which is sorted by the adjusted identity in descending order. If both, <b>activation</b> and <b>cutoff</b>, have been specified (larger than zero) the <b>feedback</b> effect is considered to be only temporary to create variation and will not be reported. The <b>feedback</b> will persist when <b>feedback</b> is larger than zero and either <b>activation</b> or <b>cutoff</b> are zero or both, indicating that the variation is intended to be reported. In that case, the candidate list will be re-evaluated a final time according to the <b>threshold</b>, <b>zealous</b>, <b>darwinian</b> and <b>cutoff</b> settings.
+After that, if the size of the list equals or exceeds the <b>activation</b> limit, <b>feedback</b> will be applied to partially transform the identity into a Jaccard index by discounting surplus words according to their respective <i>RIP</i>. This introduces variation among the candidates to be exploited by the <b>cutoff</b> mechanism picking the identity at a given position as the individual *threshold* for the candidate list, which is sorted by the adjusted identity in descending order. If both, <b>activation</b> and <b>cutoff</b>, have been specified (larger than zero) the <b>feedback</b> effect is considered to be only temporary to create variation and will not be reported. The <b>feedback</b> will persist when <b>feedback</b> is larger than zero and either <b>activation</b> or <b>cutoff</b> are zero or both, indicating that the variation is intended to be reported. In that case, the candidate list will be re-evaluated a final time according to the <b>threshold</b>, <b>zealous</b>, <b>darwinian</b> and <b>cutoff</b> settings.
 
 The <i>Iincrement</i> parameter defines the interaction with existing results in the result table:
 
-0 = **replace** all existing results by resetting/creating the result table (default)  
-1 = **complete** for unmatched search records by skipping search records that have already candidates  
-2 = **merge** results with candidates not yet found  
+0 = <b>replace</b> all existing results by resetting/creating the result table (default)  
+1 = <b>complete</b> for unmatched search records by skipping search records that have already candidates  
+2 = <b>merge</b> results with candidates not yet found  
 3 = complete by resuming last run after cancelation (rarely used)   
 4 = merge by resuming last run after cancelation (rarely used)   
 -1 = complete by replacing last run (forgot something?)  
@@ -1099,10 +1170,11 @@ Every call of the <b>search</b> method increments the run counter of the result 
 
 By default, the SearchEngine does not acknowledge the presence of destructive search types and treats them like all other. This changes when the <i>Icomparmode</i> parameter is set to a value larger than zero. If there are any destructive preparers involved with the current search, the SearchEngine will initiate refinement of the new candidates as follows:
 
+0. Continue if destructive search types were involved with the current search, otherwise ignore refinement request. 
 1. Identities are set to zero for the results of the current run.
 2. The SearchEngine calls the <b>refine</b> method on the current run. It compares the original fields of the search and base table where the associated search types contain destructive preparers using the LRCPD method. This method returns a string similarity percentage which will be weighted by the priorities for the corresponding search types. This constitutes the "destructive search types" part of the identity.
 3. The remaining identity for the involved search types with non-destructive preparers is calculated by a final step using the <b>research</b> function, which is based on the frequency heuristic. This constitutes the "non-destructive search types" part of the identity.
-4. The composed identity replaces the candidate identity and has to pass the <b>threshold</b> again.
+4. The composed identity replaces the candidate identity. It has to pass a *threshold* taking into account the <b>darwinian</b> and <b>zealous</b> settings. The *threshold* can differ from the general <b>threshold</b> used for retrieval.
 
 The LRCPD comparison is not symmetric (commutative). The LRCPD method like the frequency based heuristic is a directed comparison ignoring surplus words in the target term. The direction of the comparison can be adjusted with <i>Icomparemode</i>:
 
@@ -1113,16 +1185,19 @@ The LRCPD comparison is not symmetric (commutative). The LRCPD method like the f
 
 Most of the time, we want that the refinement acts like the basic retrieval algorithm by ignoring surplus words in the candidate (<i>Icomparemode</i> = 1). Option 2 is suited for cases where additional words can constitute different entities, like person names. It is the equivalent to a high <b>feedback</b>. Option 3 can be applied when the search table has more noise and clutter than the base table. Although, the later case may be an indicator for the wrong search strategy.
 
-A valid <i>Icomparemode</i> is the prerequisite for the following parameters. If <i>Lrefineforce</i> is .t., the complete identity will be replaced with a simple string similarity metric for all involved search fields according to the <i>Icomparemode</i> setting. A subsequent *threshold* for refined identities can be defined with <i>Nrefinelimit</i>.  
+If there are no destructive preparers involved with the current search, the SearchEngine will ignore the refinement request except it is enforced with <i>Lrefineforce</i>. A valid <i>Icomparemode</i> is the prerequisite for the following parameters. If <i>Lrefineforce</i> is .t., the complete identity will be replaced with a simple string similarity metric for all involved search fields according to the <i>Icomparemode</i> setting. If <i>Nrefinelimit</i> is specified, it will replace the subsequent *threshold* for the candidates after refinement, which, by default, is the general <b>threshold</b> used for retrieval.
 
 Examples:  
-<code>search()</code> initiates a search with a clean result table. Most search strategies start like that.  
+<code>search()</code> initiates a search with a clean result table. Most search strategies begin with this command.  
+<code>search(0)</code> is equivalent to search().  
 <code>search(1)</code> searches incrementally by only regarding search records that have no candidates yet.  
 <code>search(1, 1)</code> searches incrementally with refinement for candidates retrieved with linguistic methods.  
+<code>search(0, 1)</code> initiates a search with a clean result table using refinement.  
 <code>search(2)</code> merges the new search results with the existing ones without replacing.  
 <code>search(2, 1, 75)</code> refines the identities of the new search run before merging enforcing a threshold of 75% on the refined identities.  
+<code>search(2, 1, .t.)</code> refines all search fields regardless of the search type and uses the general threshold.  
 <code>search(2, 1, .t., 75)</code> refines all search fields regardless of the search type and enforces a post-refinement threshold.  
-<code>search(-1)</code> replaces the last run with an incremental search. Maybe some settings were not right the run before.  
+<code>search(-1)</code> replaces the last run with an incremental search. Maybe some settings were not right the run before.
 
 Read the chapter about <b>search strategies</b> and the <b>discussion paper</b> to garner more insights about how to handle the SearchEngine.  
 [[Action>Search]](#actionsearch)  
@@ -1158,14 +1233,40 @@ displays the current save slot name.
 <code>statistics([*Lwide*])</code>  
 calculates and displays statistics about the current result table per run and in total. When <i>Lwide</i> is .t., the output will be in horizontal tab-delimited format instead of vertical list format.
 
-You can get export the statistics by calling the statistics command in wide format with the <b>quiet</b> keyword in the Command Window after opening a log file with <b>output</b>. After closing the log file, you have a tab delimited table with column headers ready to be imported.
+You can get export the statistics by calling the statistics command in wide format with the <b>quiet</b> keyword in the Command Window after opening a log file with <b>output</b>. After closing the log file, you have a tab delimited table with column headers ready to be imported.  
 [[Tools>Statistics]](#toolsstatistics)  
 [[quiet]](#quiet)  
 [[output]](#output)  
 
+#### strip
+<code>strip([*Nthreshold, Icutoff*][, *Linverse*][, *Srunfilter])</code>  
+retroactively applies a <b>threshold</b> and <b>cutoff</b> on an existing result table by deleting the candidates not matching the requirements. This can be useful to trim the result table of unwanted candidates or even complete runs. With <i>Nthreshold</i> and <i>Icutoff</i> a temporary <b>threshold</b> and <b>cutoff</b> will be defined. Set the value to zero to dectivate the corresponding requirement. You can skip both parameters if you do not intend to impose restrictions on the candidates. A <i>Nthreshold</i> above 100 will strip all candidates, which can be useful in conjunction with a run filter defined with the <i>Srunfilter</i> parameter. 
+
+<i>Srunfilter</i> is a list of comma separated search runs to be affected by stripping. Ranges can be defined with a minus sign, e.g. "1-3, 7, 9". You can change the run number for all entries in such a run list by appending the aggregate number after a colon, e.g. "1,5:1". To specify multiple aggregate run numbers, separate those list with a semicolon. The list are parsed from left to right and can overwrite each other. An aggregate run number of 0 will exclude the runs from preceding lists. For example: "1-9:2; 4,5:1; 3:0" is equivalent to "4,5:1; 1,2,6-9:2". Be aware that any run not explicitly included in <i>Srunfilter</i> will be excluded. If you only want to renumber runs skip the <i>Nthreshold</i> and <i>Icutoff</i> parameters. The maximum run number will be changed when actively changed to a larger number or to a number greater equal any existing run number, i.e. after aggregating runs 3, 4 and 5 to run 3 (3-5:3) the maximum run number 5 will be set to 3. The maximum run number is relevant for numbering new search steps.
+
+By default, <i>Icutoff</i> defines the position in a list of candidates by search term sorted in descending order by identity. If the identity at this position is larger than the specified <i>Nthreshold</i> parameter, it will replace it to curtail the candidates of the respective search term. Of course, <b>cutoff</b> will be more efficient when <b>feedback</b> has been applied to create variance. Because the usual search strategy does use <b>feedback</b> only implicitly to <b>contain</b> weak search terms, you may have to introduce an explicit feedback effect with the <b>research</b> command that will actually change the identity. A low feedback of 20% should suffice. 
+
+The <i>Linverse</i> parameter directly refers to the <b>cutoff</b>. When it is .t., the <i>Icutoff</i> parameter still defines a position in a list, but this time it is sorted within the candidates. The <b>cutoff</b> removes search terms from a candidate that have a lower identity than the search term at the cutoff position. When you are forced to use a <b>compound search</b> because one table has to become the search table due to excessive noise while the search terms stem from a focused, curated database, you can exploit this feature to impose a retroactive darwinian approach on the results (after applying a feedback effect for variance). This will greatly reduce the number of false positives. If you skip the first two parameters but specify .t. for <i>Linverse</i>, a cutoff of 1 will be assumed.
+
+Examples:  
+<code>strip(90, 0, "2,3")</code> strips all candidates of run 2 and 3 below 90%.  
+<code>strip(101, 0, "4")</code> removes run 4 (no identity will be larger than 100%).  
+<code>strip(0, 1)</code> applies a cutoff of 1 for all search terms. Together with a feedback of 10% this will only keep the best candidate(s).    
+<code>strip(0, 1, .t.)</code> applies an inverse cutoff of 1 for all canidates. Together with a feedback of 10% this will only keep the best search terms.    
+<code>strip(.t.)</code> equivalent to the command above.  
+<code>strip(90, 5, "3:2")</code> applies a threshold of 90% if the cutoff at 5 is lower for run 3, which will then be merged with run 2.  
+<code>strip("1,4:1; 2,3,5,6:2")</code> groups runs, i.e. conventional search steps and steps based on 3-gram preparer.  
+[[Action>Strip]](#actionstrip)  
+[[threshold]](#threshold)  
+[[cutoff]](#cutoff)  
+[[research]](#research)  
+[[contain]](#contain)  
+[[feedback]](#feedback)  
+[[Compound Search]](#compound-search)
+
 #### threshold
 <code>threshold(*Nthreshold*)</code>  
-sets the threshold for the identity of the candidates. It can be a number between 0 and 100. During <b>search</b> only candidates with identities equal or higher than the **threshold** are eligible to be reported. There are many more settings that affect the eligibility of a candidate (see <b>search</b>) but the **threshold** is the main parameter of a search strategy due to its direct interaction with the weighting scheme of the search <b>types</b>.  
+sets the threshold for the identity of the candidates. It can be a number between 0 and 100. During <b>search</b> only candidates with identities equal or higher than the <b>threshold</b> are eligible to be reported. There are many more settings that affect the eligibility of a candidate (see <b>search</b>) but the <b>threshold</b> is the main parameter of a search strategy due to its direct interaction with the weighting scheme of the search <b>types</b>.  
 [[Config>Settings]](#configsettings)  
 [[search]](#search)  
 [[types]](#types)  
@@ -1182,20 +1283,20 @@ In interactive mode (GUI), the timing results will be reported as comments in th
 [[Config>Preferences]](#configpreferences)  
 
 #### types
-<code>types([*Ssearchtypes*|*Ldetail])</code>  
+<code>types([*Ssearchtypes*|*Ldetail*])</code>  
 determines the search types settings. In the parameter <i>Ssearchtypes</i> Search types are separated by commas. A search type definition consists of the search type name, a priority, an optional offset (preceded with a plus or minus sign), an optional softmax parameter (preceded with a hash #) and an optional "log" keyword to enable logarithmic smoothing. It is advised to always specify all search types in order of definition as shown in the structure string (see <b>show</b>). If you skip a search type name in <i>Ssearchtypes</i>, it will get assigned a priority of zero.  
 
-Search types are defined with the <b>create</b> command. You can always reference them in the structure string evoked with the command <b>show</b> or in the main window of the GUI. To establish a <b>search strategy</b> you have to distribute weights over the search types according to their influence on the identification of an entity, your actual search topic. You may have addresses in your search and base table but the firm name is the most significant element in identifying the topic, which are companies. Naturally, the fields directly related to the search topic should get the dominant share of the weights. If your search topic would be addresses, i.e. as part of a geocoding exercise, distributing the weights evenly over the address fields is a good start. Because the weights must always add up to 100%, they are assigned as **priorities** which will be normalized to 100%. The terms weight and priority are used interchangeably throughout this document because priorities are just raw weights before normalization.
+Search types are defined with the <b>create</b> command. You can always reference them in the structure string evoked with the command <b>show</b> or in the main window of the GUI. To establish a <b>search strategy</b> you have to distribute weights over the search types according to their influence on the identification of an entity, your actual search topic. You may have addresses in your search and base table but the firm name is the most significant element in identifying the topic, which are companies. Naturally, the fields directly related to the search topic should get the dominant share of the weights. If your search topic would be addresses, i.e. as part of a geocoding exercise, distributing the weights evenly over the address fields is a good start. Because the weights must always add up to 100%, they are assigned as <b>priorities</b> which will be normalized to 100%. The terms weight and priority are used interchangeably throughout this document because priorities are just raw weights before normalization.
 
 Search types are deactivated by assigning a priority of zero. This can be useful for search types associated with search fields that are not available in the search table, i.e. a missing street address in a company database. Deactivating search types can also be a part of a search strategy whereby destructive and non-destructive search types are alternatingly deactivated to separate conventional from linguistic search runs. This is most effective for search strategies employing incremental searches on curated base tables.  
 
-Besides the priority, a search type has multiple ways to adjust the calculation of the relative identification potential **RIP** of the words of the associated search field:
+Besides the priority, a search type has multiple ways to adjust the calculation of the relative identification potential <i>RIP</i> of the words of the associated search field:
 
-The *offset* component directly follows the priority separated by a space. It can be negative. The *offset* of a search type will be added to the word frequency of every word in the search field before the calculation of the RIP. This smooths the distribution of the potentials. A negative offset will reduce the frequencies up to a minimum of 1 to curtail the frequency distribution. If a negative *offset* exceeds the highest frequency the RIPs become homogenous transforming the frequency based into a word based heuristic. This is the most relevant usage of this otherwise outdated smoothing method.
+The *offset* component directly follows the priority separated by a space. It can be negative. The *offset* of a search type will be added to the word frequency of every word in the search field before the calculation of the <i>RIP</i>. This smooths the distribution of the potentials. A negative offset will reduce the frequencies up to a minimum of 1 to curtail the frequency distribution. If a negative *offset* exceeds the highest frequency the <i>RIP</i>s become homogenous transforming the frequency based into a word based heuristic. This is the most relevant usage of this otherwise outdated smoothing method.
 
-The *log* component is declared with the keyword "log" at the end of a search type definition. It is a more common approach to smooth the RIP distribution of a search type. Before the calculation of the RIP, every single frequency will be transformed to its natural logarithm (base e). This is a much more intuitive smoothing method than the arbitrary definition of an additive numeric *offset*. Log smoothing should be part of any search strategy using search types with n-grams, because of the skewed distribution of the frequencies that may favor the fragments containing the typo/misspelling. Searching with and without log smoothing in such a case may yield complementary results. 
+The *log* component is declared with the keyword "log" at the end of a search type definition. It is a more common approach to smooth the <i>RIP</i> distribution of a search type. Before the calculation of the <i>RIP</i>, every single frequency will be transformed to its natural logarithm (base e). This is a much more intuitive smoothing method than the arbitrary definition of an additive numeric *offset*. Log smoothing should be part of any search strategy using search types with n-grams, because of the skewed distribution of the frequencies that may favor the fragments containing the typo/misspelling. Searching with and without log smoothing in such a case may yield complementary results. 
 
-The *softmax* component of a search type is declared with a preceding hash. This parameter is of experimental nature as it accentuates the differences in the RIP distribution instead of smoothing them. It requires the frequencies of the other words to be calculated. Therefore, it cannot be integrated into the <b>feedback</b> effect as the other smoothing methods. The feedback will ignore the *softmax* adjustment. The parameter has the following effects: a value below 1 attenuates the distribution, while a value above 3 will accentuate the distribution. The maximum accentuation is reached with a value 30, which will almost negate the existence of other words besides the one with the highest RIP. This parameter can be used to highlight the keywords of longer texts like patent titles or abstracts.
+The *softmax* component of a search type is declared with a preceding hash. This parameter is of experimental nature as it accentuates the differences in the <i>RIP</i> distribution instead of smoothing them. It requires the frequencies of the other words to be calculated. Therefore, it cannot be integrated into the <b>feedback</b> effect as the other smoothing methods. The feedback will ignore the *softmax* adjustment. The parameter has the following effects: a value below 1 attenuates the distribution, while a value above 3 will accentuate the distribution. The maximum accentuation is reached with a value 30, which will almost negate the existence of other words besides the one with the highest <i>RIP</i>. This parameter can be used to highlight the keywords of longer texts like patent titles or abstracts.
 
 Examples:
 <code>types("firm 70, firm 0, street 10, zip 10, city 10")</code>  
