@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.04.28
+*    Date:       2025.04.30
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.04.28"
+	return "2025.04.30"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -4269,6 +4269,11 @@ define class ExportTable as mp_ExportTable
 			this.messenger.errormessage("Engine object is invalid.")
 			return .f.
 		endif
+		m.result = m.engine.getResultTable()
+		if not m.result.isValid()
+			this.messenger.errormessage("ResultTable is not valid.")
+			return .f.
+		endif
 		m.idc = m.engine.idontcare()
 		if not m.engine.isSearchedSynchronized()
 			this.messenger.errormessage("Engine is not synchronized with SearchTable.")
@@ -4341,7 +4346,6 @@ define class ExportTable as mp_ExportTable
 		if m.idc
 			this.erase()
 		endif
-		m.result = m.engine.getResultTable()
 		m.struc = ""
 		if m.searchRec
 			m.f = m.result.getFieldStructure(m.searchKey)
@@ -8030,6 +8034,10 @@ define class SearchEngine as custom
 		if not vartype(m.runFilter) == "O"
 			m.runFilter = createobject("RunFilter")
 		endif
+		if not m.runFilter.isValid()
+			this.messenger.errorMessage("Run filter expression is invalid.")
+			return .f.
+		endif
 		if evl(m.low,0) > 0 or evl(m.high,101) <= 100 or m.runFilter.isFiltering()
 			m.idc = this.idontcare() 
 			m.result = createobject("BaseCursor", this.getEnginePath())
@@ -8041,7 +8049,7 @@ define class SearchEngine as custom
 			m.result = createobject("ResultTable", m.result.dbf)
 			m.result.setCursor(.t.)
 			m.result.setMessenger(this.getMessenger())
-			m.result.create(this, .f., m.low, m.high, m.runFilter, .f.)
+			m.result.create(this, .f., .f., m.low, m.high, m.runFilter, .f.)
 			this.setResultTable(m.result)
 			if m.idc
 				this.dontcare()
