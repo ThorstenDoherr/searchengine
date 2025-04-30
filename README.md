@@ -13,6 +13,11 @@ Windows
 It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.04.30
+- improved reactivity of the message bar of the GUI
+- fixed a bug where specifying a run filter for a meta data export would cause an error message
+- updated manual
+
 2025.04.24
 - a new strip action allows to retroactively strip the result table of candidates
   - apply a threshold and cutoff on existing results
