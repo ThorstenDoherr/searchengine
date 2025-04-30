@@ -1158,9 +1158,9 @@ After that, if the size of the list equals or exceeds the <b>activation</b> limi
 
 The <i>Iincrement</i> parameter defines the interaction with existing results in the result table:
 
-0 = <b>replace</b> all existing results by resetting/creating the result table (default)  
-1 = <b>complete</b> for unmatched search records by skipping search records that have already candidates  
-2 = <b>merge</b> results with candidates not yet found  
+0 = **replace** all existing results by resetting/creating the result table (default)  
+1 = **complete** for unmatched search records by skipping search records that have already candidates  
+2 = **merge** results with candidates not yet found  
 3 = complete by resuming last run after cancelation (rarely used)   
 4 = merge by resuming last run after cancelation (rarely used)   
 -1 = complete by replacing last run (forgot something?)  
