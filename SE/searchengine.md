@@ -126,7 +126,7 @@ The following example script matches a focused company database with the affilia
 <code>join("city")</code>  
 <code>feedback(0)</code>  
 <code>research(4)</code>  
-<code>load("orbis")</code>  
+<code>load()</code>  
 <code>strip(.t.)</code>  
 
 This strategy example consists of two search steps. One requires at least some matching parts of the address with a threshold of 75% and a second one ignoring the address fields but with a higher threshold of 95%. Of course, an identity of 85% of the first run cannot be compared to the same identity of the second run. To harmonize the identities, we redistribute the search type priorities and apply a feedback of 20% only on the name by unjoining the address fields and calling the research action. To complete the identities in the result table, which now have a maximum of 70%, we unjoin the name and rejoin the address fields. The research action is additive and without feedback. By loading the previously saved settings, the original setup is restored and all fields properly joined again. The strip action conducts the inverse dawinian approach to exploit the fact of having a focused search table. The result table will be stripped of redundant linkages.  
@@ -307,10 +307,10 @@ This command closes the SearchEngine application. If you have changed the settin
 In this section, all parameters for a search can be specified starting with the definition of the base table. Unless the SearchEngine is not created using the base table, all other search related options in this section are not available. You can define the search tables to be searched in the base table and the associated SearchEngine index files and the result table. Every search project should have its own result table. After the file specifications the linkage of the search fields of the base table and the corresponding fields in the search table is another required step in the configuration of a search project. The priority redistribution of the search types is an integral part of any search strategy and the corresponding menu will often be consulted multiple times over the course of a search project. The search settings define the key parameters of a search step like the general threshold for the identity, cutoff points and activation limits for the feedback to contain the inflation of weak search terms and switches for specific SearchEngine heuristics. Finally, you can change general preferences of the technical aspects of the SearchEngine like the search depth, location of temporary files and multi-processing.  
 
 #### Config>File Locations
-You should only specify the base table once per SearchEngine installation. The search tables will always be searched within the same base table. Depending on the setup, this may be a singular search project between two tables or a extensive framework catered for a multitude of search projects on a central base table. You should also assign a dedicated result table for every search project aka. search table. You can click on the "Auto" button next to the result table field to create an appropriate file name. The search and base table will be automatically imported into the database format of the SearchEngine if this conversion has not occurred yet. The result table will always be in Foxpro format (.dbf). The import option to truncate outliers can be activated if you consider field lengths beyond 254 characters as data artefacts.  
+You should only specify the base table once per SearchEngine installation. The search tables will always be searched within the same base table. Depending on the setup, this may be a singular search project between two tables or a extensive framework catered for a multitude of search projects on a central base table. You should also assign a dedicated result table for every search project aka. search table. You can click on the "Auto" button next to the result table field to create an appropriate file name. The search and base table will be automatically imported into the database format of the SearchEngine if this conversion has not occurred yet. The result table will be created and maintained by the SearchEngine and does usually not require to be imported. Still, it is possible to import a text file as result table if necessary. The import option to truncate outliers can be activated if you consider field lengths beyond 254 characters as data artefacts.  
 [[importbase]](#importbase)  
 [[importsearch]](#importsearch)  
-[[result]](#result)  
+[[importresult]](#importresult)  
 
 #### Config>Join Search Fields
 With this window you can join the search fields, which are the fields of the base table used to create the SearchEngine index files (left list) and the search table fields of the currently assigned search table (right list). Make sure that the joined fields have the same context. Depending on the setup, it may be necessary to split composed fields in the search table, e.g. a sweeping address field into separate street, city and zip fields. It that seems to complicated, a new SearchEngine installation on a modified base table with the same composed field structure as the search table is much easier to implement. Not all search fields of the base table need to be joined. Free search fields have no impact on the search as long as the priorities of the associated search types are zero.  
@@ -395,7 +395,7 @@ To quickly search for a specific entry in the base table or to test the current 
 This tool allows you to browse through the current result table. It shows a search term of the result table and the found candidates in a list. Originally, it was intended to mark true positives, which explains the additional features in the list to declare a "no hit" or to avoid a decision. The navigation buttons also reflect this purpose, i.e. by providing buttons to jump to the next search record without a marking. You can ignore these features because the "Extended Export" provides a much faster way to scrutinize the results. Still, the Result Checker is an invaluable tool to get a first impression about the quality of a search strategy. Furthermore, you can right-click on a candidate to invoke the heuristics for educational purposes. 
 
 #### Tools>Statistics
-Another way to assess the quality of a search strategy is the Statistics window. Click calculate to get descriptive statistics for every search run. This tool also shows how many search records were supplied with candidates for a specific search run. You may use this information to aggregate similar search runs during Meta Export, which otherwise would be severely underrepresented. This occurs usually for incremental search runs based on destructive preparers, which can be aggregated into one run to separate them from conventional search runs aggregated into another run.  
+Another way to assess the quality of a search strategy is the Statistics window. Click calculate to get descriptive statistics for every search run. This tool also shows how many search records were supplied with candidates for a specific search run. You may use this information to aggregate similar search runs during Meta Export, which otherwise, would be severely underrepresented. This occurs usually for incremental search runs based on destructive preparers, which can be aggregated into one run to separate them from conventional search runs aggregated into another run.  
 [[statistics]](#statistics)  
 
 #### Tools>Notes
@@ -593,8 +593,13 @@ The deeper the buffer, the slower the search process due to redundant candidates
 [[Config>Preferences]](#configpreferences)  
 
 #### erase
-<code>erase()</code>  
-erases the internal SearchEngine index files. Base, search and result table are not affected. Erasing the current SearchEngine is required to be able to create a new one with different search types. Using the keyword <b>force</b> on the <b>create</b> command has the same effect.  
+<code>erase([*Sfile*])</code>  
+can be used to erase the internal SearchEngine index files or to delete files. If <i>Sfile</i> is specified, the file respectively files matching the file template will be deleted. A file template uses the star "\*" character as placeholder for any number of characters and a question mark "\?" for a single character. If the parameter is omitted, the internal search engine index files will be deleted. Base, search and result table are not affected. Erasing the current SearchEngine is required to be able to create a new one with different search types. Using the keyword <b>force</b> on the <b>create</b> command has the same effect.  
+
+Examples:  
+<code>erase("d:\se\applicants.dbf")</code> deletes this file.  
+<code>erase("d:\se\applicants.\*")</code> deletes all files with the name "applicants" regardless of the extension.  
+<code>erase()</code> deletes the SearchEngine index files. The SearchEngine can now be recreated.   
 [[create]](#create)  
 [[force]](#force)
 
@@ -622,6 +627,8 @@ With <i>Srunfilter</i> you can restrict the export on specified search runs. <i>
 
 The format is intended to provide a direct access to the raw results. It is not suited for manual labeling or quality control. Choose the <b>exportextended</b> function for such purposes. Still, it is possible to include the search term fields and the candidate data. When the parameter <i>Ltext</i> is .t., the fields "searchtxt" and "foundtxt" will be appended to the format containing the concatenated data of the search and candidate fields (separated with the pipe character). Even though, this representation of the results contains much more redundancy due to repeating search term than the extended export format, it may be better suited for post-processing comparisons.  
 
+You can import an exported result text file as long as the parameters for the unique identifiers <i>Ssearchkey</i> and <i>Sfoundkey</i> have been omitted. This allows the external manipulation of results, which can be reintroduced to the SearchEngine via the <b>importresult</b> function.  
+
 Examples:  
 <code>export("D:\\se\\export.txt")</code>  
 exports the result table in direct format using record numbers of search and base table.  
@@ -638,7 +645,8 @@ exports only candidates matched in search runs 1, 2 and 3.
 <code>export("D:\\se\\exportfull.txt", .t.)</code>  
 exports the full search term and candidate data.   
 [[File>Export>Export]](#fileexportexport)  
-[[exportextended]](#exportextended)
+[[exportextended]](#exportextended)  
+[[importresult]](#importresult)  
 
 #### exportextended
 <code>exportextended(*Stable* [, *Ssearchkey*, *Sfoundkey* [, *Ssearchgroupkey*, *Sfoundgroupkey*]] [, *Nlow*, *Nhigh* [, *Lexclusive*]] [, *Srunfilter*])</code>  
@@ -682,7 +690,7 @@ A cascade is a rule set that restricts the validity of a connection conditional 
 **s** - the minimum absolute identification potential of the connected nodes (score)  
 **p** - percentile of s (always between 0 (lowest score) and 100 (highest score)  
 
-The directed network, is transformed into an undirected network. If the reverse direction does not exist for a connection, the respective identity is zero. This means that the **min** value is zero when the candidate as a search term does not retrieve the original search term. This is the case, when the original search term is weak (consisting of few, common words) while the candidate has more on offer. The network can be completed by enforcing bi-directional connections with the <b>mirror</b> and the <b>research</b> function, which will provide a **min** value even below the threshold. This is only necessary for very complex rule sets, which are rarely beneficial given the blunt assumptions that have to be made about the data. The **max** value of a connection is always larger than zero because otherwise there would not be a connection. The score related variables **s** and **p** are based on the nodes and not the connection. In most cases, the rules will refer to the **min** variable and rarely to the **max** variable because the latter is redundant as the connection is already constituted by a high threshold. A rule is a logical expression based on the connection parameters attached to an activation limit designated by the **\@ ** symbol. For example  
+The directed network, is transformed into an undirected network. If the reverse direction does not exist for a connection, the respective identity is zero. This means that the **min** value is zero when the candidate as a search term does not retrieve the original search term. This is the case, when the original search term is weak (consisting of few, common words) while the candidate has more on offer. The network can be completed by enforcing bi-directional connections with the <b>mirror</b> and the <b>research</b> function, which will provide a **min** value even below the threshold. This is only necessary for very complex rule sets, which are rarely beneficial given the blunt assumptions that have to be made about the data. The **max** value of a connection is always larger than zero because otherwise, there would not be a connection. The score related variables **s** and **p** are based on the nodes and not the connection. In most cases, the rules will refer to the **min** variable and rarely to the **max** variable because the latter is redundant as the connection is already constituted by a high threshold. A rule is a logical expression based on the connection parameters attached to an activation limit designated by the **\@ ** symbol. For example  
 
 <code>min >= 90 @ 5</code>  
 
@@ -822,7 +830,7 @@ as the main title is "SearchEngine".
 
 #### importbase
 <code>importbase(*Sfile* [, *Lnomemos*])</code>  
-imports respectively declares the base table. If the file extension is \".txt\", the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the base table otherwise <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import the base table will appear as Foxpro table (extension \".dbf\").
+imports respectively declares the base table. If the file extension is \".txt\", the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the base table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import the base table will appear as Foxpro table (extension \".dbf\").
 
 <i>Lnomemos</i> prevents the usage of memo fields during import. Memo fields are required if text fields exceed the length of 254 characters. In the case of suppressed memo fields a data loss of 0.1% is considered tolerable to handle outliers as truncation is already authorized. Use memo fields if you expect longer texts in the data. Set <i>Lnomemos</i> to .t. if text fields longer than 254 characters can be considered unwanted outliers. Memo fields appear as type \"M\" and characters fields as type \"C\" in the table structure (see below).
 
@@ -830,9 +838,27 @@ You can import the text file again by deleting the corresponding Foxpro table (e
 [[Config>File Locations]](#configfile-locations)  
 [[show]](#show)  
 
+#### importresult
+<code>importresult(*Sfile*)</code>  
+declares respectively imports the result table. In general, the result table will be created and maintained by the SearchEngine and there is no need for importing. You can use the function <b>result</b> to declare a result table without the import option. If the <b>importresult</b> function encounters the file extension \".txt\", it first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the result table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. The formatting should be the same as the text files exported with <b>export</b>. A result table has the following fields and format:  
+
+**searched** - integer - record numbers of the search table (not counting the header) referring to search terms  
+**found** - integer - record numbers of the base table  (not counting the header) referring to candidates  
+**identity** - float - identity of the candidate as a percentage between 0 and 100, without the percentage sign  
+**equal** - single digit - optional marker for labeling of false positives (1 = true positive, 9 = false positive, 0 = open)  
+**score** - float - absolute identification potential  
+**run** - integer - search run indidator between 1 and 255  
+
+Only the fields "searched" and "found" are required for the import. All other fields can be omitted and will be replaced with default values, although this may limit functions referring to those elements, e.g. run filter selection. Only the field "equal" is completely optional and has no further impact except for being reported by exports.  
+
+Usually, the result table will be created and maintained by the SearchEngine and there is no need to import text files. The import option is intended for the rare case where specific manipulations of the results are necessary. Export the results with the <b>export</b> function to process the data with external tools and applications. As long as the resulting text file corresponds with the prescribed structure, it can be imported back into the SearchEngine to further use its features. A classical example is the removal of candidates ("found") or search terms ("searched") from the results according to non-search related, external criteria. A malformatted text file will cause an error and cancel the import.  
+[[Config>File Locations]](#configfile-locations)  
+[[result]](#result)  
+[[export]](#export)  
+
 #### importsearch
 <code>importsearch(*Sfile* [, *Lnomemos*])</code>  
-imports respectively declares the search table. If the file extension is \".txt\", the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the base table otherwise <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import the search table will appear as Foxpro table (extension \".dbf\").
+imports respectively declares the search table. If the file extension is \".txt\", the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the search table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import the search table will appear as Foxpro table (extension \".dbf\").
 
 <i>Lnomemos</i> prevents the usage of memo fields during import. Memo fields are required if text fields exceed the length of 254 characters. In the case of suppressed memo fields a data loss of 0.1% is considered tolerable to handle outliers as truncation is already authorized. Use memo fields if you expect longer texts in the data. Set <i>Lnomemos</i> to .t. if text fields longer than 254 characters can be considered unwanted outliers. Memo fields appear as type \"M\" and characters fields as type \"C\" in the table structure (see below).
 
@@ -1081,11 +1107,12 @@ All these settings can be configured in the <b>Config>Settings</b> menu of the <
 <code>result(*Sresult*)</code>  
 sets the result table by specifying the file path in <i>Sresult</i>. As the result table will always be a Foxpro file, the default extension is ".dbf". This file will be created when a search is initiated. The <b>search</b> command provides multiple settings to determine how the current search run will be integrated into the result table. 
 
-It contains the retrieved candidates of previous search runs. Every result table has its own independent run counter reporting the number of search runs performed on it. Every entry consists of a record number field referring the search table called "searched", a record number of the candidate in the base table called "found", the identity, the absolute identification potential of the search term "score" and the "run" number of the first retrieval. Every combination of "searched" and "found" can only be retrieved once. If the same candidate is found at a later run, it will be ignored. Even if a run is without any new candidates, the run counter will be incremented. It is possible to rearrange and compress the runs with the <b>exportresult</b> function.
+It contains the retrieved candidates of previous search runs. Every result table has its own independent run counter reporting the number of search runs performed on it. Every entry consists of a record number field referring the search table called "searched", a record number of the candidate in the base table called "found", the identity, the absolute identification potential of the search term "score" and the "run" number of the first retrieval. Every combination of "searched" and "found" can only be retrieved once. If the same candidate is found at a later run, it will be ignored. Even if a run is without any new candidates, the run counter will be incremented. It is possible to rearrange and compress the runs with the <b>split</b> function.
 
 A result table is always more attached to a specific search table than to the base table, which can be attached to many search tables. Therefore, its file path should reflect its association with the search table. This can be done by naming it accordingly and/or by choosing a path close to the search table.  
 [[Config>File Locations]](#configfile-locations)  
 [[search]](#search)  
+[[split]](#split)  
 
 #### run
 <code>run([*Spara*])</code>  
@@ -1170,7 +1197,7 @@ Every call of the <b>search</b> method increments the run counter of the result 
 
 By default, the SearchEngine does not acknowledge the presence of destructive search types and treats them like all other. This changes when the <i>Icomparmode</i> parameter is set to a value larger than zero. If there are any destructive preparers involved with the current search, the SearchEngine will initiate refinement of the new candidates as follows:
 
-0. Continue if destructive search types were involved with the current search, otherwise ignore refinement request. 
+0. Continue, if destructive search types were involved with the current search. Otherwise, ignore refinement request. 
 1. Identities are set to zero for the results of the current run.
 2. The SearchEngine calls the <b>refine</b> method on the current run. It compares the original fields of the search and base table where the associated search types contain destructive preparers using the LRCPD method. This method returns a string similarity percentage which will be weighted by the priorities for the corresponding search types. This constitutes the "destructive search types" part of the identity.
 3. The remaining identity for the involved search types with non-destructive preparers is calculated by a final step using the <b>research</b> function, which is based on the frequency heuristic. This constitutes the "non-destructive search types" part of the identity.
