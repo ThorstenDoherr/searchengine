@@ -1,5 +1,5 @@
 lparameters script, para0, para1, para2, para3, para4, para5, para6, para7, para8, para9, para10, para11, para12, para13, para14, para15, para16, para17, para18, para19, para20, para21, para22, para23, para24
-public engine, mainForm, et
+public engine, mainForm
 local path, psl, mess 
 _screen.icon = "SearchFox.ico"
 _screen.LockScreen = .t.
@@ -78,10 +78,4 @@ do form se name m.mainForm linked
 do semenu.mpr with m.mainForm, .T.
 read events
 release m.mainForm
-m.et = m.engine.getEngineTable()
-if m.engine.toString() != m.et.load(m.engine.getSlot())
-	if messagebox("Save Settings?",36,"SearchEngine") == 6
-		m.engine.execute('save()')
-	endif
-endif
 
