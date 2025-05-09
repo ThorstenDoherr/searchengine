@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2024.12.13
+*   Date:       2025.05.08
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -3320,12 +3320,12 @@ define class BFieldStructure as IFieldStructure
 
 	function baseConverter(field as String, sort as Boolean, desc as Boolean)
 		if m.desc
-			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"N","P")+Invert(STR(ABS('+m.field+'),36,18)))'
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"N","P")+Invert(STR(ABS('+m.field+'),32,12)))'
 		endif		
 		if m.sort
-			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR(ABS('+m.field+'),36,18))'
+			return 'IIF(ISNULL('+m.field+'),.NULL.,IIF('+m.field+'>=0,"P","N")+STR(ABS('+m.field+'),32,12))'
 		endif
-		return 'IIF(ISNULL('+m.field+'),.NULL.,RTRIM(RTRIM(LTRIM(STR('+m.field+',36,18)),"0"),"."))'
+		return 'IIF(ISNULL('+m.field+'),.NULL.,RTRIM(RTRIM(LTRIM(STR('+m.field+',32,12)),"0"),"."))'
 	endfunc
 enddefine
 

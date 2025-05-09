@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.04.30
+*    Date:       2025.05.09
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.04.30"
+	return "2025.05.09"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -4262,6 +4262,7 @@ define class ExportTable as mp_ExportTable
 		m.psl.set("decimals","6")
 		m.psl.set("exclusive","off")
 		m.psl.set("deleted","on")
+		m.psl.set("safety","off")
 		m.pa = createobject("PreservedAlias")
 		m.lm = createobject("LastMessage",this.messenger)
 		this.messenger.forceMessage("Exporting...")
@@ -4275,14 +4276,14 @@ define class ExportTable as mp_ExportTable
 			return .f.
 		endif
 		m.idc = m.engine.idontcare()
-		if not m.engine.isSearchedSynchronized()
-			this.messenger.errormessage("Engine is not synchronized with SearchTable.")
-			return .f.
-		endif
 		m.searchRec = not vartype(m.searchKey) == "C" or empty(m.searchKey)
 		m.foundRec = not vartype(m.foundKey) == "C" or empty(m.foundKey)
 		m.search = m.engine.getSearchTable()
 		if m.searchRec == .f.
+			if not m.engine.isSearchedSynchronized()
+				this.messenger.errormessage("Engine is not synchronized with SearchTable.")
+				return .f.
+			endif
 			m.f = m.search.getFieldStructure(m.searchKey)
 			if not m.f.isValid()
 				this.messenger.errormessage("SearchKey does not exist in SearchTable.")
@@ -4434,6 +4435,7 @@ define class ExportTable as mp_ExportTable
 	local rec, struc, buffer, exp, line, i, f, con, searchRec, foundRec, search, found
 	local oldsrec, skip, srec, skey, fkey, identity, equal, score, max, stxt, ftxt
 	local converter, run
+	local array scatter[1]
 		m.to = iif(m.to < 0, m.result.reccount(), m.to) 
 		if m.from > m.to or m.to <= 0
 			return
@@ -4522,11 +4524,16 @@ define class ExportTable as mp_ExportTable
 						if this.txt
 							this.write(m.converter, m.buffer.alias)
 						else
-							select (m.export.alias)
-							append from dbf(m.buffer.alias)
+							select (m.buffer.alias)
+							scan
+								scatter memo to m.scatter
+								select (m.export.alias)
+								append blank
+								gather from m.scatter memo
+							endscan
 						endif
 					endif
-					select * from (m.buffer.alias) where .f. into cursor (m.buffer.alias) readwrite
+					zap in (m.buffer.alias)
 				endif
 				m.oldsrec = m.srec
 				m.max = m.identity
@@ -4572,8 +4579,13 @@ define class ExportTable as mp_ExportTable
 			if this.txt
 				this.write(m.converter, m.buffer.alias)
 			else
-				select (m.export.alias)
-				append from dbf(m.buffer.alias)
+				select (m.buffer.alias)
+				scan
+					scatter memo to m.scatter
+					select (m.export.alias)
+					append blank
+					gather from m.scatter memo
+				endscan
 			endif
 		endif
 		if this.txt
@@ -8124,7 +8136,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function importBase(file as String, nomemos as Boolean)
-		this.setBaseCluster(this.import(m.file, m.nomemos))
+		this.setBaseCluster(this.import(m.file, this.isTxtDefault(), m.nomemos))
 		if this.BaseCluster.getTableCount() <= 0 and not this.messenger.isError()
 			this.messenger.errorMessage("BaseTable invalid.")
 		endif
@@ -8132,22 +8144,121 @@ define class SearchEngine as custom
 	endfunc
 	
 	function importSearch(file as String, nomemos as Boolean)
-		this.setSearchCluster(this.import(m.file, m.nomemos))
+		this.setSearchCluster(this.import(m.file, this.isTxtDefault(), m.nomemos))
 		if this.SearchCluster.getTableCount() <= 0 and not this.messenger.isError()
 			this.messenger.errorMessage("SearchTable invalid.")
 		endif
 		return not this.messenger.isError()
 	endfunc
 	
-	hidden function import(file as String, nomemos as Boolean)
+	function importResult(file as String)
+	local ps1, ps2, req, res, result, tmp1, tmp2, struc, f, r, sql, dummy, rc, run
+		m.ps1 = createobject("PreservedSetting", "talk", "off")
+		m.ps2 = createobject("PreservedSetting", "exclusive", "on")
+		m.req = this.result.getRequiredTableStructure()
+		m.res = this.import(m.file, .f., .f., m.req.getFieldList())
+		if m.res.getTableCount() <= 0 and not this.messenger.isError()
+			this.messenger.errorMessage("ResultTable invalid.")
+			return .f.
+		endif
+		if lower(m.res.class) == "tablecluster" && no insheet
+			m.res.table.close()
+			this.setResultTable(m.res.table.dbf)
+			return .t.
+		endif
+		m.res = m.res.table && cluster to table
+		m.res.setCursor(.t.)
+		m.result = m.res.dbf
+		m.tmp1 = createobject("BaseCursor", m.res.getPath())
+		m.tmp2 = createobject("BaseCursor", m.res.getPath())
+		m.tmp1.erase()
+		if not m.res.rename(m.tmp1.getName())
+			this.messenger.errorMessage("ResultTable invalid.")
+			return .f.
+		endif
+		m.struc = m.res.getTableStructure()
+		m.f = m.struc.getFieldStructure("searched")
+		if not inlist(m.f.type, "I", "N", "B")
+			this.messenger.errorMessage("ResultTable has invalid structure for field Searched.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("searched")
+		m.sql = textmerge('cast(<<iif(m.f.type == "B", "int(searched)", "searched")>> as <<m.r.getDefinition()>>) as searched') 
+		m.f = m.struc.getFieldStructure("found")
+		if not inlist(m.f.type, "I", "N", "B")
+			this.messenger.errorMessage("ResultTable has invalid structure for field Found.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("found")
+		m.sql = m.sql + textmerge(', cast(<<iif(m.f.type == "B", "int(found)", "found")>> as <<m.r.getDefinition()>>) as found')
+		m.f = m.struc.getFieldStructure("identity")
+		if not (inlist(m.f.type, "U", "I", "N", "B") or m.f.type == "C" and m.f.size = 1)
+			this.messenger.errorMessage("ResultTable has invalid structure for field Identity.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("identity")
+		m.sql = m.sql + textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "0", "iif(identity < 0,0,iif(identity > 100,100,nvl(identity,0)))")>> as <<m.r.getDefinition()>>) as identity')
+		m.f = m.struc.getFieldStructure("equal")
+		if not (inlist(m.f.type, "U", "I", "N") or m.f.type == "C" and m.f.size = 1)
+			this.messenger.errorMessage("ResultTable has invalid structure for field Equal.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("equal")
+		m.sql = m.sql +textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "0", "iif(equal < 0,0,iif(equal > 9,9,nvl(equal,0)))")>> as <<m.r.getDefinition()>>) as equal')
+		m.f = m.struc.getFieldStructure("score")
+		if not (inlist(m.f.type, "U", "I", "N", "B") or m.f.type == "C" and m.f.size = 1)
+			this.messenger.errorMessage("ResultTable has invalid structure for field Score.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("score")
+		m.sql = m.sql + textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "0", "nvl(score,0)")>> as <<m.r.getDefinition()>>) as score')
+		m.f = m.struc.getFieldStructure("run")
+		if not (inlist(m.f.type, "U", "I", "N") or m.f.type == "C" and m.f.size = 1)
+			this.messenger.errorMessage("ResultTable has invalid structure for field run.")
+			return .f.
+		endif
+		m.r = m.req.getFieldStructure("run")
+		m.sql = m.sql + textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "chr(1)", "iif(run < 1,chr(1),iif(run > 255,chr(255),chr(nvl(run,1))))")>> as <<m.r.getDefinition()>>) as run')
+		m.tmp2.erase()
+		m.dummy = createobject("ResultTable", m.tmp2.dbf)
+		m.dummy.erase()
+		m.dummy.create()
+		m.dummy.setCursor(.t.)
+		m.sql = textmerge('select * from <<m.dummy.dbf>> union all select <<m.sql>> from <<m.res.alias>> where searched > 0 and found > 0 into table <<m.result>>')
+		m.rc = .t.
+		this.messenger.forceMessage("Importing...")
+		try
+			&sql
+		catch
+			m.rc = .f.
+		endtry
+		if m.rc == .f.
+			this.messenger.errorMessage("Unable to import ResultTable.")
+			return .f.
+		endif
+		calculate max(run) to m.run
+		use
+		this.setResultTable(m.result)
+		this.result.setRun(asc(m.run))
+		if not this.result.isValid()
+			this.messenger.errorMessage("ResultTable invalid.")
+			return .f.
+		endif
+		this.result.forceRequiredKeys()
+		this.messenger.clearMessage()
+		return .t.
+	endfunc
+	
+	hidden function import(file as String, txtDefault as boolean, nomemos as Boolean, keep as String)
 	local cluster, table, txt, ps
 		m.ps = createobject("PreservedSetting","exclusive","off")
 		this.messenger.clearMessage()
 		m.file = alltrim(m.file)
-		if this.isTxtDefault()
+		if m.txtDefault
 			m.txt = not like("*.dbf",lower(m.file))
-			if not like("*.txt",lower(m.file)) and not file(m.file)
+			if empty(justext(m.file)) and not file(m.file)
 				m.file = rtrim(m.file,".")+".txt"
+				m.txt = .t.
 			endif
 		else
 			m.txt = like("*.txt",lower(m.file))
@@ -8170,7 +8281,7 @@ define class SearchEngine as custom
 				m.cluster = createobject("TableCluster",m.table,1)
 			endif
 		endif
-		if m.cluster.getTableCount() > 0
+		if m.cluster.getTableCount() > 0 or m.txt == .f.
 			return m.cluster
 		endif
 		m.table = m.file.getFileExtensionChange("dbf")
@@ -8179,6 +8290,9 @@ define class SearchEngine as custom
 		m.cluster.setDecode(.t.)
 		m.cluster.setFoxpro(.t.)
 		m.cluster.setNoblank(.t.)
+		if vartype(m.keep) == "C"
+			m.cluster.setKeep(m.keep)
+		endif
 		m.cluster.setPFW(this.pfw)
 		m.cluster.setMessenger(this.messenger)
 		if not m.cluster.create(m.file.toString())
@@ -11435,6 +11549,10 @@ define class SearchEngine as custom
 		return this.importSearch(m.file, m.nomemos)
 	endfunc
 
+	function _importResult(file as String)
+		return this.importResult(m.file)
+	endfunc
+
 	function _result(result)
 		return this.setResultTable(m.result)
 	endfunc
@@ -11490,8 +11608,11 @@ define class SearchEngine as custom
 		return this.removeEngine(m.slot)
 	endfunc
 	
-	function _erase()
-		return this.erase()
+	function _erase(file)
+		if pcount() == 0
+			return this.erase()
+		endif
+		erase (m.file)
 	endfunc
 	
 	function _reset()
