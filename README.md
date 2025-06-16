@@ -13,6 +13,9 @@ Windows
 It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.06.16
+- fixed "ResultTable invalid" error for new result tables.
+
 2025.05.09
 - new command "importresult" allows to import text files as result table facilitating external manipulation of results
 - "erase" command can also delete the specified file or files matching the template
