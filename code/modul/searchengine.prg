@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.05.09
+*    Date:       2025.06.16
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.05.09"
+	return "2025.06.16"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -8158,6 +8158,10 @@ define class SearchEngine as custom
 		m.req = this.result.getRequiredTableStructure()
 		m.res = this.import(m.file, .f., .f., m.req.getFieldList())
 		if m.res.getTableCount() <= 0 and not this.messenger.isError()
+			if inlist(lower(justext(m.file)),"dbf","")
+				this.setResultTable(m.file)
+				return .t.
+			endif
 			this.messenger.errorMessage("ResultTable invalid.")
 			return .f.
 		endif
