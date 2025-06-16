@@ -14,7 +14,7 @@ It is recommended to install a Markdown plugin for your browser to read the **do
 
 ## Version history
 2025.06.16
-- fixed "ResultTable invalid" error for new result tables.
+- fixed "ResultTable invalid" bug when a new result table was assigned
 
 2025.05.09
 - new command "importresult" allows to import text files as result table facilitating external manipulation of results
