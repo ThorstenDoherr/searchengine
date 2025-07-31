@@ -10,9 +10,15 @@ The documentaion can be found in the  **doc** directory. It consists of a manual
 Windows
 
 ## Getting started
-It is recommended to install a Markdown plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
+It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.07.31
+- SEML supports python: seml.py
+- SEML STATA routines are united into a single script: seml.do
+- added a merch folder with SearchEngine logos for non-profit use
+- small improvement to the quotes handling of the import routine
+
 2025.06.16
 - fixed "ResultTable invalid" bug when a new result table was assigned
 
