@@ -1,6 +1,6 @@
 *==========================================================================
 * Modul: 	 sheet.prg
-* Date:		 2025.03.03
+* Date:		 2025.07.14
 * Author:	 Thorsten Doherr
 * Procedure: custom.prg
 * Library:	 foxpro.fll
@@ -13,7 +13,7 @@
 #define SHEETHANDLE 17
 
 function version_of_sheet()
-	return "2025.03.03"
+	return "2025.07.14"
 endfunc
 
 function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)
@@ -1018,9 +1018,15 @@ define class InsheetTableCluster as TableCluster
 					m.str = m.items[m.i]
 					m.stop = m.i+m.skip
 					for m.j = m.i+1 to m.stop
-						m.str = m.str+" "+m.items[m.j]
-						if right(m.items[m.j], 1) == m.quote and not left(m.items[m.j], 1) == m.quote
+						if m.items[m.j] == m.quote
+							m.str = m.str+m.quote
 							exit
+						endif
+						if len(m.items[m.j]) > 0
+							m.str = m.str+" "+m.items[m.j]
+							if right(m.items[m.j], 1) == m.quote and not left(m.items[m.j], 1) == m.quote
+								exit
+							endif
 						endif
 					endfor
 					if m.j <= m.stop
