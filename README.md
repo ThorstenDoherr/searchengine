@@ -13,6 +13,9 @@ Windows
 It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.08.11 \[2025.07.31\]
+- improved SEML stability and default settings
+
 2025.07.31
 - SEML supports python: seml.py
 - SEML STATA routines are united into a single script: seml.do
