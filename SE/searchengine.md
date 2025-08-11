@@ -192,6 +192,7 @@ Another setting for the meta export is the aggregation of search runs. Especiall
 The meta data also contains string distances, overlap indicators across fields and co-candidate related statistics. It provides a framework of parameters creating variation that may be correlated with the validity of a match. Additional statistical parameters can be derived from the exported meta data to enrich the variation with standard deviations of string distances over all candidates of a search term (see <b>Machine Learning</b>)  
 [[exportmeta]](#exportmeta)  
 [[statistics]](#statistics)  
+[[types]](#types)  
 
 ### Training Sample
 It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it with the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, do not forget to restore the original result table with the <b>result</b> function or by simply loading a previous setting saved before the sample draw. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
@@ -213,21 +214,23 @@ Do not expect wonders from the machine learning. The meta data does not carry an
 ### Machine Learning
 The Github package brings its own machine learning tools. You can find them in the sub-directory "SEML". They come in two flavors, one is a module for the commercial statistical software STATA called **seml\.do** and one is the Python script **seml\.py**. Of course, you can implement your own machine learning approach based on the meta and training sample. Both modules are interchangeable and can even run in the same directory without interference to compare the outcomes. From now on we refer to the scripts in singular. To initiate the machine learning you have to copy the script into a dedicated directory together with the training and the meta data and call it with the respective environment.
 
-A training sample should be exported from the spreadsheet tool as tab-delimited text file with column headers. The SEML script expects that the file name of the training sample contains the word "sample" and ends with ".txt". Multiple sample files in the script directory will be merged as long as they follow the naming convention, i.e. mysample.txt, sample1.txt, sample2.txt, exportsample.txt and so on. Make sure that no other files complying with this convention are in the directory. A sample file must have the fields "searched" (search table record number), "found" (base table record number) and "equal" (coded 1 for true positive, 9 for false positive). All other fields will be ignored. The script will automatically parse the labeling convention as described in the <b>Training Sample</b> section by imputing empty/missing "equal" fields (zero is considered missing) with the value found under the respective header line for the search term. Of course, you can fill in the "equal" column according to your own conventions as long as they are complete. Lines are dropped when the "equal" field is still not 1 or 9 after that procedure. The script employs a global definition called "default" in the settings section for your convenience. You can set it to "1", when the global default for the sample file(s) is "true positives", and to "9" for "false positives" as default for missing candidate block defaults. The script will impute all missing header assignments accordingly. Leave it at "0", when you have not used a global default, which has to be the same for all sample files.
+The training samples should be provided as tab-delimited text files with column headers. The SEML script expects that the file name of a training sample contains the word "sample" and ends with ".txt". Multiple sample files in the script directory will be merged as long as they follow the naming convention, i.e. mysample.txt, sample1.txt, sample2.txt, exportsample.txt and so on. Make sure that no other files complying with this convention are in the directory. A sample file must have the fields "searched" (search table record number), "found" (base table record number) and "equal" (coded 1 for true positive, 9 for false positive). All other fields will be ignored. The script will automatically parse the labeling convention as described in the <b>Training Sample</b> section by imputing empty/missing "equal" fields (zero is considered missing) with the value found under the respective header line for the search term. Of course, you can fill in the "equal" column according to your own conventions as long as they are complete. Lines are dropped when the "equal" field is still not 1 or 9 after that procedure. The script employs a global definition called "default" in the settings section for your convenience. You can set it to "1", when the global default for the sample file(s) is "true positives", and to "9" for "false positives" as default for missing candidate block defaults. The script will impute all missing header assignments accordingly. Leave it at "0", when you have not used a global default, which has to be the same for all sample files.
 
-The meta data has to be (re)named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated with the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.csv" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
+Exceptions during the script run are usually caused by malformed sample files. Make sure that the "searched", "found" and "equal" columns only contain integer numbers or are empty. A common reason for an error is a typo in the "equal" field preventing the transformation into a number.
 
- By default, the output is weighted enforcing a virtual balance between true and false positives in the training data. The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons over 25 hidden neurons to a doubled layered network with 100 hidden neurons each. After every setup, a confusion matrix with recall, precision and accuracy rates is calculated with the "ground truth" to determine the out-of-sample performance. The best network, according to the accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "eqaul" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. The balancing between true and false positives can be deactivated to enforce a more statistical training than a training focused on pattern recognition. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
+The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.feather" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
 
-Finally, the script will read the transformed meta data file "meta.dta" respectively "meta.csv". The neural network module will read the brain file containing the network structure to predict the "equal" variable for all records in the meta data. According to the convention, a "1" (one) is a true positive while a "9" (nine) is a false positive. If applicable, the original assignment of the sample is attached in the "sample" variable. The probability for a true positive is saved in the variable "brain". If "brain" is above 0.5 the match between a "searched" and a "found" record is considered a true positive. The results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the "searched" (search table record number), "found" (base table record number) and the mentioned fields "equal", "brain" and "sample". The Python script only generates the comma-separarted "seml.csv". Keep in mind that the record numbers do not include header lines (1 is always the first data line).
+The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented value. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
 
-The training will be skipped if there is no training file or samples but only the neural network file ("seml.brn" or "seml.brain") and the meta data. This allows to directly commence with the prediction based on an already trained neural network. The meta data has to be compatible with the original training data and the whole search context should be similar. This shortcut is only advisable, if it is a matter of a gradual update.
+Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.feather". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
+
+The training will be skipped if there is no training file or samples but only the neural network file ("seml.brn" or "seml.brain") and the meta data. This allows to directly commence with the prediction based on an already trained neural network. The meta data has to be compatible with the original training data and the whole search context should be similar. This shortcut is only advisable for gradual updates.
 
 #### seml\.py
 <code>python seml.py</code>  
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
-will be used to predict false postitives in the meta data. The retention represents the out-of-sample prediction to
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
 prevent overfitting. 
 
 **Requirements:**
@@ -247,12 +250,14 @@ Microsoft (just google it).
 All txt files have to be tab-delimited.
 
 **Output:**  
-- meta.csv - a copy of the meta data complemented by additional columns based on the raw meta data.
-- sample.csv - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
-- training.csv - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
-- seml.brain.log - training output of the confusion matrices if applicable.
-- seml.brain - neural network model save file (zipped keras model + variable names used for training).
-- seml.csv - prediction file (contains reference to sample data if applicable)
+- meta\.feather - prepared and compressed meta data (csv format also available, see "output" setting).
+- sample\.csv - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
+- training\.csv - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
+- seml\.brain\.log - training output of the confusion matrices if applicable.
+- seml\.brain - neural network model save file (zipped keras model & variable names used for training).
+- seml\.csv - prediction file (contains reference to sample data if applicable).
+
+All csv files are comma-separated.
 
 **Labeling:**
 - The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
@@ -265,20 +270,27 @@ All txt files have to be tab-delimited.
 - If the file seml.brain does not exists, the script will start with the training based on the meta and the sample data.
 - If the seml.brain file is created or already existing, it will commence with the prediction.
 - It will always try to use the csv files first but will compile them from the txt files if necessary.
-- To retrain the network with different settings: delete the seml.brain file
-- To retrain the network with different retention: additionally delete the training.csv file
-- To retrain the network after changes to the sample file(s): additionally delete sample.csv
-- To retrain the network after changes to meta.txt: additionally delete meta.csv
+- To retrain the network with different settings: delete the seml\.brain file.
+- To retrain the network with different retention: additionally delete the the training\.csv file.
+- To retrain the network after changes to the sample file(s): additionally delete the sample\.csv file.
+- To retrain the network after changes to meta.txt: additionally delete the meta\.feather file.
 
 **Settings:**  
-- default - global default if "equal" assignment in the candidate block header is missing  
-0 = keep missing, 1 = missing is true positive, 9 = missing is false positive
-- retention - share that will not be used for training but for out-of-sampe prediction (default 0.1)
-- verbose - 0 = mute, 1 = show iterations, 2 = show progress bars
-- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy
-- balance - True = balancing of true and false positives (default), False = keep distribution of true/false positives
-- epochs - number of training iterations (default 500).
-- batch - batch size for training (default 8)  
+- default - global default if "equal" assignment in the candidate block header is missing:  
+0 = keep missing (default), 1 = true positive, 9 = false positive
+- conflict - preference in case of conflicting "equal" assignments in multiple sample files:  
+0 = keep first occurrence based on file order, 1 = true positive, 9 = false positive
+- retention - share that will not be used for training but for out-of-sample prediction (default 0.1)
+- verbose - 0 = mute (default), 1 = show iterations, 2 = progress bar per iteration
+- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:  
+"[0] [25] [50] [100] [25,25] [50,50] [100,100]"
+- balance - balancing of true and false positives in case of heavily skewed distributions:  
+False = keep original distribution (default), True = balancing of true and false positives
+- epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000)
+- batch - batch size for training (default 8)
+- output - output format for the meta data based on extension:  
+csv = slow comma-separated text format but highly interoperable with many systems  
+feather = fast binary format but almost only used in the python world (default)  
 
 Settings have to be changed directly in the script.
 
@@ -286,7 +298,7 @@ Settings have to be changed directly in the script.
 <code>do seml.do</code>  
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
-will be used to predict false postitives in the meta data. The retention represents the out-of-sample prediction to
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
 prevent overfitting. 
 
 **Requirements:**
@@ -297,19 +309,19 @@ The most recent version of the brain module can also be found in the brain sub-d
 SearchEngine GitHub package. Copy its contents into the current working directory or into the external STATA ado folder.
 
 **Input:**
-- meta.txt - full meta data export of the SearchEngine result table.
-- \*sample\*.txt - scrutinized samples in ExtendedExport format, i.e. sample1.txt, export_sample.txt. Multiple sample files matching the template \*sample\*.txt will be merged. If there is no sample file, the script will only conduct the prediction based on an already trained network in seml.brn.
+- meta\.txt - full meta data export of the SearchEngine result table.
+- \*sample\*\.txt - scrutinized samples in ExtendedExport format, i.e. sample1.txt, export_sample.txt. Multiple sample files matching the template \*sample\*.txt will be merged. If there is no sample file, the script will only conduct the prediction based on an already trained network in seml.brn.
 
 All txt files have to be tab-delimited.
 
 **Output:**  
-- meta.dta - a copy of the meta data complemented by additional columns based on the raw meta data.
-- sample.dta - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
-- training.dta - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
-- seml.brn.log - training output of the confusion matrices if applicable.
-- seml.brn - neural network save file using the brain format.
-- seml.dta - prediction file (contains reference to sample data if applicable)
-- seml.txt - tab delimited prediction file for convenience
+- meta\.dta - a copy of the meta data complemented by additional columns based on the raw meta data.
+- sample\.dta - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
+- training\.dta - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
+- seml\.brn\.log - training output of the confusion matrices if applicable.
+- seml\.brn - neural network save file using the brain format.
+- seml\.dta - prediction file (contains reference to sample data if applicable).
+- seml\.txt - tab delimited prediction file for your convenience.
 
 **Labeling:**
 - The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
@@ -322,21 +334,25 @@ All txt files have to be tab-delimited.
 - If the file seml.brn does not exists, the script will start with the training based on the meta and the sample data.
 - If the seml.brn file is created or already existing, it will commence with the prediction.
 - It will always try to use the dta files first but will compile them from the txt files if necessary.
-- To retrain the network with different settings: delete the seml.brn file
-- To retrain the network with different retention: additionally delete the training.dta file
-- To retrain the network after changes to the sample file(s): additionally delete sample.dta
-- To retrain the network after changes to meta.txt: additionally delete meta.dta
+- To retrain the network with different settings: delete the seml.brn file.
+- To retrain the network with different retention: additionally delete the training.dta file.
+- To retrain the network after changes to the sample file(s): additionally delete the sample.dta file.
+- To retrain the network after changes to meta.txt: additionally delete the meta.dta file.
 
 **Settings:**  
-- default - global default if "equal" assignment in the candidate block header is missing  
-0 = keep missing, 1 = missing is true positive, 9 = missing is false positive
+- default - global default if "equal" assignment in the candidate block header is missing:  
+0 = keep missing (default), 1 = true positive, 9 = false positive
+- conflict - preference in case of conflicting "equal" assignments in multiple sample files:  
+0 = keep first occurrence based on file order, 1 = true positive, 9 = false positive
 - retention - share that will not be used for training but for out-of-sampe prediction (default 0.1)
-- verbose - 0 = mute, 1 = show blocked iterations, 2 = show all iterations
-- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy
-- balance - 1 = balancing of true and false positives (default), 0 = keep distribution of true/false positives
-- epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000).
+- verbose - 0 = mute (default), 1 = show blocked iterations, 2 = show all iterations
+- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:  
+[[0], [25], [50], [100], [25,25], [50,50], [100,100]]
+- balance - balancing of true and false positives in case of heavily skewed distributions:  
+False = keep original distribution (default), True = balancing of true and false positives
+- epochs - number of training iterations (default 500)
 - eta - initial learining rate (default 0.1)
-- batch - batch size for training (larger than 1 will activate MP on Windows, default 8)  
+- batch - batch size for training (default 8)
 
 Settings have to be changed directly in the script.
 
