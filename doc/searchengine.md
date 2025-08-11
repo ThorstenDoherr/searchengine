@@ -20,7 +20,7 @@ Example:
 You want to match patent data to a company database by the patent applicants, which are usually firms. Let us assume an inefficient database structure with a high redundancy in regard of applicants because one applicant may have filed multiple patents. The first step would be the extraction of the applicant name, the address fields and a composed key consisting of the patent number and the position of the applicant in the patent document (in case there are multiple) into a dedicated table. You may apply filtering by country and data quality at this step. Replace any control characters in this table with blanks. Because you want to match applicants and not patents, it is sensible to create a condensed version of this table for the matching procedure. In SQL, this can be achieved with a "SELECT DISTINCT ..." command on the applicant name and the address fields (without the composed key field). This will leave you with the matching fields as linkage between the original table and the condensed table. Because you have lost the key, create a new one simply based on the line number. Of course, having the matching fields as linkage between the condensed table and the original table is not ideal. If your system has better solutions to remove duplicate entries without losing the connection to the original data feel free to use them. For example, STATA has a "group" command that creates a unique identifier for every entity. By keeping this identifier in the original and the condensed data, both tables can be joined with a simple number. Export the condensed matching table, consisting of a line number, the applicant name and address fields into a tab-delimited text file with column headers.  
 [[importbase]](#importbase)  
 [[importsearch]](#importsearch)  
-[[SEML]](#SEML)  
+[[SEML]](#seml)  
 
 ## Search Strategy
 All search strategies for the SearchEngine are driven by the fact that the search algorithm is not commutative respectively symmetric. The search always has a distinct direction. A base table constitutes the heuristic allowing the SearchEngine to efficiently retrieve the records that match a given search term. The retrieved base table records are called candidates as there is still a chance for false positives given the search parameters. The search terms are provided by search tables, which are tables that share mutual data in the form of search fields like names, addresses or other fuzzy criteria. A central feature of this setup is that the retrieval is completely unaffected by surplus words in the candidates not addressed by the search term. In that regard, the SearchEngine algorithm behaves like a web search where a found web page only needs to match the search term words within its whole site. To stress this analogy even more, the SearchEngine also uses frequencies to assign relevance to every single component of a search term (see <b>discussion paper</b>).
@@ -150,8 +150,8 @@ Of course, the decision, which table should become the base table, is trivial wh
 
 In the following example a self-referential search is conducted on noisy company data scraped from webpages with downstream clustering:
 
-<code>importbase("c:\\big_haul\\scaped_companies.txt")</code>
-<code>importsearch("c:\\big_haul\\scaped_companies.txt")</code>
+<code>importbase("c:\\big_haul\\scraped_companies.txt")</code>
+<code>importsearch("c:\\big_haul\\scraped_companies.txt")</code>
 <code>result("c:\\big_haul\\scraped_result")</code>  
 <code>create("name NOABBREV, name NOABBREV GRAM3, address SEPNUM")</code>  
 <code>join("name")</code>  
@@ -178,11 +178,11 @@ The bi-directional edges are enforced with the <b>mirror</b> command and supplie
 [[exportgrouped]](#exportgrouped)  
 
 ## SEML
-The SearchEngine Machine Learning approach facilitates the quality management for large search projects. The SearchEngine is quite capable to linking very large datasets by fuzzy criteria. But, given the underlying search strategy, it may retrieve too many false positives in an effort to avoid false negatives. Although, the balance of recall and precision is a fundamental element of all linkage endeavours, it is very difficult to maintain. Avoiding false positives at any cost would increase the amount of unobserved false negatives due to constrains imposed by an engine specialized in retrieval. Apart from the fact that ex-ante definitions for such a balance are impossible to stipulate, it is significantly less complex to filter false positives from the matches, a job that can be performed manually by browsing through the data guided by a sense for the objective of the match. Of course, for a large search project this is not a feasible approach. 
+The SearchEngine Machine Learning approach facilitates semi-automated quality management for large search projects. The SearchEngine is quite capable to linking very large datasets by fuzzy criteria. But, given the underlying search strategy, it may retrieve too many false positives in an effort to avoid false negatives. Although, the balance of recall and precision is a fundamental element of all linkage endeavours, it is very difficult to maintain. Avoiding false positives at any cost would increase the amount of unobserved false negatives due to constrains imposed by an engine specialized in retrieval. Apart from the fact that ex-ante definitions for such a balance are impossible to stipulate, it is significantly less complex to filter false positives from the matches, a job that can be performed manually by browsing through the data guided by a sense for the objective of the match. Of course, for a large search project this is not a feasible approach. 
 
 The SearchEngine combines the simplicity of a manual validation with the efficiency of machine learning. The fundamental approach is to label training data, which is a relatively small sample of the full data, to identify an implicit ruleset derived from meta data providing variation correlated with the decision process behind the labeling. The SearchEngine has the function <b>exportmeta</b> to export the meta data of a result table. A sample can be drawn with the <b>exportresult</b> command. The <b>exportextended</b> function presents the results of the sample in an easy to label format. After labeling, the sample is enriched with the corresponding meta information to initiate a machine learning process, usually the training of a neural network. After the training, the neural network is applied on the complete meta data to convey the trained behavior on the matches. The final result is a dataset where true positives are separated from false positives without the need of painful compromises regarding the balance of recall and precision.
 
-The SEML approach is the reason that the <b>reseach</b> and <b>refine</b> functions are only used in the context of the refinement of candidates retrieved by destructive search types or <b>self-referential searches</b> to provide an identity for mirrored connections. Before the introduction of SEML, the identity was the most important indicator for the quality of a match but still too unreliable for the identification of false positives. With the SEML approach, there is no need to readjust a single parameter like "identity" when the meta data provides much more information.
+Before the introduction of SEML, the identity was the most important indicator for the quality of a match but still too unreliable for the identification of false positives. With the SEML approach, there is no need to readjust a single parameter like "identity" with the <b>refine</b> or <b>research</b> functions when the meta data provides much more information.
 
 ### Meta Data
 The meta data is exported with the <b>exportmeta</b> function. The main component is based on the absolute identification potentials (AIP) of every search type. An aggregate version of this potential can already be found in the result data under the field name "score". The AIPs are reported per search type for the matching words, surplus words of the candidate (exclusive to the candidate) and the words of the search term that did not match (exclusive to the search term). For every search type and category only a given number of AIPs will be reported. This number reflects the most relevant words required to identify an entity by the respective search type on average. For example, firm names may require 5 words, street names can be identified by the 3 most relevant words while a postcode consists of only one word anyway. For destructive search types based on tokenization, like n-grams, we suggest to multiply the corresponding word based number by 3 or 4. Search types not used for retrieval can be omitted. The definition of these numbers is a central parameter of the <b>exportmeta</b> function (see the command description for details).  
@@ -192,15 +192,16 @@ Another setting for the meta export is the aggregation of search runs. Especiall
 The meta data also contains string distances, overlap indicators across fields and co-candidate related statistics. It provides a framework of parameters creating variation that may be correlated with the validity of a match. Additional statistical parameters can be derived from the exported meta data to enrich the variation with standard deviations of string distances over all candidates of a search term (see <b>Machine Learning</b>)  
 [[exportmeta]](#exportmeta)  
 [[statistics]](#statistics)  
+[[types]](#types)  
 
 ### Training Sample
-It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it with the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, in the last step we restore the original result table by replacing the sample with the <b>result</b> function. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, a sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
+It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it with the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, do not forget to restore the original result table with the <b>result</b> function or by simply loading a previous setting saved before the sample draw. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
 
-The results may have a very skewed distribution with many candidates allocated to few search terms. You can check the distribution with the <b>statistics</b> function. To capture the outliers, it can be beneficial to draw a complementary sample weighted by the number of candidates especially in the case of a <b>compound search</b> without <b>containment</b>. Be cognizant that those samples are usually much larger and therefore require a smaller sample size pertaining search terms. The provided machine learning scripts can handle multiple training datasets.
+The results may have a very skewed distribution with many candidates allocated to few search terms. You can check the distribution with the <b>statistics</b> function. To capture the outliers, it can be beneficial to draw a complementary sample weighted by the number of candidates especially in the case of a <b>compound search</b> without <b>containment</b>. Be cognizant that those samples are usually much larger and therefore require a smaller sample size pertaining search terms. The provided machine learning scripts can handle multiple training datasets and are capable to balance skewed distributions to some extend.
 
-Import the exported training sample into any spreadsheet tool of your choice. The file is separated into blocks. The header of a block is the search term followed by the associated candidates. The fields "searched" and "found" refer to the record numbers in the base and search table. The labeling will be carried out in the "equal" field. Enter a "1" for a valid match (true positive) and a "9" for a wrong assignment (false positive). It is strongly discouraged to use a "0" in that context because it is associated with default values. You can reduce the typing by using the "equal" field of the search term line (header) as the default value for the whole block. Exceptions to the default value of the block and be marked in the "equal" field of the respective candidate ("9" default, "1" exception and vice versa). Another way to improve efficiency is to declare a sweeping default value for the whole training data based on the general tendency, i.e. all matches are defaulting to true positive when they are in the majority. Do not forget to realize this implicit rule in the data after labeling. The training script has a convenience setting for that purpose (see following section). 
+Import the exported training sample into any spreadsheet tool of your choice. The file is separated into blocks. The header of a block is the search term followed by the associated candidates. The fields "searched" and "found" refer to the record numbers in the base and search table. The labeling will be carried out in the "equal" field. Enter a "1" for a valid match (true positive) and a "9" for a wrong assignment (false positive). It is strongly discouraged to use a "0" in that context because it is associated with missing values. You can reduce the typing by using the "equal" field of the search term line (header) as the default value for the whole block. Exceptions to the default value of the block can be marked in the "equal" field of the respective candidate (if "9" is the default, "1" is the exception and vice versa). Another way to improve efficiency is to declare a sweeping default value for the whole training data based on the general tendency, i.e. all matches are defaulting to true positive when they are in the majority. Do not forget to realize this implicit rule in the data after labeling. The SEML script has a convenience setting for that purpose (see following section). 
 
-Do not expect wonders from the machine learning. The meta data does not carry any semantic information. It can only derive rules from consistent labeling that does not include too much human intuition into the decision process. If you accept subsidiaries and branches of a company in a firm match but exclude cantinas and other service oriented subsidiaries, there may not be enough information in the meta data too capture this behavior. If you have additional data available about the matched data sets related with the search context, you can avoid to confuse the AI by applying a rule based filtering process after the SEML approach. Remove all "true positives" with specific industry codes or create a rank among the surviving candidates for a search term that favors your intention. Assigning a patent applicant to the largest company among multiple candidates will also assign all patents to the parent company, which is the legal owner. In short, be as generous with the assignment of true positives as you can afford considering subsequent filtering or ranking options.  
+Do not expect wonders from the machine learning. The meta data does not carry any semantic information. It can only derive rules from consistent labeling that does not include too much human intuition into the decision process. If you accept subsidiaries and branches of a company in a firm match but exclude cantinas and other service oriented subsidiaries, there may not be enough information in the meta data too capture this decision. However, it is quite capable of the distinction between rare entities with a high plausibility and common names bearing a higher risk of false allocations. If you have additional data available about the matched data sets related with the search context, you can avoid to confuse the AI by applying a rule based filtering process after the SEML approach. Remove all "true positives" with specific industry codes or create a rank among the surviving candidates for a search term that favors your intention. Assigning a patent applicant to the largest company among multiple candidates will also assign all patents to the parent company, which is the legal owner after all. In short, be as generous with the assignment of true positives as you can afford considering subsequent filtering or ranking options.  
 [[File>Export>Result Export]](#fileexportresult-export)  
 [[File>Export>Extended Export]](#fileexportextended-export)  
 [[exportresult]](#exportresult)  
@@ -210,17 +211,150 @@ Do not expect wonders from the machine learning. The meta data does not carry an
 [[Compound Search]](#compound-search)  
 [[Containment]](#containment)  
   
-
 ### Machine Learning
-The Github package brings its own machine learning tool. You can find it in the sub-directory "SEML". Unfortunately, it requires STATA, a commercial statistical software. Of course, you can implement your own machine learning approach based on the meta and training sample. In that case, ignore the STATA references and derive the general steps. The "SEML" directory consists of two modules: "seml_train.do" for the machine learning part and "seml_think.do" to transfer what it learned on the whole meta data. The scripts require the "brain" module, which can also be found in the "SEML" directory. To install this module, you can copy its files into the ADO folder of your STATA installation or directly to the script file location. The latter will restrict the usage of the module on this directory. It is also available at the Statistical Software Components archive and can installed with the STATA command "ssc install brain". For more information about the "brain" module, call its help file. Copy the "seml_train.do" and "seml_think.do" scripts into a dedicated directory, usually also called "SEML", together with the meta data text file and the training sample.
+The Github package brings its own machine learning tools. You can find them in the sub-directory "SEML". They come in two flavors, one is a module for the commercial statistical software STATA called **seml\.do** and one is the Python script **seml\.py**. Of course, you can implement your own machine learning approach based on the meta and training sample. Both modules are interchangeable and can even run in the same directory without interference to compare the outcomes. From now on we refer to the scripts in singular. To initiate the machine learning you have to copy the script into a dedicated directory together with the training and the meta data and call it with the respective environment.
 
-The training sample should be exported from the spreadsheet tool as tab-delimited text file with column headers. The training script expects that the file name of the training sample contains the word "sample" and ends with ".txt". You can have multiple training files in the script directory as long as they follow the naming convention, i.e. mysample.txt, sample1.txt, sample2.txt, exportsample.txt and so on. Make sure that no other files complying with this convention are in the directory. The sample file must have the fields "searched" (search table record number), "found" (base table record number) and "equal" (coded 1 or true positive, 9 for false positive). The "seml_train.do" script will automatically parse the labeling convention as described in the <b>Training Sample</b> section by imputing empty/missing "equal" fields (zero is considered missing) with the value found under the respective header line for the search term. Of course, you can fill in the "equal" column according to your own conventions as long as they are complete. Lines are dropped when the "equal" field is still not 1 or 9 after that procedure. The script employs a global macro called "default" in the "Settings" section for your convenience. You can set it to "1", when the global default for the sample file(s) is "true positives", and to "9" for "false positives" as default for missing candidate block defaults. The script will impute all missing header assignments accordingly. Leave it at "0", when you have not used a global default, which has to be the same for all sample files.
+The training samples should be provided as tab-delimited text files with column headers. The SEML script expects that the file name of a training sample contains the word "sample" and ends with ".txt". Multiple sample files in the script directory will be merged as long as they follow the naming convention, i.e. mysample.txt, sample1.txt, sample2.txt, exportsample.txt and so on. Make sure that no other files complying with this convention are in the directory. A sample file must have the fields "searched" (search table record number), "found" (base table record number) and "equal" (coded 1 for true positive, 9 for false positive). All other fields will be ignored. The script will automatically parse the labeling convention as described in the <b>Training Sample</b> section by imputing empty/missing "equal" fields (zero is considered missing) with the value found under the respective header line for the search term. Of course, you can fill in the "equal" column according to your own conventions as long as they are complete. Lines are dropped when the "equal" field is still not 1 or 9 after that procedure. The script employs a global definition called "default" in the settings section for your convenience. You can set it to "1", when the global default for the sample file(s) is "true positives", and to "9" for "false positives" as default for missing candidate block defaults. The script will impute all missing header assignments accordingly. Leave it at "0", when you have not used a global default, which has to be the same for all sample files.
 
-The meta data has to be (re)named "meta.txt" to be recognized by the "seml_train.do" script. The "seml_train.do" script will first import the "meta.txt" file and calculate some additional parameters which could no be calculated with the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. These additional fields are not mandatory and can be skipped in your own approach. The imported file will be saved under "meta.dta". The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern.  The "seml_train.do" script retains 10% of the training data by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. This selection will not be used for training/learning. The file "seml_train.dta" will contain the final training data. If changes to the meta data or training sample require a new training, you have to delete the "seml_train.dta" file before running the script. Delete the "meta.dta" file only if changes to the meta data have occurred. The training script can be modified to change the size of the retainment or to aggregate search runs (see comments in the script).
+Exceptions during the script run are usually caused by malformed sample files. Make sure that the "searched", "found" and "equal" columns only contain integer numbers or are empty. A common reason for an error is a typo in the "equal" field preventing the transformation into a number.
 
-Before the training, the script will perform a conventional, linear probabiliy model (OLS) to get an early impression of the training data coherence and to provide a benchmark for the machine learning. The "seml_train.do" script now iterates through several neural network hidden layer setups alternating between raw and weighted outputs. When the output is weighted, a virtual balance between true and false positives is established. The setups range from 25 hidden neurons to a doubled layered network with 100 hidden neurons each. The script uses a decaying hyper-parameter **eta**, that will be halved very time the last 100 training iterations did not improve the network error, until progress has converged. This may take longer than necessary but is fail proof. After every setup, a confusion matrix with recall, precision and accuracy rates is calculated with the "ground truth" to determine the out-of-sample performance. The best network, according to the accuracy, is saved into a so called brain file with the name "seml.brn".
+The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.feather" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
 
-Call the "seml_think.do" script after checking the log file of the training script to verify the prediction quality. The script will read the transformed meta data file "meta.dta". It marks the records used for training in the variable "train". The neural network module will read the brain file "seml.brn" containing the network structure. The thinking process will predict the "equal" variable for all records in the meta data. According to the convention, a "1" (one) is a true positive while a "9" (nine) is a false positive. The probability for a true positive is saved in the variable "brain". If "brain" is above 0.5 the match between a "searched" and a "found" record is considered a true positive. The output is file called "think.dta" and its tab-delimited equivalent "think.txt" containing the "searched" (search table record number), "found" (base table record number) and the mentioned fields "equal", "brain" and "train". Keep in mind that the record numbers do not include header lines (1 is always the first data line).
+The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented value. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
+
+Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.feather". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
+
+The training will be skipped if there is no training file or samples but only the neural network file ("seml.brn" or "seml.brain") and the meta data. This allows to directly commence with the prediction based on an already trained neural network. The meta data has to be compatible with the original training data and the whole search context should be similar. This shortcut is only advisable for gradual updates.
+
+#### seml\.py
+<code>python seml.py</code>  
+Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
+SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
+prevent overfitting. 
+
+**Requirements:**
+
+The script will need Python 3.x. It will try to automatically download all necessary python packages if not already
+installed. Following packages are required: **tensorflow** (includes numpy and keras), **scikit-learn** and **pandas**.
+If you want to have more control over the installation you can install them manually with:  
+<code>python -m pip install \<package-name\></code>  
+Tensorflow may throw exceptions if specific system requirements are not fulfilled. On Windows systems, many of these are
+related to a missing or outdated "Microsoft Visual C++ Redistributable", which can be downloaded for free directly from
+Microsoft (just google it).
+
+**Input:**
+- meta.txt - full meta data export of the SearchEngine result table.
+- \*sample\*.txt - scrutinized samples in ExtendedExport format, i.e. sample1.txt, export_sample.txt. Multiple sample files matching the template \*sample\*.txt will be merged. If there is no sample file, the script will only conduct the prediction based on an already trained network in seml.brain.
+
+All txt files have to be tab-delimited.
+
+**Output:**  
+- meta\.feather - prepared and compressed meta data (csv format also available, see "output" setting).
+- sample\.csv - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
+- training\.csv - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
+- seml\.brain\.log - training output of the confusion matrices if applicable.
+- seml\.brain - neural network model save file (zipped keras model & variable names used for training).
+- seml\.csv - prediction file (contains reference to sample data if applicable).
+
+All csv files are comma-separated.
+
+**Labeling:**
+- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
+- A value in a candidate block header defines the default value for the block (reduces typing).
+- The default value in the candidate block header is used for all missings and zeroes within a block.
+- You can define a global default value for the candidate block header in the settings (see below). 
+
+**Script schedule:**
+- If the file seml.brain does not exists, the script will start with the training based on the meta and the sample data.
+- If the seml.brain file is created or already existing, it will commence with the prediction.
+- It will always try to use the csv files first but will compile them from the txt files if necessary.
+- To retrain the network with different settings: delete the seml\.brain file.
+- To retrain the network with different retention: additionally delete the the training\.csv file.
+- To retrain the network after changes to the sample file(s): additionally delete the sample\.csv file.
+- To retrain the network after changes to meta.txt: additionally delete the meta\.feather file.
+
+**Settings:**  
+- default - global default if "equal" assignment in the candidate block header is missing:  
+0 = keep missing (default), 1 = true positive, 9 = false positive
+- conflict - preference in case of conflicting "equal" assignments in multiple sample files:  
+0 = keep first occurrence based on file order, 1 = true positive, 9 = false positive
+- retention - share that will not be used for training but for out-of-sample prediction (default 0.1)
+- verbose - 0 = mute (default), 1 = show iterations, 2 = progress bar per iteration
+- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:  
+"[0] [25] [50] [100] [25,25] [50,50] [100,100]"
+- balance - balancing of true and false positives in case of heavily skewed distributions:  
+False = keep original distribution (default), True = balancing of true and false positives
+- epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000)
+- batch - batch size for training (default 8)
+- output - output format for the meta data based on extension:  
+csv = slow comma-separated text format but highly interoperable with many systems  
+feather = fast binary format but almost only used in the python world (default)  
+
+Settings have to be changed directly in the script.
+
+#### seml\.do
+<code>do seml.do</code>  
+Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
+SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
+prevent overfitting. 
+
+**Requirements:**
+
+The script will need the brain package for STATA. It can be downloaded from the ssc repository with:  
+<code>ssc install brain</code>  
+The most recent version of the brain module can also be found in the brain sub-directory of the SEML folder of the
+SearchEngine GitHub package. Copy its contents into the current working directory or into the external STATA ado folder.
+
+**Input:**
+- meta\.txt - full meta data export of the SearchEngine result table.
+- \*sample\*\.txt - scrutinized samples in ExtendedExport format, i.e. sample1.txt, export_sample.txt. Multiple sample files matching the template \*sample\*.txt will be merged. If there is no sample file, the script will only conduct the prediction based on an already trained network in seml.brn.
+
+All txt files have to be tab-delimited.
+
+**Output:**  
+- meta\.dta - a copy of the meta data complemented by additional columns based on the raw meta data.
+- sample\.dta - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
+- training\.dta - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
+- seml\.brn\.log - training output of the confusion matrices if applicable.
+- seml\.brn - neural network save file using the brain format.
+- seml\.dta - prediction file (contains reference to sample data if applicable).
+- seml\.txt - tab delimited prediction file for your convenience.
+
+**Labeling:**
+- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
+- A value in a candidate block header defines the default value for the block (reduces typing).
+- The default value in the candidate block header is used for all missings and zeroes within a block.
+- You can define a global default value for the candidate block header in the settings (see below). 
+
+**Script schedule:**
+- If the file seml.brn does not exists, the script will start with the training based on the meta and the sample data.
+- If the seml.brn file is created or already existing, it will commence with the prediction.
+- It will always try to use the dta files first but will compile them from the txt files if necessary.
+- To retrain the network with different settings: delete the seml.brn file.
+- To retrain the network with different retention: additionally delete the training.dta file.
+- To retrain the network after changes to the sample file(s): additionally delete the sample.dta file.
+- To retrain the network after changes to meta.txt: additionally delete the meta.dta file.
+
+**Settings:**  
+- default - global default if "equal" assignment in the candidate block header is missing:  
+0 = keep missing (default), 1 = true positive, 9 = false positive
+- conflict - preference in case of conflicting "equal" assignments in multiple sample files:  
+0 = keep first occurrence based on file order, 1 = true positive, 9 = false positive
+- retention - share that will not be used for training but for out-of-sampe prediction (default 0.1)
+- verbose - 0 = mute (default), 1 = show blocked iterations, 2 = show all iterations
+- hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:  
+[[0], [25], [50], [100], [25,25], [50,50], [100,100]]
+- balance - balancing of true and false positives in case of heavily skewed distributions:  
+False = keep original distribution (default), True = balancing of true and false positives
+- epochs - number of training iterations (default 500)
+- eta - initial learining rate (default 0.1)
+- batch - batch size for training (default 8)
+
+Settings have to be changed directly in the script.
 
 ## GUI
 The SearchEngine has a Graphical User Interface you can bring up by simply double-clicking the "SearchEngine.exe" file. Its main screen will always show you the so called structure string, which is a formatted representation of the current SearchEngine settings. This string also serves as storage format for your search projects. While you are in the GUI mode, every change to a setting or any action will be logged in the file "searchengine.log". You can open this file with any text editor to peruse the associated commands. These commands can be issued in the command window (see <b>File>Command</b>) or composed into a script to be called in the <b>Batch Mode</b> of the SearchEngine. The GUI is the first entry point to learn the script commands for a more efficient handling of the SearchEngine. 
@@ -363,7 +497,7 @@ The refine action reappraises the identity with the string distance function LRC
 [[refine]](#refine)  
 
 #### Action>Strip
-The strip action allows you to retroactively (after the the search) impose a (higher) threshold or to cutoff on the results. The action can be restricted on specific runs. Complete runs can be removed with an unachievable treshold for selected runs. An inverse cutoff picks only the best search terms per candidate (instead of the best candidate per search term) to exploit the benefit of a curated search table. Run numbers can be changed or aggregated.  
+The strip action allows you to retroactively (after the the search) impose a (higher) threshold or cutoff on the results. The action can be restricted on specific runs. Complete runs can be removed with an unachievable treshold for selected runs. An inverse cutoff picks only the best search terms per candidate (instead of the best candidate per search term) to exploit the benefit of a curated search table. Run numbers can be changed or aggregated.  
 [[strip]](#strip)  
 
 #### Action>Mirror
