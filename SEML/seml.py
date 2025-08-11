@@ -2,12 +2,12 @@
 python seml.py
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
-will be used to predict false postitives in the meta data. The retention represents the out-of-sample prediction to
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
 prevent overfitting. 
 
 Requirements:
 The script will need Python 3.x. It will try to automatically download all necessary python packages if not already
-installed. Following packages are required: tensorflow (includes numpy and keras), scikit-learn and pandas.
+installed. Following packages are required: tensorflow (includes numpy and keras), scikit-learn, pandas and pyarrow.
 If you want to have more control over the installation you can install them manually with:
 python -m pip install <package-name>
 Tensorflow may throw exceptions if specific system requirements are not fulfilled. On Windows systems, many of these are
@@ -21,15 +21,16 @@ meta.txt - full meta data export of the SearchEngine result table.
 			   If there is no sample file, the script will only conduct the prediction based on an already trained
 			   network in seml.brain.
 
+All txt files have to be tab-delimited.
+
 Output:
-meta.csv - a copy of the meta data complemented by additional columns based on the raw meta data.
+meta.feather - prepared and compressed meta data (csv format also available, see "output" setting).
 sample.csv - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
 training.csv - training data: canidate assignment (searched, found, equal), retention indicator, and the meta data.
 seml.brain.log - training output of the confusion matrices if applicable.
 seml.brain - neural network model save file (zipped keras model + variable names used for training).
-seml.csv - prediction file (contains reference to sample data if applicable)
+seml.csv - prediction file (contains reference to sample data if applicable).
 
-All txt files have to be tab-delimited.
 All csv files are comma-separated.
 
 Labeling:
@@ -44,27 +45,37 @@ Script schedule:
 If the file seml.brain does not exists, the script will start with the training based on the meta and the sample data.
 If the seml.brain file is created or already existing, it will commence with the prediction.
 It will always try to use the csv files first but will compile them from the txt files if necessary.
-To retrain the network with different settings: delete the seml.brain file
+To retrain the network with different settings: delete the seml.brain file.
 To retrain the network with different retention: additionally delete the training.csv file
-To retrain the network after changes to the sample file(s): additionally delete sample.csv
-To retrain the network after changes to meta.txt: additionally delete meta.csv
+To retrain the network after changes to the sample file(s): additionally delete the sample.csv file.
+To retrain the network after changes to meta.txt: additionally delete the meta.feather file.
 
 Settings:
-default - global default if "equal" assignment in the candidate block header is missing (default 0)
-retention - share that will not be used for training but for out-of-sampe prediction (default 0.1)
-verbose - 0 = mute, 1 = show iterations, 2 = progress bar per iteration
-hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy
-balance - True = balancing of true and false positives (default), False = keep original distribution
+default - global default if "equal" assignment in the candidate block header is missing:
+          0 = keep missing (default), 1 = true positive, 9 = false positive
+conflict - preference in case of conflicting "equal" assignments in multiple sample files:
+           0 = keep first occurrence based on file order (default), 1 = true positive, 9 = false positive
+retention - share that will not be used for training but for out-of-sample prediction (default 0.1)
+verbose - 0 = mute (default), 1 = show iterations, 2 = progress bar per iteration
+hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:
+         [[0], [25], [50], [100], [25,25], [50,50], [100,100]]
+balance - balancing of true and false positives in case of heavily skewed distributions:
+          False = keep original distribution (default), True = balancing of true and false positives
 epochs - number of training iterations (default 500)
 batch - batch size for training (default 8)
+output - output format for the meta data based on extension:
+         csv = slow comma-separated text format but highly interoperable with many systems
+         feather = fast binary format but almost only used in the python world (default)
 """
 default = 0 # default for equal: 0 = keep missing, 1 = missing is true positive, 9 = missing is false positive
+conflict = 0 # multiple samples conflict preference: 9 = false pos., 1 = true pos., 0 = keep first occurrence  
 retention = 0.1 # 0.1 will retain 10% of the training data for out-of-sample simulation 
 verbose = 0 # 0 = silent, 1 = noisy, 2 = loud
 hidden = [[0], [25], [50], [100], [25,25], [50,50], [100,100]] # remove layouts when in a hurry
-balanced = True # True for balancing false & true positives, False otherwise
+balanced = False # True for balancing false & true positives, False otherwise
 epochs = 500 # reduce when in a hurry, increase for diminishing returns
 batch = 8 # lower is slower with very slight gains in efficiency
+output = "feather" # use "csv" (comma-separated text) for slower but more flexible format for the meta data
 
 import os 
 import sys
@@ -72,7 +83,9 @@ import glob
 import importlib
 import subprocess
 from zipfile import ZipFile
-
+# import code
+# code.interact(local=locals()) evokes interactive console at any position in the code for debugging
+  
 def install_package(package_name, install_name=None):
     try:
         importlib.import_module(package_name)
@@ -86,6 +99,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 install_package('tensorflow')
 install_package('sklearn', 'scikit-learn')
 install_package('pandas')
+install_package('pyarrow')
 
 import numpy as np
 import pandas as pd
@@ -94,34 +108,73 @@ from sklearn.utils import class_weight
 from tensorflow.keras import models, Sequential
 from tensorflow.keras.layers import Normalization, Dense
 
+def load_data(file_name):
+    file_name, dot, ext = file_name.rpartition('.')
+    ext = ext.lower()
+    if ext == 'txt':
+        return pd.read_csv(file_name+'.txt', delimiter='\t', encoding='latin1', index_col=False)
+    return pd.read_csv(file_name+'.csv', delimiter=',', encoding='latin1', index_col=0)
+
+def load_meta(file_name):
+    file_name, dot, ext = file_name.rpartition('.')
+    ext = ext.lower()
+    if ext == 'txt':
+        return pd.read_csv(file_name+'.txt', delimiter='\t', encoding='latin1', index_col=False)
+    if output == 'csv':
+        return pd.read_csv(file_name+'.csv', delimiter=',', encoding='latin1', index_col=0)
+    return pd.read_feather(file_name+'.feather')
+
+def save_meta(data, file_name='meta.csv'):
+    file_name, dot, ext = file_name.rpartition('.')
+    if output == 'csv':
+        data.to_csv(file_name+'.csv')
+    else:
+        data.to_feather(file_name+'.feather')
+
 def read_sample():
     print('checking sample.csv')
     sample = None
     try:
-        sample = pd.read_csv('sample.csv', delimiter=',', encoding='latin1', index_col=0) 
+        sample = load_data('sample.csv')
     except:
         print('reading *sample*.txt template')
         files = glob.glob('*sample*.txt')
+        samples = []
         for f in files:
-            print(f)
-            if isinstance(sample, pd.DataFrame):
-                sample = sample.merge(read_a_sample(f), how='outer', on=['searched','found'], suffixes=(None, '_u'), indicator=True)
-                overlap = sample.loc[sample['_merge'] == 'both', ['equal','equal_u']]
-                print(f'overlap {len(overlap)}')
-                overlap = overlap.loc[overlap['equal'] != overlap['equal_u']]
-                if len(overlap):
-                    print(f'conflicts {len(overlap)}')
-                sample['equal'] = sample['equal'].fillna(sample['equal_u']).astype('int')
-                sample = sample[['searched','found','equal']]
+            samples.append(read_a_sample(f))
+        sample = pd.concat(samples, ignore_index=True)
+        del samples
+        sample['pos'] = range(1, len(sample)+1)
+        sample.sort_values(by=['searched','found','equal'], inplace=True)
+        overlap = (sample['searched'] == sample['searched'].shift(1)) & (sample['found'] == sample['found'].shift(1))
+        cnt = overlap.sum()
+        if cnt > 0:
+            print(f'overlap {cnt}')
+            strife = (overlap & (sample['equal'] != sample['equal'].shift(1))).sum()
+            if strife > 0:
+                print(f'conflicts {strife}')
+                if conflict == 1:
+                    print('preference true positive')
+                    sample = sample.drop_duplicates(subset=['searched', 'found'], keep='last')
+                elif conflict == 9:
+                    print('preference false positive')
+                    sample = sample.drop_duplicates(subset=['searched', 'found'], keep='first')
+                else:
+                    print('preference file order')
+                    sample.sort_values(by=['searched','found','pos'], inplace=True)
+                    sample = sample.drop_duplicates(subset=['searched', 'found'], keep='first')
             else:
-                sample = read_a_sample(f)
+                print('no conflicts')
+                sample = sample.drop_duplicates(subset=['searched', 'found'], keep='first')
         sample = sample[['searched','found','equal']]
+        print('saving sample.csv')
         sample.to_csv('sample.csv')
     print(f'{sample.shape[0]} rows, {sample.shape[1]} cols')
     return sample
-        
+ 
 def read_a_sample(file):
-    sample = pd.read_csv(file, delimiter='\t', encoding='latin1', index_col=False)
+    print(f'reading {file}')
+    sample = load_data(file)
     sample.columns = sample.columns.str.lower()
     sample = sample[['searched','found','equal']].replace(0, np.nan)
     sample = sample.loc[sample['searched'].notna()]
@@ -133,16 +186,19 @@ def read_a_sample(file):
     sample = sample.drop(columns=['equal_u']).dropna().astype('int')
     sample['equal'] = sample['equal'].apply(lambda x : 1 if x > 0 and x <= 5 else 0 if x > 5 and x <= 9 else 9)
     sample.drop(sample[sample['equal'] == 9].index, inplace=True)
-    return sample
+    sample_unique = sample.drop_duplicates(subset=['searched', 'found'], keep='first')
+    if len(sample_unique) < len(sample):
+        print(f'dropping duplicates {len(sample)-len(sample_unique)}')
+    return sample_unique
     
 def read_meta():
     print('checking meta.csv')
     meta = None
     try:
-        meta = pd.read_csv('meta.csv', delimiter=',', encoding='latin1', index_col=0) 
+        meta = load_meta('meta.csv')
     except:
         print('reading meta.txt')
-        meta = pd.read_csv('meta.txt', delimiter='\t', encoding='latin1', index_col=False)
+        meta = load_meta('meta.txt')
         meta.columns = meta.columns.str.lower()
         meta['searched'] = meta['searched'].astype('int')
         meta['found'] = meta['found'].astype('int')
@@ -151,25 +207,25 @@ def read_meta():
         for c in meta.columns:
             if (c.startswith('csf') or c.startswith('cfs')) and c[3:].isdigit():
                 meta[c+'sd'] = meta.groupby('searched')[c].transform('std').fillna(0)
-        meta.to_csv('meta.csv')
+        print(f'saving meta.{output}')
+        save_meta(meta)
     print(f'{meta.shape[0]} rows, {meta.shape[1]} cols')
     return meta
 
 def compose_training():
     print('checking training.csv')
     try:
-        train = pd.read_csv('training.csv', delimiter=',', encoding='latin1', index_col=0)
+        train = load_data('training.csv')
     except:
-        meta = read_meta()
         sample = read_sample()
         sample['retention'] = np.random.uniform(size=len(sample))
         sample['retention'] = np.where(sample['retention'] <= retention, 1, 0).astype('int')
         sample = sample[['searched','found','retention','equal']]
+        meta = read_meta()
         train = sample.merge(meta, how='inner', on=['searched','found'])
         if len(train) != len(sample):
             raise ValueError(f'sample records not found in meta: {len(sample)-len(train)}')
-        sample = None # clear memory
-        meta = None # clear memory
+        del sample, meta # free memory
         # no variation within train data
         min = train.loc[train['retention'] == 0, train.columns.difference(['searched','found','equal','retention'])].min()
         max = train.loc[train['retention'] == 0, train.columns.difference(['searched','found','equal','retention'])].max()
@@ -252,7 +308,7 @@ def prediction(model, names):
     tab['share'] = tab['count']/tab.loc['sum','count']*100
     print(tab.reset_index().to_string(index=False))
     try:
-        sample = pd.read_csv('sample.csv', delimiter=',', encoding='latin1', index_col=0) 
+        sample = load_data('sample.csv')
     except:
         print('no sample.csv detected')
     else:
@@ -264,7 +320,7 @@ def prediction(model, names):
         tab = seml.loc[seml['sample'] != 0, ['equal','sample']].groupby(['equal','sample']).value_counts().to_frame()
         print(tab.reset_index().to_string(index=False))
     print('saving seml.csv')
-    seml.to_csv('seml.csv')
+    seml.to_csv('seml.csv', index=False, float_format='%.6f')
     
 def confuse(cm):
     tn, fp = cm[0]
@@ -305,7 +361,7 @@ def main(argv):
         print('TRAINING')
         train = compose_training()
         model, names = training(train)
-        train = None
+        del train
     print('PREDICTION')
     prediction(model, names)
     print('done.')

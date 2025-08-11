@@ -2,7 +2,7 @@
 do seml.do
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
-will be used to predict false postitives in the meta data. The retention represents the out-of-sample prediction to
+will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
 prevent overfitting. 
 
 Requirements:
@@ -17,6 +17,7 @@ meta.txt - full meta data export of the SearchEngine result table.
                Multiple sample files matching the template *sample*.txt will be merged.
 			   If there is no sample file, the skript will only conduct the prediction based on an already trained
 			   network in seml.brn.
+			   
 All txt files have to be tab-delimited.
 
 Output:
@@ -25,8 +26,8 @@ sample.dta - assigns the essential "equal" variable to every candidate based on 
 training.dta - training data: canidate assignment (searched, found, equal), retention indicator, and the meta data.
 seml.brn.log - training output of the confusion matrices if applicable.
 seml.brn - neural network save file using the brain format.
-seml.dta - prediction file (contains reference to sample data if applicable)
-seml.txt - tab delimited prediction file for convenience
+seml.dta - prediction file (contains reference to sample data if applicable).
+seml.txt - tab delimited prediction file for your convenience.
 
 Labeling:
 - Read the manual about efficient labeling.
@@ -40,26 +41,32 @@ Script schedule:
 If the file seml.brn does not exists, the script will start with the training based on the meta and the sample data.
 If the seml.brn file is created or already existing, it will commence with the prediction.
 It will always try to use the dta files first but will compile them from the txt files if necessary.
-To retrain the network with different settings: delete the seml.brn file
+To retrain the network with different settings: delete the seml.brn file.
 To retrain the network with different retention: additionally delete the training.dta file
-To retrain the network after changes to the sample file(s): additionally delete sample.dta
-To retrain the network after changes to meta.txt: additionally delete meta.dta
+To retrain the network after changes to the sample file(s): additionally delete the sample.dta file.
+To retrain the network after changes to meta.txt: additionally delete the meta.dta file.
 
 Settings:
-default - global default if "equal" assignment in the candidate block header is missing (default 0)
-retention - share that will not be used for training but for out-of-sampe prediction (default 0.1)
-verbose - 0 = mute, 1 = show blocked iterations, 2 = show all iterations
-hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy
-balance - 1 = balancing of true and false positives (default), 0 = keep distribution of true/false positives
-epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000).
+default - global default if "equal" assignment in the candidate block header is missing:
+          0 = keep missing (default), 1 = true positive, 9 = false positive
+conflict - preference in case of conflicting "equal" assignments in multiple sample files:
+           0 = keep first occurrence based on file order (default), 1 = true positive, 9 = false positive
+retention - share that will not be used for training but for out-of-sample prediction (default 0.1)
+verbose - 0 = mute (default), 1 = show blocked iterations, 2 = show all iterations
+hidden - list of neural network hidden layer layouts competing for best out-of-sample accuracy:
+         "[0] [25] [50] [100] [25,25] [50,50] [100,100]"
+balance - balancing of true and false positives in case of heavily skewed distributions:
+         0 = keep original distribution (default), 1 = balancing of true and false positives
+epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000)
 eta - initial learining rate (default 0.1)
 batch - batch size for training (larger than 1 will activate MP on Windows, default 8)
 */
 global default = 0 // default for equal: 0 = keep missing, 1 = missing is true positive, 9 = missing is false positive
+global conflict = 0 // multiple samples conflict preference: 9 = false pos., 1 = true pos., 0 = keep first occurrence  
 global retention = 0.1 // 0.1 will retain 10% of the training data for out-of-sample simulation
 global verbose = 0 // 0 = silent, 1 = noisy, 2 = loud
 global hidden = "[0] [25] [50] [100] [25,25] [50,50] [100,100]" // remove layouts when in a hurry
-global balanced = 1 // 1 to balance false & true positives (default), 0 to keep distribution of true/false positives
+global balanced = 0 // 1 to balance false & true positives, 0 to keep distribution of true/false positives
 global epochs = 5000 // maximum number of iterations (will not be exhausted in case of plateau)
 global eta = 0.1 // initial learning rate 
 global batch = 8 // mini batch size (larger than 1 will activate MP on Windows)
@@ -76,32 +83,36 @@ program define prepare_sample
 		di as text "reading *sample*.txt template"
 		local samples : dir "." files "*sample*.txt"
 		foreach f in `samples' {
-			di as text "importing " as result `"`f'"'
-			qui import delimited `"`f'"', enc("latin1") clear
-			keep searched found equal
-			qui drop if searched == . | searched == 0
-			cap destring equal, force replace
+			load_a_sample `"`f'"'
 			cap append using `sample'
 			qui save `sample', replace
 		}
-		// removing duplicates in case of multiple sample files with overlap
-		qui replace found = 0 if found == .
 		qui gen long pos = _n
-		sort searched found pos
-		qui drop if searched == searched[_n+1] & found == found[_n+1]
-		sort searched pos
+		sort searched found equal
+		qui count if searched == searched[_n-1] & found == found[_n-1]
+		di as text "overlap " as result r(N)
+		qui count if searched == searched[_n-1] & found == found[_n-1] & equal != equal[_n-1]
+		if r(N) > 0 {
+			di as text "conflicts " as result r(N)
+			if $conflict == 1 {
+				di as text "preference " as result "true" as text " positive"
+				qui drop if searched == searched[_n+1] & found == found[_n+1]
+			}
+			else if $conflict == 9 {
+				di as text "preference " as result "false" as text " positive"
+				qui drop if searched == searched[_n-1] & found == found[_n-1]
+			}
+			else {
+				di "preference file order"
+				sort searched found pos
+				qui drop if searched == searched[_n-1] & found == found[_n-1]
+			}
+		}
+		else {
+			di "no conflicts"
+			qui drop if searched == searched[_n-1] & found == found[_n-1]
+		}
 		drop pos
-		qui replace found = . if found == 0
-		// implementing block and global defaults
-		qui replace equal = $default if found == . & (equal == . | equal == 0)
-		qui egen byte default = max(equal * (found == .)), by(searched)
-		qui replace equal = default if equal == . | equal == 0
-		drop default
-		qui drop if found == .
-		qui replace equal = 1 if equal >= 1 & equal <= 5
-		qui replace equal = 9 if equal > 5 & equal <= 9
-		qui drop if equal != 1 & equal != 9
-		qui replace equal = 0 if equal == 9
 		di as text "saving " as result "sample.dta"
 		qui save sample, replace
 		clear
@@ -110,13 +121,43 @@ program define prepare_sample
 	di as text "rows " as result r(N) as text ", cols " as result r(k)
 end
 
+cap program drop load_a_sample
+program define load_a_sample
+	di as text "importing " as result `"`1'"'
+	qui import delimited `"`1'"', enc("latin1") varnames(1) clear
+	keep searched found equal
+	qui drop if searched == . | searched == 0
+	cap destring equal, force replace
+	qui replace found = 0 if found == .
+	qui gen long pos = _n
+	sort searched found pos
+	qui count if searched == searched[_n+1] & found == found[_n+1]
+	if r(N) > 0 {
+		di as text "dropping duplicates " as result r(N)
+	}
+	qui drop if searched == searched[_n+1] & found == found[_n+1]
+	sort searched pos
+	drop pos
+	qui replace found = . if found == 0
+	// implementing block and global defaults
+	qui replace equal = $default if found == . & (equal == . | equal == 0)
+	qui egen byte default = max(equal * (found == .)), by(searched)
+	qui replace equal = default if equal == . | equal == 0
+	drop default
+	qui drop if found == .
+	qui replace equal = 1 if equal >= 1 & equal <= 5
+	qui replace equal = 9 if equal > 5 & equal <= 9
+	qui drop if equal != 1 & equal != 9
+	qui replace equal = 0 if equal == 9
+end
+
 cap program drop prepare_meta
 program define prepare_meta
 	di as text "checking " as result "meta.dta"
 	cap confirm file meta.dta
 	if _rc != 0 {
 		di as text "importing " as result "meta.txt"
-		qui import delimited meta.txt, enc("latin1") clear
+		qui import delimited meta.txt, enc("latin1") varnames(1) clear
 		sort searched found
 		cap foreach v of varlist csf* {
 			egen `v'sd = sd(`v'), by(searched)
@@ -141,8 +182,8 @@ program define compose_training
 	di as text "checking " as result "training.dta"
 	cap use training, clear
 	if _rc != 0 {
-		prepare_meta
 		prepare_sample
+		prepare_meta
 		qui use sample, clear
 		qui gen byte retention = uniform() <= $retention
 		order searched found retention equal
@@ -206,7 +247,7 @@ program define training
 			qui replace weight = 1 if equal == 0 & retention == 0
 		}
 		local weight = " [pweight=weight]"
-		local balanced = " (balanced)"
+		local balanced = ", balanced"
 	}
 	local hidden = subinstr("$hidden"," ","",.)
 	local hidden = subinstr(subinstr("`hidden'","],[","][",.),"]["," ",.)
@@ -227,7 +268,7 @@ program define training
 		local layout = "`layout' `layers' 1"
 		local layout = subinstr(subinstr(subinstr("`layout'","  "," ",.)," ","x",.),",","x",.)
 		log on training
-		di as text "model " as result `model' as text ": " as result "`layout'`balanced'"
+		di as text "model " as result `model' as text ": " as result "`layout', batch $batch`balanced'"
 		log off training
 		qui brain define if retention == 0, input(`meta') output(equal) hidden(`layers') spread(0.01)
 		local eta = $eta
@@ -273,7 +314,7 @@ program define training
 	}
 	qui brain load `brain'
 	log on training
-	di as text "best model " as result `best_model' as text ": " as result "`best_layout'"
+	di as text "best model " as result `best_model' as text ": " as result "`best_layout', batch $batch`balanced'"
 	brain fit equal if retention
 	log close training
 	di as text "saving " as result "seml.brn"
