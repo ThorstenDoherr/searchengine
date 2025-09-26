@@ -11,6 +11,25 @@ Doherr, Thorsten (2023), The SearchEngine: A Holistic Approach to Matching, ZEW 
 ## Installation
 The SearchEngine is a self-contained, portable Windows application. You do not have to install it. All necessary files can be found in the "SE" directory of the downloaded Github package. Copy the files or the whole "SE" directory to any location. The SeachEngine is always associated with the so called base table. This table will provide the universe of candidates retrieved by a search. This inherent connection should be acknowledged by choosing a location close to the base table, for example in a "SE" sub-directory of the base table directory. If you want to search in a different base table you have to copy the original files into a separate directory because every SearchEngine copy is locked in with one specific base table. As the base table provides the candidates, the search tables provide the search terms. All tables have to be tab-delimited text files with column headers. Preferably, the files should use extended ASCII or Latin-1 but UTF-8 encoding is also supported for Latin, Cyrillic and Greek characters. Before you can use multiprocessing you have to start the SearchEngine.exe application at least once as administrator. In case the SearchEngine complains at startup about missing DLLs, an assortment of potential culprits is available in the "DLL" directory of the Github package to be copied into the respective SearchEngine directory.
 
+At least once per computer/machine the SearchEngine should be started as administrator to enable multiprocessing. It will make some registry entries required for the multiprocessing mode. You can still use the SearchEngine without being registered but only in single-processing mode, which is considerably slower. After the registration admin privileges are not further required.  
+[[mp]](#mp)
+
+### Package Contents
+- **SE** - Runtime files of the SearchEngine to be dropped into any directory. Run searchengine.exe to start the engine. At least once with admin privileges to enable multiprocessing.
+- **SEML** - SearchEngine Machine Learning provided in two flavors: Python and STATA
+- **code** - Source Code
+  - **foxpro** - C source code for the foxpro.fll library
+  - **modul** - Visual Foxpro source code
+  - **searchengine** - Visual Foxpro Project
+- **data** - Toy data derived from international patent applicants. All tables have a line number, an entity key, name and address fields. They can be used to play around with the SearchEngine or to experiment with different search strategies. 
+- **dll** - Auxiliary DLLs that may be required to run the SearchEngine. If Windows complains during startup of the SearchEngine, copy those files into the runtime directory.
+- **doc** - Documentation and slides
+- **merch** - SearchEngine fox logo
+- **preparer** - Special directives to handle some country specific particularities, especially German company and street names. You can copy those files to the runtime files to be able to use the associated preparers. Not required in other contexts, but provides good examples to code your own preparers.  
+
+[[SEML]](#seml)  
+[[Preparers]](#preparers)  
+
 ## Preparation
 Before the SearchEngine can link data sources it has to import them into its internal database system, which is the Advanced Visual Foxpro database. Your data has to be provided in the form of tab-delimited text files with column headers. To avoid unnecessary workload, it is recommended to create dedicated matching tables comprising only the fields required for the linkage. In general, the tables should already be part of another data management system to be able to handle the matching tables and the output of the SearchEngine. For that purpose, this system should be capable to import and export tab-delimited text files as this is the exchange format of the SearchEngine. Replace any control characters like tabulators (ASCII 9), line feeds (ASCII 10) and carriage return (ASCII 13) with blanks (ASCII 32) within all character fields before exporting the data. The internal databases of the SearchEngine only allow field names with a maximum length of 10 characters. Longer field names will be abbreviated by the import function.
 
@@ -36,7 +55,7 @@ On the other hand, we have unfocused sources where the search context is only a 
 [[Compound Search]](#compound-search)  
 
 ### Noise
-Noise occurs mostly in unfocused data sources. Noise are non-relevant components in the search term diluting and diverging the search context. Typical instances are scraped web data where fields are misaligned, user content created without supervision, superfluous additions like marketing statements or sub-ordinate entities requiring additional information like departments of firms. A significant amount of noise may force you to use an unfocused source instead of a focused one because additional components in the candidates have no impact on the search success. Choose always the source with the highest amount of noise as base table. If this is a <b>focused</b> source, you can still implement an <b>incremental search</b>. Otherwise, implement a <b>compound search</b> on the <b>unfocused</b> base table. And finally, in case the extent of the noise is difficult to assess, you can always use two installments of the SearchEngine switching base tables and merge the results.  
+Noise occurs mostly in unfocused data sources. Noise are non-relevant components in the search term diluting and diverging the search context. Typical instances are scraped web data where fields are misaligned, user content created without supervision, superfluous additions like marketing statements or sub-ordinate entities requiring additional information like departments of firms. A significant amount of noise may force you to use an unfocused source instead of a focused one because additional components in the candidates have no impact on the search success. A small dose of noise like variation in legal forms is harmless and should not influence the overarching search strategy. Choose always the source with the highest amount of significant noise as base table. If this is a <b>focused</b> source, you can still implement an <b>incremental search</b>. Otherwise, implement a <b>compound search</b> on the <b>unfocused</b> base table. And finally, in case the extent of the noise is difficult to assess, you can always use two installments of the SearchEngine switching base tables and merge the final outcomes (after post-processing).  
 [[Incremental Search]](#incremental-search)  
 [[Compound Search]](#compound-search)  
 
@@ -58,51 +77,79 @@ The incremental search is based on the notion that for every search record in th
 
 The main characteristic of an incremental search is the <b>darwinian</b> setting. During retrieval, only the candidates with the highest identity will survive. We do not want the second best candidates. When the base table has an almost perfect entity representation the second best candidates have to be different entities. An incremental search always consists of multiple search runs whereby the first run is the most restrictive one, enforcing high quality standards on the retrieved candidates, while the parametrization is relaxed with every subsequent run. During such a run, the SearchEngine will skip all search records that already have candidates in the result table retrieved in earlier runs with more demanding settings. The initial run should use only conventional search types because destructive ones are less demanding and will be used in later runs. The <b>threshold</b> should enforce that next to the main field(s), representing the search context, a good share of the auxiliary search fields have to match. For example, next to the firm name field at least half of the address fields have to match. The following runs keep the <b>threshold</b> but replace the conventional search types with destructive, linguistic search types to capture misspellings and typos. Only after that, search runs should relax the requirement of matching auxiliary fields by lowering the <b>threshold</b> slightly below the sum of the weights of mandatory fields. In context of firms, we now allow candidates to be at a different location but also grant more leeway for the name at the matching location. By switching weights from conventional to destructive search types we complete our relaxed search with typo-tolerant runs. If there are only few search records left without candidates, you can even dare to conclude with a <b>zealous</b> search run ignoring the <b>threshold</b>.
 
-The following example shows a complete script of an incremental search of a patent applicant table in a focused company base table with an additional 3-gram search type on the firm name:
+The following example can be reproduced with the toy data provided in the "data" directory. It shows a complete script of an incremental search of a patent applicant table in a focused company base table with an additional 3-gram search type on the firm name:
 
-<code>importbase("c:\\orbis\\firms.txt")</code>  
-<code>create("firm NOABBREV, firm NOABBREV GRAM3, street SEPNUM, zip, city")</code>  
-<code>importsearch("c:\\patents\\applicants.txt")</code>  
-<code>result("c:\\patents\\applicants_result")</code>  
-<code>join("applicant", "firm")</code>  
-<code>join("street")</code>  
-<code>join("postcode", "zip")</code>  
+<code>importbase("D:\\myse\\firms.txt")</code>  
+<code>create("firm NOABBREV, firm NOABBREV GRAM3, addr SEPNUM, ctr")</code>  
+<code>importsearch("D:\\patents\\applicants.txt")</code>  
+<code>result("d:\\patents\\applicants_result")</code>  
+<code>join("name", "firm")</code>  
+<code>join("address", "adr")</code>  
+<code>join("country", "ctr")</code>  
 <code>join("city")</code>  
 <code>reset()</code>  
 <code>contain(5)</code>  
 <code>darwinian(.t.)</code>  
 <code>threshold(85)</code>  
-<code>types("firm 70, firm 0, street 10, zip 10, city 10")</code>  
+<code>types("firm 70, firm 0, addr 20, ctr 10")</code>  
 <code>search()</code>  
-<code>types("firm 0, firm 70 log, street 10, zip 10, city 10")</code>  
+<code>types("firm 0, firm 70 log")</code>  
 <code>search(1, 1)</code>  
-<code>types("firm 0, firm 70, street 10, zip 10, city 10")</code>  
+<code>types("firm 0, firm 70")</code>  
 <code>search(1, 1)</code>  
-<code>threshold(65)</code>  
-<code>types("firm 70, firm 0, street 10, zip 10, city 10")</code>  
+<code>threshold(70)</code>  
+<code>types("firm 70, firm 0")</code>  
 <code>search(1)</code>  
-<code>types("firm 0, firm 70 log, street 10, zip 10, city 10")</code>  
+<code>types("firm 0, firm 70 log")</code>  
 <code>search(1, 1)</code>  
-<code>types("firm 0, firm 70, street 10, zip 10, city 10")</code>  
+<code>types("firm 0, firm 70")</code>  
 <code>search(1, 1)</code>  
 
-This is a basic setup for an incremental search. You can also experiment with weight shifts toward the auxiliary fields, i.e. address fields, to provide more leeway for the main fields. Use the <b>statistics</b> function to control your progress through the search table as any search record with a candidate is solved. Still, even with an incremental search, false positives cannot completely be avoided, especially when the base table does not represent the full search population. In case a full manual verification is not possible, the SearchEngine Machine Learning approach <b>SEML</b> is the next logical step.   
+This is a basic setup for an incremental search. For the first three steps, we enforce the necessity of significant address similarity. The last three steps relax this restriction. As the country has a high availabilty, the 70% threshold is tantamount to a 10% leeway regarding the firm name. You can also experiment with weight shifts toward the auxiliary fields, i.e. address fields, to provide more leeway for the main fields. In case the address is further separated into fields like street, city and postcode, you can distribute the weights evenly among them. Use the <b>statistics</b> function to control your progress through the search table as any search record with a candidate is solved. Still, even with an incremental search, false positives cannot completely be avoided, especially when the base table does not represent the full search population. In case a full manual verification is not possible, the SearchEngine Machine Learning approach <b>SEML</b> is the next logical step. Furthermore, the <b>discussion paper</b> explores two more comprehensive examples using incremental searches.   
 [[Focused Data Sources]](#focused-data-sources)  
 [[search]](#search)  
 [[darwinian]](#darwinian)  
-[[threshold]](#threshold)
+[[threshold]](#threshold)  
 [[statistics]](#statistics)  
 [[SEML]](#seml)  
 
 ### Compound Search
-A compound search is necessary when the base table has no clear representation of entities but is mere collection of occurrences. It is expected that a search term will retrieve multiple candidates, which are all variations of the searched entity. Compared to an <b>incremental search</b> on a <b>focused data source</b>, the risk of retrieving candidates representing different entities is also much higher due to the general ambiguity. In a sense, a <b>compound search</b> is much easier to implement as an <b>incremental search</b> as the only decision is about the height of the <b>threshold</b>. Because you have to expect a multitude of candidates of variable identities for every search term, the task is to balance the recall of all potential variations with the risk of attracting false positives. You have to adapt your strategy to the deficiencies of the base table, especially if <b>noise</b> is involved. In general, you will only perform search runs necessary to capture the issues with the data like partially missing fields but it does not make sense to gradually decrease the retrieval requirements if the results of runs will be merged anyway. The <b>containment</b> should be more generous to accommodate the expected variation of valid candidates or skipped completely if that number is difficult to assess. Noisy base tables may have more missing entries in the search fields, e.g. address fields, requiring to add search steps that ignore those fields. To achieve a consistent identity, it is advisable to impose an adjustment with the <b>research</b> action afterwards. If the search table is from a focused source, this fact can be exploited by stripping the results retroactively with the <b>strip</b> action imposing an inverse darwinian cutoff keeping only the best search term(s) per candidate. Conversely to an <b>incremental search</b>, this can only be done after all search runs instead of during the search. Such an approach is only viable with harmonized identities achieved by a final <b>research</b> action introducing a <b>feedback</b> effect.
+A compound search is necessary when the base table has no clear representation of entities but is mere collection of occurrences. It is expected that a search term will retrieve multiple candidates, which are all variations of the searched entity. Compared to an <b>incremental search</b> on a <b>focused data source</b>, the risk of retrieving candidates representing different entities is also much higher due to the general ambiguity. In a sense, a <b>compound search</b> is much easier to implement as an <b>incremental search</b> as the only decision is about the height of the <b>threshold</b>. Because you have to expect a multitude of candidates of variable identities for every search term, the task is to balance the recall of all potential variations with the risk of attracting false positives. You have to adapt your strategy to the deficiencies of the base table, especially if <b>noise</b> is involved. In general, you will only perform search runs necessary to capture the issues with the data like partially missing fields but it does not make sense to gradually decrease the retrieval requirements if the results of runs will be merged anyway. The <b>containment</b> should be more generous to accommodate the expected variation of valid candidates or skipped completely if that number is difficult to be assessed. Noisy base tables may have more missing entries in the search fields, e.g. address fields, requiring to add search steps that ignore those fields. To achieve a consistent identity, it is advisable to impose an adjustment with the <b>research</b> action afterwards. If the search table is from a focused source, this fact can be exploited by stripping the results retroactively with the <b>strip</b> action imposing an **inverse darwinian cutoff** keeping only the best search term(s) per candidate. Conversely to an <b>incremental search</b>, this can only be done after all search runs instead of during the search. Such an approach is only viable with harmonized identities achieved by final <b>research</b> actions introducing <b>feedback</b>.
 
-The following example script matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b> and partially incomplete addresses. This search does not use linguistic search types due to the unfavorable relation between complexity and potential recall gains:
+The first example can be reproduced with the toy data provided in the "data" directory. We consider the "firm" data to be unfocused and noisy while the "applicant" table plays the role of focused and concise data.  
 
-<code>importbase("c:\\scopus\\affiliations.txt")</code>  
+<code>importBase("D:\\myse\\firms.txt")</code>  
+<code>create("firm NOABBREV, firm NOABBREV GRAM3, addr SEPNUM, ctr")</code>  
+<code>importSearch("D:\\myse\\applicants.txt")</code>  
+<code>result("D:\\myse\\applicants_result.dbf")</code>  
+<code>unjoin()</code>  
+<code>join("name", "firm")</code>  
+<code>join("address", "addr")</code>  
+<code>join("country", "ctr")</code>  
+<code>reset()</code>  
+<code>threshold(65)</code>  
+<code>contain(100)</code>  
+<code>types("firm 70, firm 0, addr 20, ctr 10")</code>  
+<code>search()</code>  
+<code>types("firm 0, firm 70 log")</code>  
+<code>search(2, 1)</code>  
+<code>types("firm 0, firm 70")</code>  
+<code>search(2, 1)</code>  
+<code>feedback(20)</code>  
+<code>types("firm 70 log, firm 0")</code>  
+<code>research("1")</code>  
+<code>types("firm 0, firm 70 log")</code>  
+<code>research("2,3")</code>  
+<code>strip(.t.)</code>  
+
+The <b>compound search</b> strategy retrieves the majority of the matches with a conventional search step based on a low threshold waiving the necessity of address similarity. The results are merged with two search steps using linguistic search types (3-grams) for the firm name, the first one applying log smoothing. Because we expect candidates with a high variation, an <b>incremental</b> approach with a <b>darwinian</b> setting is out of the question. All steps have to be merged without skipping search records resulting in a much higher run time. Because the base table is focused, we can exploit this to remove unnecessary redundancy. The two <b>research</b> steps impose a <b>feedback</b> of 20% on the candidates with log smoothing of the firm search types. The feedback in conjunction with the smoothing favors candidates with a higher overlap with the search term. The research steps only affect candidates retrieved by the corresponding search steps. Finally, the <b>strip</b> command implements an **inverse darwinan cutoff** of search terms competing for the same candidate. This procedure greatly reduces the amount of false positives at a minimal risk of false negatives preparing the data for the SearchEngine Machine Learning approach <b>SEML</b> by removing confounding clutter.
+
+The second example script is based on a real setting. It matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b> and partially incomplete addresses. This search does not use linguistic search types due to the unfavorable relation between complexity and potential recall gains:
+
+<code>importbase("D:\\scopus\\affiliations.txt")</code>  
 <code>create("affil NOABBREV, street SEPNUM, postcode, city")</code>  
-<code>importsearch("c:\\orbis\\firms.txt")</code>  
-<code>result("c:\\orbis\\firms_result")</code>  
+<code>importsearch("D:\\orbis\\firms.txt")</code>  
+<code>result("D:\\orbis\\firms_result")</code>  
 <code>join("firm", "affil")</code>  
 <code>join("street")</code>  
 <code>join("zip", "postcode")</code>  
@@ -139,37 +186,37 @@ The <b>compound search</b> retrieves much more false positives than an <b>increm
 [[Noise]](#noise)  
 [[search]](#search)  
 [[threshold]](#threshold)  
-[[threshold]](#threshold)  
 [[feedback]](#feedback)  
 [[research]](#research)  
 [[strip]](#strip)  
 [[SEML]](#seml)  
 
 ### Self-referential Search
-Of course, the decision, which table should become the base table, is trivial when base and search table are the same. Self-referential searched have the purpose to identify duplicates in a table or to create clusters of representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. An <b>incremental search</b> would be pointless as every search record will find itself as best candidate. A <b>compound search</b>, on the other hand, should be more restrictive as in the normal case of linking two different tables. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will only bog down this process. Besides the restrictiveness, the search is not different to a normal search. The major difference is the post-search treatment of the results, which have to be clustered with the <b>exportgrouped</b> function implementing a rule based clustering algorithm.
+Of course, the decision, which table should become the base table, is trivial when base and search table are the same. Self-referential searches have the purpose to identify duplicates in a table or to create clusters representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. An <b>incremental search</b> would be pointless as every search record will find itself as best candidate. A <b>compound search</b>, on the other hand, should be more restrictive as in the normal case of linking two different tables. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will only bog down this process. Besides the restrictiveness, the search is not different to a normal search. The major difference is the post-search treatment of the results, which have to be clustered with the <b>exportgrouped</b> function implementing a rule based clustering algorithm. **Inverse darwinian cutoff** cannot be applied as the search table is not focused.
 
-In the following example a self-referential search is conducted on noisy company data scraped from webpages with downstream clustering:
+This example can be reproduced with the toy data provided in the "data" directory. The "firms" table represents unfocused, noisy company data requiring clustering to roughly assess the number of entities in the data:  
 
-<code>importbase("c:\\big_haul\\scraped_companies.txt")</code>
-<code>importsearch("c:\\big_haul\\scraped_companies.txt")</code>
-<code>result("c:\\big_haul\\scraped_result")</code>  
-<code>create("name NOABBREV, name NOABBREV GRAM3, address SEPNUM")</code>  
-<code>join("name")</code>  
-<code>join("address")</code>  
+<code>importBase("D:\\myse\\firms.txt")</code>  
+<code>importsearch("D:\\myse\\firms.txt")</code>  
+<code>result("D:\\myse\\self_result")</code>  
+<code>create("firm NOABBREV, firm NOABBREV GRAM3, addr SEPNUM, ctr") </code>  
+<code>join("firm")</code>  
+<code>join("addr")</code>  
+<code>join("ctr")</code>  
 <code>contain(20)</code>  
-<code>threshold(85)</code>  
-<code>types("name 90, name 0, address 10")</code>  
+<code>threshold(90)</code>  
+<code>types("firm 70, firm 0, addr 20, ctr 10")</code>  
 <code>search()</code>  
-<code>types("name 0, name 90 log, address 10")</code>  
+<code>types("firm 0, firm 70 log, addr 20, ctr 10")</code>  
 <code>search(2, 1)</code>  
-<code>exportgrouped("c:\\big_haul\\generous_cluster", "min >= 90 @ 41", .f., .t.)</code>  
+<code>exportgrouped("D:\\myse\\generous_cluster.txt", "min >= 90 @ 41", .f., .t.)</code>  
 
 This is a simple example for a clustering rule allowing clusters up to a size of 40 based on intransitive connections, which is higher than the <b>containment</b> to include overlap between contained lists. Beyond that limit, cluster have to be based on bi-directional connections with at least 90% identity. Because clusters have to be independent from the starting node, this means a complete re-evaluation of the current cluster. As this is a very generous clustering, the export table will only report clusters with at least two members and the search fields for quality control. Assuming that the first effort was not satisfactory, a more complex ruleset based on the enforcement of bi-directional edges is applied:  
 
 <code>mirror()</code>  
-<code>types("name 90 log, name 0, address 10")</code>  
+<code>types("firm 70 log, firm 0, addr 20, ctr 10")</code>  
 <code>research("3")</code>  
-<code>exportgrouped("c:\\big_haul\\tight_cluster", "min >= 90 @ 0; min >= 70 @ 0, min >= 70 and p >= 80 or min >= 85 @ 11, min >= 90 @ 21", .f., .t.)</code>
+<code>exportgrouped("d:\\myse\\tight_cluster.txt", "min >= 90 @ 0; min >= 70 @ 0, min >= 70 and p >= 80 or min >= 85 @ 11, min >= 90 @ 21", .f., .t.)</code>  
 
 The bi-directional edges are enforced with the <b>mirror</b> command and supplied with identities by the <b>research</b> command. The first ruleset creates a interim network of clusters as hyper-nodes with a high similarity to harmonize the variation. The second ruleset, after the semicolon, clusters the harmonized hyper-nodes by referencing identities below the threshold introduced by the enforced symmetry and using the percentiles of the absolute identification potential as additional quality measure. This so called **nested cascaded traversal** is an experimental design requiring experience with the data based on try-and-error. For more information, please read the <b>discussion paper</b> and the <b>exportgrouped</b> command description.  
 [[Discussion Paper]](#discussion-paper)  
@@ -220,13 +267,13 @@ Exceptions during the script run are usually caused by malformed sample files. M
 
 The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.feather" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
 
-The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented value. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
+The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented category. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
 
 Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.feather". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
 
 The training will be skipped if there is no training file or samples but only the neural network file ("seml.brn" or "seml.brain") and the meta data. This allows to directly commence with the prediction based on an already trained neural network. The meta data has to be compatible with the original training data and the whole search context should be similar. This shortcut is only advisable for gradual updates.
 
-#### seml\.py
+### seml\.py
 <code>python seml.py</code>  
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
@@ -294,7 +341,7 @@ feather = fast binary format but almost only used in the python world (default)
 
 Settings have to be changed directly in the script.
 
-#### seml\.do
+### seml\.do
 <code>do seml.do</code>  
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
@@ -425,7 +472,7 @@ You can export meta data about all matches in the result table providing variati
 [[exportmeta]](#exportmeta)  
 
 #### File>Command
-The command window allows to manage SearchEngine script files by specifying them in the file selection field. The can be loaded or saved using the corresponding buttons. A loaded script can be edited in the main command area. By changing the file name it is possible to save the script under a different name. By starting with a fresh command area and a new file name a new script can be created. The file searchengine.log is reserved for the SearchEngine reporting and cannot be overwritten. Still, this file can be opened in the command window as a template for scripts and saved under a different name. To execute commands in the script, you have to select them with the mouse or with shift plus cursor keys and press the "Run" button or the shortcut key combo \(**ctrl + enter**\). Any command that is marked, even only partially, will be executed. The command area will switch to the execution area where you can observe the progression of the select script commands and their output. To switch between the command and the execution area without performing any actions make sure that nothing is selected in the command area by simply clicking into it or moving the cursor without the shift key. The command area behaves like any other editor in that regard. To execute a complete script you have to mark all lines, which can be achieved the fastest with the \(**ctrl + a**\) key combination.
+The command window allows to manage SearchEngine script files by specifying them in the file selection field. The can be loaded or saved using the corresponding buttons. A loaded script can be edited in the main command area. It is possible to save the script under a different name by changing the file name before clicking the save button or use the shortcut key combo \(**ctrl+s**\). To create a new script, open a fresh command window and enter a new file name that will be used to save the script. The file searchengine.log is reserved for the SearchEngine reporting and cannot be overwritten. Still, this file can be opened in the command window as a template for scripts and saved under a different name. To execute commands in the script, you have to select them with the mouse or with shift plus cursor keys and press the "Run" button or the shortcut key combo \(**ctrl + enter**\). Any command that is marked, even only partially, will be executed. The command area will switch to the execution area where you can observe the progression of the select script commands and their output. To switch between the command and the execution area without performing any actions make sure that nothing is selected in the command area by simply clicking into it or moving the cursor without the shift key. The command area behaves like any other editor in that regard. To execute a complete script you have to mark all lines, which can be achieved the fastest with the \(**ctrl + a**\) key combination.
 
 You can access this help document with the <b>help</b> command. By specifying a header only the corresponding section will be shown in the execution window. By clicking on links, which are enclosed in \[brackets\], referenced sections will be displayed.
 
@@ -1048,7 +1095,7 @@ With <i>Srunfilter</i> you can restrict the export on specified search runs. <i>
 
 #### mp
 <code>mp([*Icpu*])</code>  
-dedicates <i>Icpu</i> number of CPUs to SearchEngine actions. Negative numbers determine the CPUs not used by the SearchEngine. Omitting <i>Icpu</i> returns the current setting and a zero reserves up to 6 CPUs (initial setting). You can deactivate multiprocessing by setting <i>Icpu</i> to 1. Because the SearchEngine also causes heavy file access traffic increasing the number of assigned CPUs has diminishing returns and may even have a detrimental effect. Use the <b>benchmark</b> function to find the sweet spot for appropriate CPU usage.   
+dedicates <i>Icpu</i> number of CPUs to SearchEngine actions. Negative numbers determine the CPUs not used by the SearchEngine. Omitting <i>Icpu</i> returns the current setting and a zero reserves up to 6 CPUs (initial setting). You can deactivate multiprocessing by setting <i>Icpu</i> to 1. Because the SearchEngine also causes heavy file access traffic increasing the number of assigned CPUs has diminishing returns and may even have a detrimental effect. Use the <b>benchmark</b> function to find the sweet spot for appropriate CPU usage. For multiprocessing to be available, the SearchEngine has at least to be called once as administrator to make entries to the registry.     
 [[Config>Preferences]](#configpreferences)  
 [[benchmark]](#benchmark)  
 
@@ -1412,10 +1459,10 @@ The <i>Linverse</i> parameter directly refers to the <b>cutoff</b>. When it is .
 Examples:  
 <code>strip(90, 0, "2,3")</code> strips all candidates of run 2 and 3 below 90%.  
 <code>strip(101, 0, "4")</code> removes run 4 (no identity will be larger than 100%).  
-<code>strip(0, 1)</code> applies a cutoff of 1 for all search terms. Together with a feedback of 10% this will only keep the best candidate(s).    
-<code>strip(0, 1, .t.)</code> applies an inverse cutoff of 1 for all canidates. Together with a feedback of 10% this will only keep the best search terms.    
+<code>strip(0, 1)</code> applies a cutoff of 1 for all search terms. Together with a feedback, i.e. 20%, this will only keep the best candidate(s).    
+<code>strip(0, 1, .t.)</code> applies an inverse cutoff of 1 for all canidates. Together with a feedback, i.e. 20%, this will only keep the best search terms.    
 <code>strip(.t.)</code> equivalent to the command above.  
-<code>strip(90, 5, "3:2")</code> applies a threshold of 90% if the cutoff at 5 is lower for run 3, which will then be merged with run 2.  
+<code>strip(90, 5, "3:2")</code> applies a threshold of 90% with a cutoff at 5 for run 3, which will then be merged with run 2.  
 <code>strip("1,4:1; 2,3,5,6:2")</code> groups runs, i.e. conventional search steps and steps based on 3-gram preparer.  
 [[Action>Strip]](#actionstrip)  
 [[threshold]](#threshold)  
