@@ -339,7 +339,8 @@ False = keep original distribution (default), True = balancing of true and false
 csv = slow comma-separated text format but highly interoperable with many systems  
 feather = fast binary format but almost only used in the python world (default)  
 
-Settings have to be changed directly in the script.
+Settings have to be changed directly in the script.  
+Exceptions during the processing of the training data \(sample files\) are usualy caused by invalid values in the "equal" columns.
 
 ### seml\.do
 <code>do seml.do</code>  
