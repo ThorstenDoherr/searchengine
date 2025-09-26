@@ -82,6 +82,7 @@ import sys
 import glob
 import importlib
 import subprocess
+import warnings
 from zipfile import ZipFile
 # import code
 # code.interact(local=locals()) evokes interactive console at any position in the code for debugging
@@ -95,6 +96,7 @@ def install_package(package_name, install_name=None):
             install_name = package_name
         subprocess.check_call([sys.executable, "-m", "pip", "install", install_name])
 
+print('initializing...')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 install_package('tensorflow')
 install_package('sklearn', 'scikit-learn')
@@ -103,10 +105,10 @@ install_package('pyarrow')
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+import tensorflow as tf
 from sklearn.utils import class_weight
-from tensorflow.keras import models, Sequential
-from tensorflow.keras.layers import Normalization, Dense
+tf.get_logger().setLevel('ERROR')
+
 
 def load_data(file_name):
     file_name, dot, ext = file_name.rpartition('.')
@@ -226,7 +228,7 @@ def compose_training():
         if len(train) != len(sample):
             raise ValueError(f'sample records not found in meta: {len(sample)-len(train)}')
         del sample, meta # free memory
-        # no variation within train data
+        # check: no variation within train data
         min = train.loc[train['retention'] == 0, train.columns.difference(['searched','found','equal','retention'])].min()
         max = train.loc[train['retention'] == 0, train.columns.difference(['searched','found','equal','retention'])].max()
         drop = min[min == max]
@@ -248,7 +250,7 @@ def training(train):
     y_train = train.loc[train['retention']==0,'equal'].reset_index(drop=True)
     x_test = train.loc[train['retention']==1,'identity':].reset_index(drop=True)
     y_test = train.loc[train['retention']==1,'equal'].reset_index(drop=True)
-    normalizer = Normalization(axis=-1)
+    normalizer = tf.keras.layers.Normalization(axis=-1)
     normalizer.adapt(x_train.values)
     if balanced:
         class_weights = dict(enumerate(class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)))
@@ -264,15 +266,15 @@ def training(train):
             line = f"model {num+1}: layers {'x'.join([str(l) for l in [len(x_train.columns)]+layers+[1]])}, epochs {epochs}, batch {batch}{', balanced' if balanced else ''}" 
             print(line)
             log.write(line+'\n')
-            model = Sequential()
+            model = tf.keras.Sequential()
             model.add(normalizer)
             for layer in layers:
-                model.add(Dense(units=layer, activation='relu'))
-            model.add(Dense(units=1, activation='sigmoid'))
+                model.add(tf.keras.layers.Dense(units=layer, activation='relu'))
+            model.add(tf.keras.layers.Dense(units=1, activation='sigmoid'))
             model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
             model.fit(x_train, y_train, class_weight=class_weights, epochs=epochs, batch_size=batch, verbose=verbose)
             y_pred = (model.predict(x_test, verbose=0) > 0.5).astype('int')
-            cm = confusion_matrix(y_test, y_pred)
+            cm = confusion(y_test, pd.Series(list(y_pred)).astype('int'))
             acc, tab = confuse(cm)
             print(tab)
             log.write(tab+'\n')
@@ -322,16 +324,25 @@ def prediction(model, names):
     print('saving seml.csv')
     seml.to_csv('seml.csv', index=False, float_format='%.6f')
     
+def confusion(true, predicted):
+    tp = ((true == predicted) & (predicted == 1)).sum()
+    tn = ((true == predicted) & (predicted == 0)).sum()
+    fp = ((true != predicted) & (predicted == 1)).sum()
+    fn = ((true != predicted) & (predicted == 0)).sum()
+    return ((tp, fp), (tn, fn))
+    
 def confuse(cm):
-    tn, fp = cm[0]
-    fn, tp = cm[1]
-    acc = (tp+tn)/(tp+tn+fp+fn)
-    tab = f'acc {acc*100:6.2f}            true        false\n'
-    tab += f'positive      {tp:12} {fp:12}\n'
-    tab += f'negative      {tn:12} {fn:12}\n'
-    tab += f'recall              {tp/(tp+fn)*100:6.2f}       {tn/(tn+fp)*100:6.2f}\n'
-    tab += f'precision           {tp/(tp+fp)*100:6.2f}       {tn/(tn+fn)*100:6.2f}'
-    return (acc, tab) 
+    tp, fp = cm[0]
+    tn, fn = cm[1]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        acc = (tp+tn)/(tp+tn+fp+fn)
+        tab = f'acc {acc*100:6.2f}            true        false\n'
+        tab += f'positive      {tp:12} {fp:12}\n'
+        tab += f'negative      {tn:12} {fn:12}\n'
+        tab += f'recall              {tp/(tp+fn)*100:6.2f}       {tn/(tn+fp)*100:6.2f}\n'
+        tab += f'precision           {tp/(tp+fp)*100:6.2f}       {tn/(tn+fn)*100:6.2f}'
+        return (acc, tab) 
     
 def save_brain(model, names):
     model.save("seml.keras")
@@ -347,7 +358,7 @@ def load_brain():
     with ZipFile("seml.brain", mode="r") as f:
         f.extract("seml.keras")
         f.extract("seml.names")
-    model = models.load_model("seml.keras")
+    model = tf.keras.models.load_model("seml.keras")
     with open("seml.names", mode="r") as f:
         names = f.readline().strip().split(',')
     os.remove("seml.keras")
