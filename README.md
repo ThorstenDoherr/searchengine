@@ -13,6 +13,11 @@ Windows
 It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.09.23
+- documentation and help file changes
+- stability improvements to seml.py
+- fixed a bug that prevented grouped export on the unfiltered result table
+
 2025.08.11 \[2025.07.31\]
 - improved SEML stability and default settings
 
