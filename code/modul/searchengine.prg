@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.07.31
+*    Date:       2025.09.23
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.07.31"
+	return "2025.09.23"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -7946,7 +7946,10 @@ define class SearchEngine as custom
 		endif
 		m.idc = this.idontcare()
 		if not ((vartype(m.low) == "N" and m.low > 0 or vartype(m.high) == "N" and m.high <= 100) or m.runFilter.isFiltering())
+			this.messenger.forceMessage("Verifying sequential key...")
 			if not vartype(m.baseKey) == "C" or empty(m.basekey)
+				this.result.forceKey('searched')
+				this.result.forceKey('found')
 				m.exp = createobject("ExportTable",this.result.dbf)
 				m.exp.searchKey = m.basekey
 				m.exp.foundKey = m.basekey
@@ -7954,8 +7957,7 @@ define class SearchEngine as custom
 			else
 				m.f = this.baseCluster.getTableStructure()
 				m.f = m.f.getFieldStructure(m.basekey)
-				if this.result.reccount()/this.baseCluster.reccount() > 0.1 and inlist(m.f.getType(),"N","I","B") and (vartype(m.runFilter) != "C" or empty(m.runFilter)) and (vartype(m.low) != "N" or m.low <= 0) and (vartype(m.high) != "N" or m.high > 100)
-					this.messenger.forceMessage("Verifying sequential key...")
+				if this.result.reccount()/this.baseCluster.reccount() > 0.1 and inlist(m.f.getType(),"N","I","B")
 					m.offset = 0
 					m.sql = "locate for "+m.basekey+" != recno()+m.offset"
 					for m.i = 1 to this.baseCluster.getTableCount()
@@ -7968,14 +7970,16 @@ define class SearchEngine as custom
 						m.offset = m.offset+m.clutable.reccount()
 					endfor
 					if m.i > this.baseCluster.getTableCount()
+						this.result.forceKey('searched')
+						this.result.forceKey('found')
 						m.exp = createobject("ExportTable",this.result.dbf)
 						m.exp.searchKey = m.basekey
 						m.exp.foundKey = m.basekey
 						m.exp.engine = this
 					endif
-					this.messenger.forceMessage("")
 				endif
 			endif
+			this.messenger.forceMessage("")
 		endif
 		if not vartype(m.exp) == "O"		
 			m.exp = createobject("BaseCursor", this.getEnginePath())
