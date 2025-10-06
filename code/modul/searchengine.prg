@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.09.23
+*    Date:       2025.10.06
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.09.23"
+	return "2025.10.06"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
