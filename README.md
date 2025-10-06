@@ -13,6 +13,9 @@ Windows
 It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.10.06 \(Summer School Edition\)
+- small GUI improvement regarding activation setting
+
 2025.09.23
 - documentation and help file changes
 - stability improvements to seml.py
