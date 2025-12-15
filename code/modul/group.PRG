@@ -1,11 +1,15 @@
 *=========================================================================*
 *   Modul:      group.prg
-*   Date:       2022.08.08
+*   Date:       2025.11.19
 *   Author:     Thorsten Doherr
 *   Required:   custom.prg
 *               ParallelFox classes
 *   Function:   Clusters network tables by applying nested cascaded traversal
 *=========================================================================*
+function version_of_group()
+	return "2025.11.19"
+endfunc
+
 function mp_traverse(from as Integer, to as Integer)
 	mp_bracket(@m.from, @m.to)
 	_screen.global1.useShared()
@@ -276,7 +280,11 @@ define class CascadeTable as BaseTable
 			m.cluster.erase()
 			m.cluster.setPFW(this.pfw)
 			m.cluster.setMessenger(this.messenger)
-			m.cascade = m.nested.item(1)
+			if m.nested.count == 1
+				m.cascade = m.nested.item(1)
+			else
+				m.cascade = createobject("Cascade")
+			endif
 			if not m.cluster.create(m.table, m.fromField, m.toField, m.cascade)
 				return .f.
 			endif

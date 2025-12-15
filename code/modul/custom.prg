@@ -1,6 +1,6 @@
 *=========================================================================*
 *   Modul:      custom.prg
-*   Date:       2025.05.08
+*   Date:       2025.11.25
 *   Author:     Thorsten Doherr
 *   Required:   ParallelFox, foxpro.fll
 *   Function:   A colorful mix of base classes
@@ -507,6 +507,7 @@ define class ParallelFoxWrapper as Custom
 		if not vartype(m.proc) == "C" or empty(m.proc)
 			m.proc = sys(16,0)
 		endif
+		sys(1104) && purge cache
 		this.stopWorkers()
 		m.proc = alltrim(m.proc)
 		if this.isSequential()
@@ -5490,17 +5491,33 @@ define class BaseTable as custom
 	endfunc
 	
 	function appendIndexed(table as Object)
-	local pa
-	local array data[1]
+	local pa, struc, overlap, append
+		if not m.table.isValid() or not this.isValid() 
+			return .f.
+		endif
+		m.struc = m.table.getTableStructure()
+		m.overlap = m.struc.getStructureWith(this.tablestructure)
+		if m.overlap.getFieldCount() == 0 or not m.overlap.checkCompatibility(this.tablestructure)
+			return .f.
+		endif
+		if m.overlap.getFieldCount() == this.tablestructure.getFieldCount()
+			m.overlap = ""
+		else
+			m.overlap = "fields "+m.overlap.getFieldList()
+		endif
+		text to m.append textmerge noshow flags 1 pretext 3
+			parameters sel
+			local array data[1]
+			scan
+				scatter <<m.overlap>> to m.data memo
+				select (m.sel)
+				append blank
+				gather from m.data <<m.overlap>> memo
+			endscan
+		endtext
 		m.pa = createobject("PreservedAlias")
-		select (m.table.alias)
-		go top
-		scan
-			scatter to m.data memo
-			select (this.alias)
-			append blank
-			gather from m.data memo
-		endscan
+		select (m.table.alias)		
+		execscript(m.append, select(this.alias))	
 		select (this.alias)
 		go top
 		return .t.

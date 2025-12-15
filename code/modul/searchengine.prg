@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.10.06
+*    Date:       2025.12.01
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.10.06"
+	return "2025.12.01"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -111,21 +111,17 @@ function mp_groupedexport(from as Integer, to as Integer)
 	_screen.global1.close()
 endfunc
 
-function mp_exportmeta(from as Integer, to as Integer)
+function mp_metaexport(from as Integer, to as Integer)
 	mp_bracket(@m.from, @m.to)
 	_screen.local1.useExclusive()
 	_screen.global1.useShared()
 	_screen.global2.useShared()
 	_screen.global3.useShared()
-	_screen.global4.useShared()
-	_screen.global5.useShared()
-	_screen.main1.exporting(m.from, m.to, _screen.local1, _screen.global1, _screen.global2, _screen.global3, _screen.global4, _screen.global5, _screen.main2, _screen.messenger)
+	_screen.main1.exporting(m.from, m.to, _screen.local1, _screen.global1, _screen.global2, _screen.global3, _screen.main2, _screen.messenger)
 	_screen.local1.close()
 	_screen.global1.close()
 	_screen.global2.close()
 	_screen.global3.close()
-	_screen.global4.close()
-	_screen.global5.close()
 endfunc
 
 function mp_benchmark(from as Integer, to as Integer)
@@ -339,7 +335,7 @@ define class LRCPD as Custom  && Least Character Position Delta
 		this.ala.append(m.lrcpd.ala)
 	endfunc
 
-	function appendB(lrcpd as LRCPD, settings as Boolean)
+	function appendB(lrcpd as LRCPD)
 		this.bstr = this.bstr + m.lrcpd.bstr
 		this.blen = this.blen + m.lrcpd.blen
 		this.bla.append(m.lrcpd.bla)
@@ -3496,7 +3492,7 @@ define class ResultTable as BaseTable
 	endfunc	
 
 	function strip(threshold as Double, cutoff as Integer, inverse as Boolean, runFilter)
-	local pa, lm, psl, key, result, i, sql, script, msg
+	local pa, lm, psl, key, result, i, sql, script, msg, del
 	local array run[1]
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
@@ -5356,22 +5352,22 @@ define class GroupedExportTable as mp_ExportTable
 			if m.score or m.perc
 				if not m.perc
 					if m.run
-						select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as s, cast(min(asc(run)) as n(3)) as r from (m.export.alias) group by 1, 2 into table (m.path.dbf)
+						select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as s, cast(min(asc(run)) as n(3)) as r from (m.export.alias) where identity > 0 group by 1, 2 into table (m.path.dbf)
 					else
-						select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as s from (m.export.alias) group by 1, 2 into table (m.path.dbf)
+						select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as s from (m.export.alias) where identity > 0 group by 1, 2 into table (m.path.dbf)
 					endif
 				else
 					if m.score
 						if m.run
-							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(max(score) as b(6)) as s, cast(min(asc(run)) as n(3)) as r from (m.export.alias) group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
+							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(max(score) as b(6)) as s, cast(min(asc(run)) as n(3)) as r from (m.export.alias) where identity > 0 group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
 						else
-							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(max(score) as b(6)) as s from (m.export.alias) group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
+							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(max(score) as b(6)) as s from (m.export.alias) where identity > 0 group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
 						endif
 					else	
 						if m.run			
-							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(min(asc(run)) as n(3)) as r from (m.export.alias) group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
+							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p, cast(min(asc(run)) as n(3)) as r from (m.export.alias) where identity > 0 group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
 						else
-							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p from (m.export.alias) group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
+							select searched, found, cast(max(identity) as b(6)) as identity, cast(max(score) as b(6)) as p from (m.export.alias) where identity > 0 group by 1, 2 order by 4 into cursor (m.temp.alias) readwrite
 						endif
 					endif
 				endif
@@ -5413,10 +5409,10 @@ define class GroupedExportTable as mp_ExportTable
 				endif				
 			else
 				if m.run
-					select searched, found, cast(max(identity) as b(6)) as identity, cast(min(asc(run)) as n(3)) as r from (m.export.alias) group by 1, 2 into cursor (m.temp.alias) readwrite
+					select searched, found, cast(max(identity) as b(6)) as identity, cast(min(asc(run)) as n(3)) as r from (m.export.alias) where identity > 0 group by 1, 2 into cursor (m.temp.alias) readwrite
 					select a.searched, a.found, cast(iif(a.identity > nvl(b.identity,0),nvl(b.identity,0),a.identity) as b(6)) as min, cast(iif(a.identity > nvl(b.identity,0),a.identity,nvl(b.identity,0)) as b(6)) as max, cast(iif(a.r < nvl(b.r,1000),a.r,b.r) as n(3)) as r from (m.temp.alias) a left join (m.temp.alias) b on a.searched == b.found and a.found == b.searched where a.searched <= a.found or a.identity == 0 or nvl(b.identity,0) == 0 into table (m.path.dbf)
 				else
-					select searched, found, cast(max(identity) as b(6)) as identity from (m.export.alias) group by 1, 2 into cursor (m.temp.alias) readwrite
+					select searched, found, cast(max(identity) as b(6)) as identity from (m.export.alias) where identity > 0 group by 1, 2 into cursor (m.temp.alias) readwrite
 					select a.searched, a.found, cast(iif(a.identity > nvl(b.identity,0),nvl(b.identity,0),a.identity) as b(6)) as min, cast(iif(a.identity > nvl(b.identity,0),a.identity,nvl(b.identity,0)) as b(6)) as max from (m.temp.alias) a left join (m.temp.alias) b on a.searched == b.found and a.found == b.searched where a.searched <= a.found or a.identity == 0 or nvl(b.identity,0) == 0 into table (m.path.dbf)
 				endif
 			endif
@@ -5672,11 +5668,12 @@ define class MetaExportTable as mp_ExportTable
 		this.resizeRequirements()
 	endfunc
 		
-	function create(engine, meta, nocomp)
+	function create(engine as Object, meta as Character, nocomp as Boolean, result as Object)
 	local wc, pfw, i, j, pa, psl, lm, chr9, idc, f, k, from, to
-	local result, runs, s, searchCluster, join
-	local table, foundreg, searchedreg, stype, ipos, count
-	local tmp1, tmp2, sql, struc, main, local, global
+	local runs, s, searchCluster, join
+	local table, foundreg, searchedreg, stype
+	local sort, searched, identity, pos, start, cnt
+	local tmp1, struc, main, local, global
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("talk","off")
@@ -5724,8 +5721,13 @@ define class MetaExportTable as mp_ExportTable
 			this.messenger.errormessage("Invalid meta filter.")
 			return .f.
 		endif
-		if vartype(m.meta) == "L" and pcount() == 2
+		if not vartype(m.meta) == "C"
+			m.result = m.nocomp
 			m.nocomp = m.meta
+		endif
+		if not vartype(m.nocomp) == "L"
+			m.result = m.nocomp
+			m.nocomp = .f.
 		endif
 		m.meta = createobject("MetaFilter",m.meta,this.foundtypes)
 		if not m.meta.isValid()
@@ -5736,7 +5738,9 @@ define class MetaExportTable as mp_ExportTable
 			this.messenger.errormessage("Compare setting invalid.")
 			return .f.
 		endif
-		m.result = m.engine.getResultTable()
+		if not vartype(m.result) == "O"
+			m.result = m.engine.getResultTable()
+		endif
 		this.runs = m.result.collectRunFilter()
 		if this.runs.getMaxRun() == 0
 			this.messenger.errormessage("ResultTable is empty.")
@@ -5851,62 +5855,78 @@ define class MetaExportTable as mp_ExportTable
 		m.searchcluster = m.engine.getSearchCluster()
 		m.foundreg = m.engine.getRegistryTable()
 		m.table = m.searchCluster.getTable(1)
-		m.searchedreg = createobject("RegistryTable", m.table.getPath()+m.table.getPureName()+"_registry.dbf")
-		if m.searchedreg.isCreatable() or fdate(m.searchedreg.getDBF(),1) < fdate(m.table.getDBF(),1) or fdate(m.searchedreg.getDBF(),1) < fdate(m.foundreg.getDBF(),1)
-			m.searchedreg.close()
-			m.searchedreg.erase()
-			m.searchedreg = m.engine.expand(m.searchedreg)
-		endif
-		if not (vartype(m.searchedreg) == "O" and m.searchedreg.isValid())
-			this.messenger.errormessage("Unable to create SearchTable Registry.")
-			this.erase()
-			if vartype(m.searchedreg) == "O"
+		if m.engine.isMono()
+			m.searchedreg = m.foundreg
+		else
+			m.searchedreg = createobject("RegistryTable", m.table.getPath()+m.table.getPureName()+"_registry.dbf")
+			if m.searchedreg.isCreatable() or fdate(m.searchedreg.getDBF(),1) < fdate(m.table.getDBF(),1) or fdate(m.searchedreg.getDBF(),1) < fdate(m.foundreg.getDBF(),1)
+				m.searchedreg.close()
 				m.searchedreg.erase()
+				m.searchedreg = m.engine.expand(m.searchedreg)
 			endif
-			return .f.
+			if not (vartype(m.searchedreg) == "O" and m.searchedreg.isValid())
+				this.messenger.errormessage("Unable to create SearchTable Registry.")
+				this.erase()
+				if vartype(m.searchedreg) == "O"
+					m.searchedreg.erase()
+				endif
+				return .f.
+			endif
 		endif
-		this.messenger.forceMessage("Exporting Meta...")
+		this.messenger.forceMessage("Aggregating...")
+		m.tmp1 = createobject("UniqueAlias",.t.)
 		m.searchedreg.forceRegistryKey()
 		this.searchedtypes = createobject("SearchTypes",this.foundtypes)
-		m.count = createobject("BaseCursor",this.getPath())
-		m.count.close()
-		m.ipos = createobject("BaseCursor",this.getPath())
-		m.ipos.close()
-		m.tmp1 = createobject("UniqueAlias",.t.)
-		m.tmp2 = createobject("UniqueAlias",.t.)
 		select type, cast(max(occurs) as i) as max from (m.searchedreg.alias) where occurs > 0 group by 1 into cursor (m.tmp1.alias) readwrite
 		scan
 			m.stype = this.searchedtypes.getSearchTypeByIndex(type)
 			m.stype.setMaxOcc(max)
 		endscan
-		select searched, cast(count(*) as i) as cnt from (m.result.alias) group by 1 into table (m.count.dbf)
 		use
-		m.count.useExclusive()
-		m.count.forceKey("searched")
-		select distinct searched, identity, cast(0 as b) as pos, cast(0 as i) as cnt from (m.result.alias) into cursor (m.tmp1.alias) readwrite
-		update (m.tmp1.alias) set pos = recno()
-		select searched, min(pos) as pos, count(*) as cnt from (m.tmp1.alias) group by 1 into cursor (m.tmp2.alias) readwrite
-		index on searched tag searched
-		m.sql = "update "+m.tmp1.alias+" set pos = ("+m.tmp1.alias+".pos-"+m.tmp2.alias+".pos+1)/"+m.tmp2.alias+".cnt, cnt = "+m.tmp2.alias+".cnt from "+m.tmp2.alias+" where "+m.tmp1.alias+".searched == "+m.tmp2.alias+".searched"
-		&sql
-		select (m.tmp1.alias)
-		index on searched tag searched
-		select a.searched, a.found, b.pos, b.cnt from (m.result.alias) a, (m.tmp1.alias) b where a.searched == b.searched and a.identity == b.identity into table (m.ipos.dbf)
-		use 
-		m.ipos.useExclusive()
-		m.ipos.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
-		select (m.tmp1.alias)
+		this.messenger.forceMessage("Sorting...")
+		m.sort = createobject("BaseCursor", this.getPath())
+		m.sort.close()
+		select searched, found, identity, score, run, cast(0 as i) as cnt, cast(0 as i) as icnt, cast(0 as b) as ipos from (m.result.alias) order by searched, identity desc into table (m.sort.dbf)
 		use
-		select (m.tmp2.alias)
-		use
-		m.result.setKey()
-		m.from = m.engine.locateFrom()
+		m.sort.useExclusive()
+		m.sort.select()
+		go top
+		skip
+		this.messenger.forceMessage("Preparing...")
+		m.searched = searched
+		m.identity = identity
+		m.start = recno()
+		m.pos = 1
+		scan rest
+			if m.searched == searched
+				if m.identity != identity
+					m.identity = identity
+					m.pos = m.pos+1
+				endif
+				replace ipos with m.pos
+				loop
+			endif
+			m.searched = searched
+			m.identity = identity
+			m.cnt = recno()-m.start
+			go m.start
+			replace cnt with m.cnt, icnt with m.pos, ipos with ipos/m.pos next m.cnt
+			skip
+			m.start = recno()
+			m.pos = 1
+			replace ipos with m.pos
+		endscan
+		m.cnt = recno()-m.start
+		go m.start
+		replace cnt with m.cnt, icnt with m.pos, ipos with ipos/m.pos next m.cnt
+		m.from = m.engine.locateFrom(m.sort)
 		if m.from <= 0
 			m.from = 1
 			m.to = 0
 		else
-			m.to = m.engine.locateTo()
+			m.to = m.engine.locateTo(m.sort)
 		endif
+		this.messenger.forceMessage("Exporting...")
 		m.pfw = m.engine.getPFW()
 		m.wc = m.pfw.setOptimalWorkerCount(m.to-m.from+1,250)
 		this.messenger.startProgress("Exporting <<0>>/"+transform(m.to-m.from+1))
@@ -5924,11 +5944,9 @@ define class MetaExportTable as mp_ExportTable
 				m.local.add(m.table)
 			endfor
 			m.global = createobject("Collection")
-			m.global.add(m.result)
+			m.global.add(m.sort)
 			m.global.add(m.searchedreg)
 			m.global.add(m.foundreg)
-			m.global.add(m.ipos)
-			m.global.add(m.count)
 			for m.i = 1 to m.global.count
 				m.table = m.global.item(m.i)
 				m.table.close()
@@ -5937,10 +5955,10 @@ define class MetaExportTable as mp_ExportTable
 			m.pfw.startWorkers()
 			m.pfw.callWorkers("mp_open", m.main, m.psl, m.local, m.global)
 			m.pfw.wait() && make sure all workers are idle, to maintain batch sequence
-			m.pfw.callWorkers("mp_exportmeta", m.from, m.to)
+			m.pfw.callWorkers("mp_metaexport", m.from, m.to)
 			m.pfw.wait(.t.)
 			m.pfw.stopWorkers()
-			m.result.useShared()
+			m.sort.useShared()
 			m.foundreg.useShared()
 			if this.messenger.wasCanceled()
 				if not this.txt
@@ -5951,12 +5969,10 @@ define class MetaExportTable as mp_ExportTable
 			this.consolidate(m.local)
 		else
 			this.useExclusive()
-			m.result.useExclusive()
+			m.sort.useExclusive()
 			m.searchedreg.useExclusive()
 			m.foundreg.useExclusive()
-			m.ipos.useExclusive()
-			m.count.useExclusive()
-			this.exporting(m.from, m.to, this, m.result, m.searchedreg, m.foundreg, m.ipos, m.count, m.engine, this.messenger)
+			this.exporting(m.from, m.to, this, m.sort, m.searchedreg, m.foundreg, m.engine, this.messenger)
 			m.result.useShared()
 			m.foundreg.useShared() && this is the original registry of the SearchEngine
 		endif
@@ -5964,9 +5980,9 @@ define class MetaExportTable as mp_ExportTable
 		return not this.messenger.wasCanceled()
 	endfunc
 		
-	function exporting(from as Integer, to as Integer, export as Object, result as Object, searchedreg as Object, foundreg as Object, ipos as Object, count as Object, engine as Object, messenger as Object)
-	local i, j, k, chr9, join, base2reg, searched, found, cnt, icnt, already, again, foundtypes, runs
-	local run, score, identity, pos, fa, fb, f, s, stype, alen, ftype, typeindex
+	function exporting(from as Integer, to as Integer, export as Object, result as Object, searchedreg as Object, foundreg as Object, engine as Object, messenger as Object)
+	local i, j, k, chr9, join, base2reg, searched, found, cnt, ipos, icnt, already, again, foundtypes, runs
+	local run, score, identity, fa, fb, f, s, stype, alen, ftype, typeindex
 	local lex, sxcnt, fxcnt, mxcnt, m, val, line, cluster, index, start, end, target
 	local lexarray, rec, sMaxOcc, fMaxOcc, searchField
 	local inc, key, item, element, scnt, rcnt, freccount
@@ -5980,8 +5996,6 @@ define class MetaExportTable as mp_ExportTable
 			m.messenger = createobject("Messenger")
 			m.messenger.setSilent(.t.)
 		endif
-		m.ipos.forceKey('ltrim(str(searched))+" "+ltrim(str(found))')
-		m.count.forceKey('searched')
 		m.join = m.engine.getSearchFieldJoin()
 		m.searchedreg.forceRegistryKey()
 		m.base2reg = m.engine.getBase2RegistryCluster()
@@ -6064,11 +6078,9 @@ define class MetaExportTable as mp_ExportTable
 			endif
 			m.found = found
 			m.score = score
-			m.pos = 0
-			if seek(ltrim(str(searched))+" "+ltrim(str(found)),m.ipos.alias)
-				m.pos = evaluate(m.ipos.alias+".pos")
-				m.icnt = evaluate(m.ipos.alias+".cnt")
-			endif
+			m.ipos = ipos
+			m.icnt = icnt
+			m.cnt = cnt
 			if this.compare > 0
 				m.foundCluster.goRecord(m.found)
 				m.foundTable = m.foundCluster.getActiveTable()
@@ -6078,9 +6090,6 @@ define class MetaExportTable as mp_ExportTable
 					m.rx[m.i] = 0
 				endfor
 				m.searched = searched
-				if seek(m.searched, m.count.alias)
-					m.cnt = evaluate(m.count.alias+".cnt")
-				endif
 				m.sxcnt = 0
 				m.searchCluster.goRecord(m.searched)
 				m.searchTable = m.searchCluster.getActiveTable()
@@ -6248,7 +6257,7 @@ define class MetaExportTable as mp_ExportTable
 				m.f = m.f+1
 			enddo
 			asort(m.mx,4,m.mxcnt)
-			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+transform(m.identity)+m.chr9+transform(m.score)+m.chr9+transform(m.cnt)+m.chr9+transform(m.icnt)+m.chr9+transform(m.pos)
+			m.line = ltrim(str(m.searched))+m.chr9+ltrim(str(m.found))+m.chr9+transform(m.identity)+m.chr9+transform(m.score)+m.chr9+transform(m.cnt)+m.chr9+transform(m.icnt)+m.chr9+transform(m.ipos)
 			for m.i = 1 to m.runs.count
 				m.line = m.line+chr9+iif(m.i == m.run, "1", "0")
 			endfor
@@ -6972,13 +6981,13 @@ define class SearchEngine as custom
 	hidden function testMono()
 		local fa, fb, i
 		this.mono = .f.
-		if not this.isSearchedSynchronized() or not this.isFoundSynchronized()
-			return .f.
-		endif
 		if not this.searchTable.getDBF() == this.baseTable.getDBF()
 			return .f.
 		endif
 		if not this.searchCluster.getTableCount() == this.baseCluster.getTableCount()
+			return .f.
+		endif
+		if this.areFoundFieldsValid() == .f. or this.areSearchedFieldsValid() == .f.
 			return .f.
 		endif
 		for m.i = 1 to this.searchFieldJoin.getJoinCount()
@@ -7138,7 +7147,7 @@ define class SearchEngine as custom
 		return this.searchedFieldsValid
 	endfunc
 
-	hidden function checksearchedFieldsValid()
+	hidden function checkSearchedFieldsValid()
 		local i, f1
 		this.searchedFieldsValid = .f.
 		if this.searchFieldJoin.getJoinCount() < 1
@@ -7159,7 +7168,7 @@ define class SearchEngine as custom
 		return this.foundFieldsValid
 	endfunc
 
-	hidden function checkfoundFieldsValid()
+	hidden function checkFoundFieldsValid()
 		local i, f1
 		this.foundFieldsValid = .f.
 		if this.searchFieldJoin.getJoinCount() < 1
@@ -7774,7 +7783,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function export(table, searchKey, foundKey, low, high, exclusive, runFilter, text)
-		local oldmes, rc, dp
+		local oldmes, rc, ok, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExportTable",this.properExt(m.table))
 		endif
@@ -7801,17 +7810,26 @@ define class SearchEngine as custom
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
-		try
+		m.rc = .t.
+		m.ok = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.table.create(this, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, m.text)
+			catch
+				m.ok = .f.
+			endtry
+		else
 			m.rc = m.table.create(this, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, m.text)
-		catch
-			m.rc = .f.
-		endtry
+		endif
 		m.table.setMessenger(m.oldmes)
+		if not m.ok
+			this.messenger.errorMessage("Runtime error.")
+		endif
 		return m.rc
 	endfunc
 
  	function extendedExport(table, searchKey, foundKey, searchedGroupKey, foundGroupKey, low, high, exclusive, runFilter)
-	local oldmes, exp, rc, idc, dp
+	local oldmes, exp, rc, ok, idc, dp
 		if vartype(m.table) == "C"
 			m.table = createobject("ExtendedExportTable",this.properExt(m.table))
 		endif
@@ -7855,11 +7873,22 @@ define class SearchEngine as custom
 		m.exp = createobject("ExportTable",m.exp.getDBF())
 		m.exp.setCursor(.t.)
 		m.exp.setMessenger(this.getMessenger())
-		try
+		m.rc = .t.
+		m.ok = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.exp.create(this, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, .f.)
+			catch
+				m.ok = .f.
+			endtry
+		else
 			m.rc = m.exp.create(this, m.searchKey, m.foundKey, m.low, m.high, m.exclusive, m.runFilter, .f.)
-		catch
-			m.rc = .t.
-		endtry
+		endif
+		if not m.ok
+			m.exp.erase()
+			this.messenger.errorMessage("Runtime error.")
+			return .f.
+		endif
 		if not m.rc
 			m.exp.erase()
 			return .f.
@@ -7869,18 +7898,28 @@ define class SearchEngine as custom
 		if m.idc
 			this.dontcare()
 		endif
-		try
+		m.rc = .t.
+		m.ok = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.table.create(m.exp, m.searchedGroupKey, m.foundGroupKey)
+			catch
+				m.ok = .f.
+			endtry
+		else
 			m.rc = m.table.create(m.exp, m.searchedGroupKey, m.foundGroupKey)
-		catch
-			m.rc = .f.
-		endtry
+		endif
 		m.table.setMessenger(m.oldmes)
+		if not m.ok
+			this.messenger.errorMessage("Runtime error.")
+			return .f.
+		endif
 		return m.rc
 	endfunc
 
 	function groupedExport(table, cascade, baseKey, low, high, exclusive, runFilter, notext, nosingle)
 	local ps1, swap, dp
-	local oldmes, exp, rc, i, sql, clutable, offset, idc, f
+	local oldmes, exp, rc, ok, i, sql, clutable, offset, idc, f
 		m.ps1 = createobject("PreservedSetting","deleted", "off")
 		if vartype(m.table) == "C"
 			m.table = createobject("GroupedExportTable",this.properExt(m.table))
@@ -7984,17 +8023,29 @@ define class SearchEngine as custom
 		if not vartype(m.exp) == "O"		
 			m.exp = createobject("BaseCursor", this.getEnginePath())
 			if not m.exp.isValid()
+				this.messenger.errorMessage("Unable to create temporary cursor.")
 				return .f.
 			endif
 			m.exp.erase()
 			m.exp = createobject("ExportTable",m.exp.dbf)
 			m.exp.setCursor(.t.)
 			m.exp.setMessenger(this.getMessenger())
-			try
+			m.rc = .t.
+			m.ok = .t.
+			if justext(sys(16,0)) == "EXE"
+				try
+					m.rc = m.exp.create(this, m.baseKey, m.baseKey, m.low, m.high, m.exclusive, m.runFilter, .f.)
+				catch
+					m.ok = .f.
+				endtry
+			else
 				m.rc = m.exp.create(this, m.baseKey, m.baseKey, m.low, m.high, m.exclusive, m.runFilter, .f.)
-			catch
-				m.rc = .f.
-			endtry
+			endif
+			if not m.ok
+				m.exp.erase()
+				this.messenger.errorMessage("Runtime error.")
+				return .f.
+			endif
 			if not m.rc
 				m.exp.erase()
 				return .f.
@@ -8005,17 +8056,27 @@ define class SearchEngine as custom
 		if m.idc
 			this.dontcare()
 		endif
-		try
+		m.rc = .t.
+		m.ok = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.table.create(m.exp, m.cascade, m.notext, m.nosingle)
+			catch
+				m.ok = .f.
+			endtry
+		else
 			m.rc = m.table.create(m.exp, m.cascade, m.notext, m.nosingle)
-		catch
-			m.rc = .f.
-		endtry
+		endif
 		m.table.setMessenger(m.oldmes)
+		if not m.ok
+			this.messenger.errorMessage("Runtime error.")
+			return .f.
+		endif
 		return m.rc
 	endfunc
 
 	function metaExport(table, meta, nocomp, low, high, runFilter)
-	local oldmes, rc, dp, swap, result, idc
+	local oldmes, rc, ok, dp, swap, result, idc
 		if vartype(m.table) == "C"
 			m.table = createobject("MetaExportTable",this.properExt(m.table))
 		endif
@@ -8058,36 +8119,43 @@ define class SearchEngine as custom
 			m.idc = this.idontcare() 
 			m.result = createobject("BaseCursor", this.getEnginePath())
 			if not m.result.isValid()
+				this.messenger.errorMessage("Unable to create temporary cursor.")
 				return .f.
 			endif
 			m.result.erase()
-			m.swap = this.getResultTable()
 			m.result = createobject("ResultTable", m.result.dbf)
 			m.result.setCursor(.t.)
 			m.result.setMessenger(this.getMessenger())
 			m.result.create(this, .f., .f., m.low, m.high, m.runFilter, .f.)
-			this.setResultTable(m.result)
-			if m.idc
-				this.dontcare()
-			endif
+		else
+			m.result = .f.
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
-		try
-			m.rc = m.table.create(this, m.meta, m.nocomp)
-		catch
-			m.rc = .f.
-		endtry
+		if m.idc
+			this.dontcare()
+		endif
+		m.ok = .t.
+		m.rc = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.table.create(this, m.meta, m.nocomp, m.result)
+			catch
+				m.ok = .f.
+			endtry
+		else
+			m.rc = m.table.create(this, m.meta, m.nocomp, m.result)
+		endif
 		m.table.setMessenger(m.oldmes)
-		if vartype(m.result) == "O"
-			this.setResultTable(m.swap)
-			m.result.erase()
+		if not m.ok
+			this.messenger.errorMessage("Runtime error.")
+			return .f.
 		endif
 		return m.rc
 	endfunc
 
 	function resultExport(table, shuffle, weighted, low, high, runFilter, newrun)
-		local dp, rc, oldmes
+		local dp, rc, ok, oldmes
 		if vartype(m.table) == "C"
 			m.table = createobject("ResultTable",m.table)
 		endif
@@ -8109,12 +8177,22 @@ define class SearchEngine as custom
 		endif
 		m.oldmes = m.table.getMessenger()
 		m.table.setMessenger(this.getMessenger())
-		try
+		m.rc = .t.
+		m.ok = .t.
+		if justext(sys(16,0)) == "EXE"
+			try
+				m.rc = m.table.create(this, m.shuffle, m.weighted, m.low, m.high, m.runFilter, m.newrun)
+			catch
+				m.ok = .f.
+			endtry
+		else
 			m.rc = m.table.create(this, m.shuffle, m.weighted, m.low, m.high, m.runFilter, m.newrun)
-		catch
-			m.rc = .f.
-		endtry
+		endif
 		m.table.setMessenger(m.oldmes)
+		if not m.ok
+			this.messenger.errorMessage("Runtime error.")
+			return .f.
+		endif
 		return m.rc
 	endfunc
 	
@@ -8155,12 +8233,19 @@ define class SearchEngine as custom
 		return not this.messenger.isError()
 	endfunc
 	
-	function importResult(file as String)
-	local ps1, ps2, req, res, result, tmp1, tmp2, struc, f, r, sql, dummy, rc, run
+	function importResult(file as String, keep9 as Boolean)
+	local ps1, ps2, ps3, ps4, req, res, result, tmp1, tmp2, struc, f, f1, f2, r, sql, where, dummy, rc
+	local run, identity_avg, identity_max
 		m.ps1 = createobject("PreservedSetting", "talk", "off")
 		m.ps2 = createobject("PreservedSetting", "exclusive", "on")
+		m.ps3 = createobject("PreservedSetting", "exact", "on")
+		m.ps4 = createobject("PreservedSetting", "decimals", "2")
+		if not vartype(m.keep9) == "L"
+			this.messenger.errorMessage("Invalid parameter.")
+			return .f.
+		endif
 		m.req = this.result.getRequiredTableStructure()
-		m.res = this.import(m.file, .f., .f., m.req.getFieldList())
+		m.res = this.import(m.file, .f., .t., m.req.getFieldList()+", brain")
 		if m.res.getTableCount() <= 0 and not this.messenger.isError()
 			if inlist(lower(justext(m.file)),"dbf","")
 				this.setResultTable(m.file)
@@ -8191,6 +8276,7 @@ define class SearchEngine as custom
 			return .f.
 		endif
 		m.r = m.req.getFieldStructure("searched")
+		m.where = "nvl(searched,0) > 0 and nvl(found,0) > 0"
 		m.sql = textmerge('cast(<<iif(m.f.type == "B", "int(searched)", "searched")>> as <<m.r.getDefinition()>>) as searched') 
 		m.f = m.struc.getFieldStructure("found")
 		if not inlist(m.f.type, "I", "N", "B")
@@ -8199,13 +8285,22 @@ define class SearchEngine as custom
 		endif
 		m.r = m.req.getFieldStructure("found")
 		m.sql = m.sql + textmerge(', cast(<<iif(m.f.type == "B", "int(found)", "found")>> as <<m.r.getDefinition()>>) as found')
-		m.f = m.struc.getFieldStructure("identity")
+		m.f1 = m.struc.getFieldStructure("identity")
+		m.f2 = m.struc.getFieldStructure("brain")
+		m.f = iif (m.f1.type == "U", iif(m.f2.type == "U", m.f1, m.f2), m.f1)
+		if empty(m.f.fname)
+			m.f.fname = "identity"
+		endif
 		if not (inlist(m.f.type, "U", "I", "N", "B") or m.f.type == "C" and m.f.size = 1)
-			this.messenger.errorMessage("ResultTable has invalid structure for field Identity.")
+			this.messenger.errorMessage(textmerge("ResultTable has invalid structure for field <<proper(m.f.fname)>>."))
 			return .f.
 		endif
 		m.r = m.req.getFieldStructure("identity")
-		m.sql = m.sql + textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "0", "iif(identity < 0,0,iif(identity > 100,100,nvl(identity,0)))")>> as <<m.r.getDefinition()>>) as identity')
+		if inlist(m.f.type, "U", "C")
+			m.sql = m.sql + textmerge(', cast(0 as <<m.r.getDefinition()>>) as identity')
+		else
+			m.sql = m.sql + textmerge(', cast(iif(<<m.f.fname>> < 0,0,iif(<<m.f.fname>> > 100,100,nvl(<<m.f.fname>>,0))) as <<m.r.getDefinition()>>) as identity')
+		endif
 		m.f = m.struc.getFieldStructure("equal")
 		if not (inlist(m.f.type, "U", "I", "N") or m.f.type == "C" and m.f.size = 1)
 			this.messenger.errorMessage("ResultTable has invalid structure for field Equal.")
@@ -8213,6 +8308,9 @@ define class SearchEngine as custom
 		endif
 		m.r = m.req.getFieldStructure("equal")
 		m.sql = m.sql +textmerge(', cast(<<iif(inlist(m.f.type, "U", "C"), "0", "iif(equal < 0,0,iif(equal > 9,9,nvl(equal,0)))")>> as <<m.r.getDefinition()>>) as equal')
+		if inlist(m.f.type, "I", "N") and not m.keep9
+			m.where = m.where+" and nvl(equal,0) < 9"
+		endif
 		m.f = m.struc.getFieldStructure("score")
 		if not (inlist(m.f.type, "U", "I", "N", "B") or m.f.type == "C" and m.f.size = 1)
 			this.messenger.errorMessage("ResultTable has invalid structure for field Score.")
@@ -8232,7 +8330,7 @@ define class SearchEngine as custom
 		m.dummy.erase()
 		m.dummy.create()
 		m.dummy.setCursor(.t.)
-		m.sql = textmerge('select * from <<m.dummy.dbf>> union all select <<m.sql>> from <<m.res.alias>> where searched > 0 and found > 0 into table <<m.result>>')
+		m.sql = textmerge('select * from <<m.dummy.dbf>> union all select <<m.sql>> from <<m.res.alias>> where <<m.where>> into table <<m.result>>')
 		m.rc = .t.
 		this.messenger.forceMessage("Importing...")
 		try
@@ -8244,13 +8342,20 @@ define class SearchEngine as custom
 			this.messenger.errorMessage("Unable to import ResultTable.")
 			return .f.
 		endif
-		calculate max(run) to m.run
+		go top
+		skip
+		calculate max(run), avg(identity), max(identity) rest to m.run, m.identity_avg, m.identity_max
 		use
 		this.setResultTable(m.result)
-		this.result.setRun(asc(m.run))
 		if not this.result.isValid()
 			this.messenger.errorMessage("ResultTable invalid.")
 			return .f.
+		endif
+		this.result.setRun(asc(m.run))
+		if m.identity_avg <= 1 and m.identity_max <= 1 and m.identity_max > 0
+			skip in (this.result.alias)
+			replace identity with identity * 100 rest for identity <= 1 in (this.result.alias)
+			go top in (this.result.alias)
 		endif
 		this.result.forceRequiredKeys()
 		this.messenger.clearMessage()
@@ -8258,8 +8363,9 @@ define class SearchEngine as custom
 	endfunc
 	
 	hidden function import(file as String, txtDefault as boolean, nomemos as Boolean, keep as String)
-	local cluster, table, txt, ps
-		m.ps = createobject("PreservedSetting","exclusive","off")
+	local cluster, table, txt, ps1, ps2
+		m.ps1 = createobject("PreservedSetting", "exclusive", "off")
+		m.ps2 = createobject("PreservedSetting", "decimals", "2")
 		this.messenger.clearMessage()
 		m.file = alltrim(m.file)
 		if m.txtDefault
@@ -8269,7 +8375,7 @@ define class SearchEngine as custom
 				m.txt = .t.
 			endif
 		else
-			m.txt = like("*.txt",lower(m.file))
+			m.txt = not empty(justext(m.file)) and not like("*.dbf",lower(m.file))
 		endif
 		m.file = createobject("String",m.file)
 		m.table = m.file.getFileExtensionChange("")
@@ -9387,10 +9493,15 @@ define class SearchEngine as custom
 							m.searched = searched
 							scan
 								if searched != m.searched
-									if this.zealous
-										m.limit = min(m.refineLimit, m.identity)
+									m.limit = m.refinelimit
+									if m.identity >= m.limit
+										if this.darwin
+											m.limit = m.identity
+										endif
 									else
-										m.limit = max(m.refineLimit, m.identity)
+										if this.zealous
+											m.limit = m.identity
+										endif
 									endif
 									m.next = recno()-m.rec
 									go m.rec
@@ -9405,10 +9516,15 @@ define class SearchEngine as custom
 									endif
 								endif
 							endscan
-							if this.zealous
-								m.limit = min(m.refineLimit, m.identity)
+							m.limit = m.refinelimit
+							if m.identity >= m.limit
+								if this.darwin
+									m.limit = m.identity
+								endif
 							else
-								m.limit = max(m.refineLimit, m.identity)
+								if this.zealous
+									m.limit = m.identity
+								endif
 							endif
 							m.next = recno()-m.rec
 							go m.rec
@@ -9447,7 +9563,7 @@ define class SearchEngine as custom
 		local limit, invlimit, depth
 		local i, j, k, type, fback, fbackinv, start, end
 		local sum, sharesum, lorange, hirange
-		local searchrec, score, share
+		local searchrec, score, share, mono
 		local searchTable, reccount, dynamicDepth
 		local tmp1rows, tmp2rows
 		local typxrows, log, searchType, index, target
@@ -9469,6 +9585,7 @@ define class SearchEngine as custom
 		else
 			m.depth = min(this.depth,MAXSEARCHDEPTH)
 		endif
+		m.mono = iif(this.mono, 1, 0)
 		OpenArray(1,MAXWORDCOUNT,6)
 		OpenArray(2,m.depth,2)
 		OpenArray(3,m.depth,3)
@@ -9499,6 +9616,9 @@ define class SearchEngine as custom
 			endif
 			if m.increment == 1 and seek(m.searchrec, this.result.alias)
 				loop
+			endif
+			if m.mono > 0 && exclude redundant self-referential link
+				m.mono = m.searchrec
 			endif
 			m.searchTable = this.searchCluster.getActiveTable()
 			m.tmp2rows = 0
@@ -9570,9 +9690,7 @@ define class SearchEngine as custom
 					m.start = index
 					skip
 					m.end = index-m.start
-					m.tmp2rows = m.tmp2rows+1
-					CopyVector(2,m.target.handle,m.start,m.tmp2rows,m.end,1)
-					m.tmp2rows = FillArray(2,m.share,m.tmp2rows,m.end,2)
+					m.tmp2rows = Retrieve(2, m.target.handle, m.start, m.tmp2rows, m.end, m.share, m.mono)
 				endfor
 			endfor
 			if m.tmp2rows <= 0
@@ -10525,20 +10643,24 @@ define class SearchEngine as custom
 		return m.file
 	endfunc
 	
-	function locateFrom(runFilter as Object)
-	local pa, rec
+	function locateFrom(runFilter as Object, result as ResultTable)
+	local pa, rec, swap
+		if vartype(m.runFilter) == "O" and not lower(m.runfilter.class) == "runfilter"
+			m.swap = m.result
+			m.result = m.runFilter
+			m.runFilter = m.swap
+		endif
 		if not vartype(m.runFilter) == "O"
-			if vartype(m.runFilter) == "C"
-				m.runFilter = createobject("RunFilter",m.runFilter)
-				if not m.runFilter.isValid()
-					return .f.
-				endif
-			else
-				m.runFilter = createobject("RunFilter")
+			m.runFilter = createobject("RunFilter", m.runFilter)
+			if not m.runFilter.isValid()
+				return .f.
 			endif
 		endif
+		if not vartype(m.result) == "O"
+			m.result = this.result
+		endif
 		m.pa = createobject("PreservedAlias")
-		select (this.result.alias)
+		select (m.result.alias)
 		if reccount() <= 1
 			return 0
 		endif
@@ -10554,16 +10676,24 @@ define class SearchEngine as custom
 		return 0
 	endfunc
 
-	function locateTo(runFilter as Object)
-	local pa, rec
+	function locateTo(runFilter as Object, result as ResultTable)
+	local pa, rec, swap
+		if vartype(m.runFilter) == "O" and not lower(m.runfilter.class) == "runfilter"
+			m.swap = m.result
+			m.result = m.runFilter
+			m.runFilter = m.swap
+		endif
 		if not vartype(m.runFilter) == "O"
 			m.runFilter = createobject("RunFilter",m.runFilter)
 			if not m.runFilter.isValid()
 				return .f.
 			endif
 		endif
+		if not vartype(m.result) == "O"
+			m.result = this.result
+		endif
 		m.pa = createobject("PreservedAlias")
-		select (this.result.alias)
+		select (m.result.alias)
 		if reccount() <= 1
 			return 0
 		endif
@@ -11557,8 +11687,8 @@ define class SearchEngine as custom
 		return this.importSearch(m.file, m.nomemos)
 	endfunc
 
-	function _importResult(file as String)
-		return this.importResult(m.file)
+	function _importResult(file as String, keep9 as Boolean)
+		return this.importResult(m.file, m.keep9)
 	endfunc
 
 	function _result(result)
@@ -12009,6 +12139,16 @@ define class SearchEngine as custom
 			this.output.value = ""
 			this.output.refresh()
 		endif
+	endfunc
+	
+	function _execute(command, nowait)
+	local run
+		if m.nowait
+			m.run = "run /N "+m.command
+		else
+			m.run = "run "+m.command
+		endif
+		&run
 	endfunc
 
 	function _help(keyword, expand)

@@ -1,6 +1,6 @@
 *==========================================================================
 * Modul: 	 sheet.prg
-* Date:		 2025.07.14
+* Date:		 2025.11.24
 * Author:	 Thorsten Doherr
 * Procedure: custom.prg
 * Library:	 foxpro.fll
@@ -13,7 +13,7 @@
 #define SHEETHANDLE 17
 
 function version_of_sheet()
-	return "2025.07.14"
+	return "2025.11.24"
 endfunc
 
 function mp_parse(separator as String, nonames as String, crlf as Boolean, columns as Integer)
@@ -148,10 +148,11 @@ define class InsheetTableCluster as TableCluster
 	function create(file as String)
 	local i, j, k, wc, psl, pa, lm
 	local chr, structure, local, global
-	local separator, firstline, forcenames, sql 
+	local separator, columns, firstline, forcenames, sql 
 	local basecnt, cnt, linecnt, filesize
-	local crlf, table, itemcnt, nonames, memos
+	local crlf, table, itemcnt, nonames, memos, decimals
 	local array dir[1], struc[1], items[1], hist[1], namehist[1], namestruc[1]
+		m.decimals = set("decimals")
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("escape","off")
 		m.psl.set("safety","off")
@@ -160,6 +161,7 @@ define class InsheetTableCluster as TableCluster
 		m.psl.set("compatible","off") && otherwise resizing of arrays kills content
 		m.psl.set("exclusive","off")
 		m.psl.set("exact","on")
+		m.psl.set("decimals","18")
 		m.lm = createobject("LastMessage",this.messenger)
 		m.pa = createobject("PreservedAlias")
 		this.messenger.forceMessage("Importing...")
@@ -256,7 +258,7 @@ define class InsheetTableCluster as TableCluster
 					skip
 				endfor
 				m.linecnt = m.linecnt+int(count)
-				* m.table.erase()
+				m.table.erase()
 			endfor
 		else
 			m.linecnt = this.parsing(1, m.filesize, SHEETHANDLE, @m.hist, m.separator, m.nonames, m.crlf, m.columns, this.messenger)
@@ -315,6 +317,11 @@ define class InsheetTableCluster as TableCluster
 		endif
 		m.sql = ""
 		m.memos = .f.
+		if m.decimals <= 0 or m.decimals > 6
+			set decimals to 6
+		else
+			set decimals to (m.decimals)
+		endif
 		for m.i = 1 to m.basecnt
 			if m.struc[m.i,2] == "x"
 				loop
@@ -330,10 +337,14 @@ define class InsheetTableCluster as TableCluster
 				if m.struc[m.i,2] == "N"
 					m.sql = m.sql+" N("+ltrim(str(m.struc[m.i,3],18))+","+ltrim(str(m.struc[m.i,4],18))+") null"
 				else
-					if m.struc[m.i,2] == "M"
-						m.memos = .t.
+					if m.struc[m.i,2] == "B"
+						m.sql = m.sql+" B("+ltrim(str(m.decimals))+") null"
+					else
+						if m.struc[m.i,2] == "M"
+							m.memos = .t.
+						endif
+						m.sql = m.sql+" "+m.struc[m.i,2]+" null"
 					endif
-					m.sql = m.sql+" "+m.struc[m.i,2]+" null"
 				endif
 			endif
 		endfor
@@ -348,6 +359,7 @@ define class InsheetTableCluster as TableCluster
 			return .f.
 		endif
 		m.table.close()
+		set decimals to 18
 		this.messenger.startProgress("Appending <<0>>/"+transform(m.linecnt))
 		this.messenger.startCancel("Cancel Operation","Parsing","Canceled.")
 		if m.wc > 1
@@ -981,12 +993,12 @@ define class InsheetTableCluster as TableCluster
 		endfor		
 		return .t.
 	endfunc
-
+	
 	&& Separates the string line according to the separator and stores the items in the target array
 	&& the optional parameter columns designates the target number of columns
 	&& if the separated string has more columns, quotes become relevant to obtain the specified column number 
 	hidden function separate(target as Array_reference, line as String, separator as String, columns as Integer)
-	local cnt, i, j, t, quote, skip, str, stop
+	local cnt, i, t, quote, qcnt
 	local array items[1]
 		m.cnt = alines(m.items, m.line, 2, m.separator)
 		m.columns = evl(m.columns, m.cnt)
@@ -1004,54 +1016,58 @@ define class InsheetTableCluster as TableCluster
 			endfor
 			return m.cnt
 		endif
-		m.skip = m.cnt - m.columns && column overhead 
 		m.i = 1
 		m.t = 0
 		do while m.i <= m.cnt
-			m.quote = left(m.items[m.i], 1) 
-			if m.quote = "'" or m.quote = '"' 
-				if right(m.items[m.i], 1) == m.quote
-					m.t = m.t+1
-					m.target[m.t] = substr(m.items[m.i], 2, len(m.items[m.i])-2)
-					m.i = m.i+1
-				else
-					m.str = m.items[m.i]
-					m.stop = m.i+m.skip
-					for m.j = m.i+1 to m.stop
-						if m.items[m.j] == m.quote
-							m.str = m.str+m.quote
-							exit
-						endif
-						if len(m.items[m.j]) > 0
-							m.str = m.str+" "+m.items[m.j]
-							if right(m.items[m.j], 1) == m.quote and not left(m.items[m.j], 1) == m.quote
-								exit
-							endif
-						endif
-					endfor
-					if m.j <= m.stop
-						m.t = m.t+1
-						m.target[m.t] = substr(m.str, 2, len(m.str)-2)
-						m.skip = m.skip - m.j + m.i
-						m.i = m.j+1
-					else
-						m.t = m.t+1
-						m.target[m.t] = m.items[m.i]
-						m.i = m.i+1
-					endif
+			m.t = m.t+1
+			m.target[m.t] = m.items[m.i]
+			m.quote = left(m.target[m.t], 1)
+			m.i = m.i+1
+			if m.quote != "'" and m.quote != '"'
+				loop
+			endif
+			do while m.i <= m.cnt
+				if right(m.target[m.t], 1) == m.quote
+					exit
 				endif
-			else
+				m.target[m.t] = m.target[m.t]+m.separator+m.items[m.i]
+				m.i = m.i+1
+			enddo
+		enddo
+		if m.cnt > m.columns
+			m.i = 1
+			m.t = 0
+			do while m.i <= m.cnt
 				m.t = m.t+1
 				m.target[m.t] = m.items[m.i]
+				m.quote = left(m.target[m.t], 1)
 				m.i = m.i+1
-			endif
-		enddo
+				if m.quote != "'" and m.quote != '"'
+					loop
+				endif
+				m.qcnt = occurs(m.quote, m.target[m.t])
+				do while m.i <= m.cnt 
+					if right(m.target[m.t], 1) == m.quote and mod(m.qcnt, 2) == 0
+						exit
+					endif
+					m.target[m.t] = m.target[m.t]+m.separator+m.items[m.i]
+					m.qcnt = m.qcnt + occurs(m.quote, m.items[m.i])
+					m.i = m.i+1
+				enddo
+			enddo
+		endif
 		if m.t != m.cnt
 			dimension m.target[m.t]
 		endif
+		for m.i = 1 to m.t
+			m.quote = left(m.target[m.i],1)
+			if (m.quote == '"' or m.quote == "'") and right(m.target[m.i],1) == m.quote
+				m.target[m.i] = substr(m.target[m.i], 2, len(m.target[m.i])-2)
+			endif
+		endfor
 		return m.t
 	endfunc
-	
+
 	&& selects the appropriate separator from a string of separators by browsing through the top records
 	&& the parameter has to be a reference and will be replaced by the best separator
 	&& the function returns the (average) number of columns based on the best separator
@@ -1059,8 +1075,8 @@ define class InsheetTableCluster as TableCluster
 	local i, j, n, line, sep, mean, cv, sd, best_mean, best_cv, best_sep
 	local array m.stat[100], m.items[1]
 		m.best_cv = -1
-		m.best_mean = 0
-		m.best_sep = ""
+		m.best_mean = 1
+		m.best_sep = chr(9)
 		for m.i = 1 to len(m.separators)
 			FileRewind(SHEETHANDLE)
 			m.sep = substr(m.separators, m.i, 1)
@@ -1089,15 +1105,17 @@ define class InsheetTableCluster as TableCluster
 			endfor
 			m.sd = sqrt(m.sd / m.n)
 			m.cv = m.sd / m.mean
-			if m.best_cv < 0 or m.cv < m.best_cv and m.mean > 1 or m.best_cv == m.cv and m.mean > m.best_mean
-				m.best_cv = m.cv
-				m.best_mean = m.mean
-				m.best_sep = m.sep
+			if m.mean >= 1.5
+				if m.best_cv < 0 or m.cv < m.best_cv or m.best_cv == m.cv and m.mean > m.best_mean
+					m.best_cv = m.cv
+					m.best_mean = m.mean
+					m.best_sep = m.sep
+				endif
 			endif
 		endfor
 		FileRewind(SHEETHANDLE)
 		m.separators = m.best_sep
-		return int(m.best_mean+0.5)
+		return int(m.best_mean)
 	endfunc
 	
 	hidden function skipByteOrderMark(str as String)
