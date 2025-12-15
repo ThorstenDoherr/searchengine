@@ -1217,7 +1217,7 @@ void FAR FillArray(ParamBlk FAR *parm)
 	_RetInt((end - valcol) / cols + 1, 10);
 }
 
-// Copies rectangular regions between arrays or within the same array
+// copies rectangular regions between arrays or within the same array
 // para: source_array_handle, target_array_handle, source_start_row, source_start_col, target_start_row, target_start_col, number_of_rows, number_of_cols
 void FAR CopyArray(ParamBlk FAR *parm)
 {	AHandle FAR *ah, *bh;
@@ -1336,6 +1336,9 @@ void FAR CopyTable(ParamBlk FAR *parm)
 	_RetInt((start - valcol) / cols, 10);
 }
 
+// copies a dbf vector into an array
+// the index start points at the first free element of the array
+// returns the new array size
 void FAR CopyVector(ParamBlk FAR *parm)
 {	AHandle FAR *ah;
 	double FAR *array;
@@ -1373,7 +1376,79 @@ void FAR CopyVector(ParamBlk FAR *parm)
 		}
 	
 	}
-	_RetInt((start - valcol) / cols, 10);
+	_RetInt((start - valcol) / cols + 1, 10);
+}
+
+// combines CopyVector and FillArray to fill the internal candidate buffer
+// excludes the search record number when specified (excl > 0)
+// the index astart points at the last used element of the buffer array
+// returns the new array size
+void FAR Retrieve(ParamBlk FAR *parm)
+{	AHandle FAR *ah;
+	double FAR *array;
+	double share;
+	FCHAN fchan;
+	long cols, fstart, astart, asize, excl, alen, rlen, rec;
+	int i;
+	
+	ah = &ArrayHandler[parm->p[0].val.ev_long];
+	array = ah->array;
+	cols = ah->cols;
+	fchan = parm->p[1].val.ev_long;
+	fstart = parm->p[2].val.ev_long;
+	astart = parm->p[3].val.ev_long - 1;
+	asize = parm->p[4].val.ev_long;
+	share = parm->p[5].val.ev_real;
+	excl = parm->p[6].val.ev_long;
+	if (astart + asize - 1 >= ah->rows) asize = ah->rows - astart;
+	astart = astart * cols;
+	_FSeek(fchan, 328 + (fstart - 1) * 5, FS_FROMBOF);
+	if (excl <= 0)
+	{	while (asize > 0)
+		{	if (asize > 13107)
+			{	alen = 65535;
+				asize -= 13107;
+			}
+			else
+			{	alen = asize*5;
+				asize = 0;
+			}
+			rlen = _FRead(fchan, buffer, alen);
+			if (rlen != alen)
+			{	asize = 0;
+			}
+			for (i = 1; i < rlen; i += 5)
+			{	astart += cols;
+				array[astart] = *((long *) &buffer[i]);
+				array[astart+1] = share;
+			}
+		}
+	}
+	else
+	{	while (asize > 0)
+		{	if (asize > 13107)
+			{	alen = 65535;
+				asize -= 13107;
+			}
+			else
+			{	alen = asize*5;
+				asize = 0;
+			}
+			rlen = _FRead(fchan, buffer, alen);
+			if (rlen != alen)
+			{	asize = 0;
+			}
+			for (i = 1; i < rlen; i += 5)
+			{	rec = *((long *) &buffer[i]);
+				if (rec != excl)
+				{	astart += cols;
+					array[astart] = rec;
+					array[astart+1] = share;
+				}
+			}
+		}
+	}
+	_RetInt(astart / cols + 1, 10);
 }
 
 void FAR ImportArray(ParamBlk FAR *parm)
@@ -1668,6 +1743,7 @@ FoxInfo myFoxInfo[] =
 	{"CopyArray", (FPFI) CopyArray, 8, "IIIIIIII"},
 	{"CopyTable", (FPFI) CopyTable, 6, "IICIII"},
 	{"CopyVector", (FPFI) CopyVector, 6, "IIIIII"},
+	{"Retrieve", (FPFI) Retrieve, 7, "IIIIINI"},
 	{"ImportArray", (FPFI) ImportArray, 4, "RIII"},
 	{"BinarySearchEngine", (FPFI) BinarySearchEngine, 10, "IIIIINLIIL"},
 	{"InternalBinarySearchAscArray", (FPFI) InternalBinarySearchAscArray, 5, "RNIII"},
