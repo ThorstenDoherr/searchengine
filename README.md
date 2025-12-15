@@ -13,7 +13,7 @@ Windows
 Consult the manual [doc/searchengine.md](https://github.com/ThorstenDoherr/searchengine/blob/master/doc/searchengine.md#installation) file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
-2025.12.01
+2025.12.15 \[2025.12.01\]
 - self-referential searches (mono) skip redundant matches where searched equals found
 - seml.csv/seml.txt files can be imported as result tables by transforming the probability (brain) into the identity
 - option to skip false positives (equal = 9) in imported result tables (default is skipping)
