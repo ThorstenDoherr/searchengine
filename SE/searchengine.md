@@ -393,7 +393,7 @@ False = keep original distribution (default), True = balancing of true and false
 - batch - batch size for training (default 8)
 - meta_path - path to meta.txt respectively meta.csv file if the same meta data is used for separate trainings:  
 by default the meta data is next to the training data (empty string); specify a path, e.g. 'd:\\myse\\seml', for a different directory
-- chuncksize - number of meta records per chunk to prevent out-of-memory errors:  
+- chunksize - number of meta records per chunk to prevent out-of-memory errors:  
 n = specific chunk size, i.e. 1000000 (default), -1 = whole meta data will be read as one chunk,   
 
 Settings have to be changed directly in the script.  
