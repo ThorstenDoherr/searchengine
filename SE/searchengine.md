@@ -9,7 +9,7 @@ A citeable version of the discussion paper is available on the ZEW homepage:
 Doherr, Thorsten (2023), The SearchEngine: A Holistic Approach to Matching, ZEW Discussion Paper Nr. 23-001, Mannheim. [[ftp.zew.de/pub/zew-docs/dp/dp23001.pdf]](https://ftp.zew.de/pub/zew-docs/dp/dp23001.pdf)
 
 ## Installation
-The SearchEngine is a self-contained, portable Windows application. You do not have to install it. All necessary files can be found in the "SE" directory of the downloaded Github package. Copy the files or the whole "SE" directory to any location. The SeachEngine is always associated with the so called base table. This table will provide the universe of candidates retrieved by a search. This inherent connection should be acknowledged by choosing a location close to the base table, for example in a "SE" sub-directory of the base table directory. If you want to search in a different base table you have to copy the original files into a separate directory because every SearchEngine copy is locked in with one specific base table. As the base table provides the candidates, the search tables provide the search terms. All tables have to be tab-delimited text files with column headers. Preferably, the files should use extended ASCII or Latin-1 but UTF-8 encoding is also supported for Latin, Cyrillic and Greek characters. Before you can use multiprocessing you have to start the SearchEngine.exe application at least once as administrator. In case the SearchEngine complains at startup about missing DLLs, an assortment of potential culprits is available in the "DLL" directory of the Github package to be copied into the respective SearchEngine directory.
+The SearchEngine is a self-contained, portable Windows application. You do not have to install it. All necessary files can be found in the "SE" directory of the downloaded Github package. Copy the files or the whole "SE" directory to any location. The SeachEngine is always associated with the so called base table. This table will provide the universe of candidates retrieved by a search. This inherent connection should be acknowledged by choosing a location close to the base table, for example in a "SE" sub-directory of the base table directory. If you want to search in a different base table you have to copy the original files into a separate directory because every SearchEngine copy is locked in with one specific base table. As the base table provides the candidates, the search tables provide the search terms. Preferably, all tables should be tab-delimited text files with column headers using extended ASCII, Latin-1 or UTF-8 encoding. The latter is only supported for Latin, Cyrillic and Greek characters. Before you can use multiprocessing you have to start the SearchEngine.exe application at least once as administrator. In case the SearchEngine complains at startup about missing DLLs, an assortment of potential culprits is available in the "DLL" directory of the Github package to be copied into the respective SearchEngine directory.
 
 At least once per computer/machine the SearchEngine should be started as administrator to enable multiprocessing. It will make some registry entries required for the multiprocessing mode. You can still use the SearchEngine without being registered but only in single-processing mode, which is considerably slower. After the registration admin privileges are not further required.  
 [[mp]](#mp)
@@ -136,13 +136,14 @@ The first example can be reproduced with the toy data provided in the "data" dir
 <code>types("firm 0, firm 70")</code>  
 <code>search(2, 1)</code>  
 <code>feedback(20)</code>  
+<code>activation()</code>  
 <code>types("firm 70 log, firm 0")</code>  
 <code>research("1")</code>  
 <code>types("firm 0, firm 70 log")</code>  
 <code>research("2,3")</code>  
 <code>strip(.t.)</code>  
 
-The <b>compound search</b> strategy retrieves the majority of the matches with a conventional search step based on a low threshold waiving the necessity of address similarity. The results are merged with two search steps using linguistic search types (3-grams) for the firm name, the first one applying log smoothing. Because we expect candidates with a high variation, an <b>incremental</b> approach with a <b>darwinian</b> setting is out of the question. All steps have to be merged without skipping search records resulting in a much higher run time. Because the base table is focused, we can exploit this to remove unnecessary redundancy. The two <b>research</b> steps impose a <b>feedback</b> of 20% on the candidates with log smoothing of the firm search types. The feedback in conjunction with the smoothing favors candidates with a higher overlap with the search term. The research steps only affect candidates retrieved by the corresponding search steps. Finally, the <b>strip</b> command implements an **inverse darwinan cutoff** of search terms competing for the same candidate. This procedure greatly reduces the amount of false positives at a minimal risk of false negatives preparing the data for the SearchEngine Machine Learning approach <b>SEML</b> by removing confounding clutter.
+The <b>compound search</b> strategy retrieves the majority of the matches with a conventional search step based on a low threshold waiving the necessity of address similarity. The results are merged with two search steps using linguistic search types (3-grams) for the firm name, the first one applying log smoothing. Because we expect candidates with a high variation, an <b>incremental</b> approach with a <b>darwinian</b> setting is out of the question. All steps have to be merged without skipping search records resulting in a much higher run time. Because the base table is focused, we can exploit this to remove unnecessary redundancy. The two <b>research</b> steps impose a <b>feedback</b> of 20% on the candidates with log smoothing of the firm search types. The feedback in conjunction with the smoothing favors candidates with a higher overlap with the search term. The research steps only affect candidates retrieved by the corresponding search steps. Be aware that <b>activation</b> has to be deactivated (zero) for the <b>feedback</b> to be recognized as intended. Finally, the <b>strip</b> command implements an **inverse darwinan cutoff** of search terms competing for the same candidate. This procedure greatly reduces the amount of false positives at a minimal risk of false negatives preparing the data for the SearchEngine Machine Learning approach <b>SEML</b> by removing confounding clutter.
 
 The second example script is based on a real setting. It matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b> and partially incomplete addresses. This search does not use linguistic search types due to the unfavorable relation between complexity and potential recall gains:
 
@@ -166,12 +167,13 @@ The second example script is based on a real setting. It matches a focused compa
 <code>unjoin()</code>  
 <code>join("firm", "affil")</code>  
 <code>feedback(20)</code>  
+<code>activation()</code>  
 <code>research()</code>  
 <code>unjoin()</code>  
 <code>join("street")</code>  
 <code>join("zip", "postcode")</code>  
 <code>join("city")</code>  
-<code>feedback(0)</code>  
+<code>feedback()</code>  
 <code>research(4)</code>  
 <code>load()</code>  
 <code>strip(.t.)</code>  
@@ -187,14 +189,29 @@ The <b>compound search</b> retrieves much more false positives than an <b>increm
 [[search]](#search)  
 [[threshold]](#threshold)  
 [[feedback]](#feedback)  
+[[activation]](#activation)  
 [[research]](#research)  
 [[strip]](#strip)  
 [[SEML]](#seml)  
 
 ### Self-referential Search
-Of course, the decision, which table should become the base table, is trivial when base and search table are the same. Self-referential searches have the purpose to identify duplicates in a table or to create clusters representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. An <b>incremental search</b> would be pointless as every search record will find itself as best candidate. A <b>compound search</b>, on the other hand, should be more restrictive as in the normal case of linking two different tables. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will only bog down this process. Besides the restrictiveness, the search is not different to a normal search. The major difference is the post-search treatment of the results, which have to be clustered with the <b>exportgrouped</b> function implementing a rule based clustering algorithm. **Inverse darwinian cutoff** cannot be applied as the search table is not focused.
+Of course, the decision, which table should become the base table, is trivial when base and search table are the same. Self-referential searches have the purpose to identify duplicates in a table or to create clusters representing similar entities. The fact that duplicates or ambiguous entity representation is expected in the data designates it as <b>unfocused data source</b>. The SearchEngine acknowledges a self-referential search with the status **mono**, which excludes all redundant matches when a search term would find itself as candidate. With those tautological candidates out of the way, even an <b>incremental search</b> can be applied to find the respective closest neighbors to mark ambiguous records. But it will not be sufficient to demarcate complete entities in the data.  A <b>compound search</b>, on the other hand, allows for a wider range of variation among the candidates and the resulting clusters. **Inverse darwinian cutoff** cannot be applied as the search table is not considered to be focused. Because candidates and search terms are intermingled, the resulting tuples of search and base record define edges of an intransitive similarity network. This requires the dissolving of search term and candidate relationships into cluster memberships by traversing the network along the edges to identify cohesive areas. Having to many misleading edges in such a network, due to a less restrictive <b>compound search</b> will bog down this process. Besides a more restrictive strategy, the search is not different to a normal approach. The post-search treatment of the results makes the difference. There are two ways to handle the clustering of intransitive networks in the results:  
 
-This example can be reproduced with the toy data provided in the "data" directory. The "firms" table represents unfocused, noisy company data requiring clustering to roughly assess the number of entities in the data:  
+1. Using the built-in rule based clustering algorithm implemented with the function <b>exportgrouped</b>.
+2. Removing false positive connections from the network via the SearchEngine Machine Learning approach <b>SEML</b> before using the <b>exportgrouped</b> function without specific rules.  
+
+[[Unfocused Data Sources]](#unfocused-data-sources)  
+[[Incremental Search]](#incremental-search)  
+[[Compound Search]](#compound-search)  
+[[exportgrouped]](#exportgrouped)  
+[[Rule Based Clustering]](#rule-based-clustering)  
+[[SEML Based Clustering]](#seml-based-clustering)  
+[[SEML]](#seml)   
+
+#### Rule Based Clustering
+This method is based on the assumption that there is an implicit division between proper entity defining clusters and giant clusters caused by network thickets or weak search terms (black holes). By defining a cascading set of rules (logical expressions) attached to arbitrary cluster sizes the accessibility of connections can be restricted in such a way that cluster escalation is avoided. The rules can refer to the two-sided identities between candidates, the score and the percentile of the score. Usually, you start with a relatively generous rule set, which will be subsequently replaced with stricter ones when a given plausible cluster size is exceeded forming a cascade of rules. Each rule change resets the clustering to the respective starting node while the new rules restrict the access to less reliable connections. The advantage of this method lies in its immediate applicability after the search. The big disadvantage is its arbitrariness in defining the rule sets and cluster thresholds requiring multiple trial and error approaches or profound experience with the data. For more information, please read the <b>discussion paper</b> and the <b>exportgrouped</b> command description.  
+ 
+The follwing example can be reproduced with the toy data provided in the \"data\" directory. The \"firms\" table represents unfocused, noisy company data requiring clustering to roughly assess the number of entities in the data:  
 
 <code>importBase("D:\\myse\\firms.txt")</code>  
 <code>importsearch("D:\\myse\\firms.txt")</code>  
@@ -218,11 +235,50 @@ This is a simple example for a clustering rule allowing clusters up to a size of
 <code>research("3")</code>  
 <code>exportgrouped("d:\\myse\\tight_cluster.txt", "min >= 90 @ 0; min >= 70 @ 0, min >= 70 and p >= 80 or min >= 85 @ 11, min >= 90 @ 21", .f., .t.)</code>  
 
-The bi-directional edges are enforced with the <b>mirror</b> command and supplied with identities by the <b>research</b> command. The first ruleset creates a interim network of clusters as hyper-nodes with a high similarity to harmonize the variation. The second ruleset, after the semicolon, clusters the harmonized hyper-nodes by referencing identities below the threshold introduced by the enforced symmetry and using the percentiles of the absolute identification potential as additional quality measure. This so called **nested cascaded traversal** is an experimental design requiring experience with the data based on try-and-error. For more information, please read the <b>discussion paper</b> and the <b>exportgrouped</b> command description.  
+The bi-directional edges are enforced with the <b>mirror</b> command and supplied with identities by the <b>research</b> command. The first ruleset creates an interim network of clusters as hyper-nodes with a high similarity to harmonize the variation. The second ruleset, after the semicolon, clusters the harmonized hyper-nodes by referencing identities below the threshold introduced by the enforced symmetry and using the percentiles of the absolute identification potential as additional quality measure. This so called **nested cascaded traversal** is an experimental design requiring experience with the data based on trial and error.  
 [[Discussion Paper]](#discussion-paper)  
 [[Unfocused Data Sources]](#unfocused-data-sources)  
 [[Compound Search]](#compound-search)  
 [[exportgrouped]](#exportgrouped)  
+
+#### SEML Based Clustering
+The SearchEngine Machine Learning approach <b>SEML</b> is intended to remove all false positive candidates from the data. It requires to manually label training data to teach a neural network to identify such. The <b>SEML</b> scripts will create an output file where all true positives are marked with \"1\" while false positives are marked \"9\" in the \"equal\" column. With all misleading connections removed clustering is a mere exercise of following the edges to collect the candidates. The connections defined by (searched, found) tuples are considered undirected. You can apply your own external clustering programs on the output file or import it into the SearchEngine to use the <b>exportgrouped</b> function without specific rules. The <b>importresult</b> function is designed to import <b>SEML</b> output files converting them to result tables. By default, false positives will be excluded. The true positive probability **brain** will be transformed into the **identity**.
+
+The following example is based on the toy data in the \"data\" directory. The first steps are similar to the <b>Rule Based Clustering</b>:  
+
+<code>importBase("D:\\myse\\firms.txt")</code>  
+<code>importsearch("D:\\myse\\firms.txt")</code>  
+<code>result("D:\\myse\\self_result")</code>  
+<code>create("firm NOABBREV, firm NOABBREV GRAM3, addr SEPNUM, ctr") </code>  
+<code>join("firm")</code>  
+<code>join("addr")</code>  
+<code>join("ctr")</code>  
+<code>contain(20)</code>  
+<code>threshold(90)</code>  
+<code>types("firm 70, firm 0, addr 20, ctr 10")</code>  
+<code>search()</code>  
+<code>types("firm 0, firm 70 log, addr 20, ctr 10")</code>  
+<code>search(2, 1)</code>  
+<code>exportmeta("D:\\myse\\seml\\meta.txt", "1:5; 2:15; 3:10; 4:1")</code>  
+<code>exportresult("D:\\myse\\sample", 1000)</code>  
+<code>result("D:\\myse\\sample")</code>  
+<code>exportextended("D:\\myse\\seml\\sample_export.txt")</code>  
+<code>result("D:\\myse\\self_result")</code>  
+
+The essential element of the <b>SEML</b> approach is the meta data, which can be extracted with the <b>exportmeta</b> function. The <b>exportresult</b> function can be used to draw a sample. In this case, the sample of 1000 search terms with all associated candidates will replace the original result table. The <b>exportextended</b> function creates a clearly arranged output format for the labeling. The meta data and the training data are stored in a separate directory usually called \"seml\" to not confuse the machine learning scripts with unnecessary files. At last, the result table will be reset to its original version. After the training data is labeled, one of the two available SEML scripts, either in Python or in STATA, can be used to create the \"seml\.csv\" respectively \"seml\.txt\" output file. To reintroduce this file to the SearchEngine, it needs to be imported with the <b>importresult</b> function:
+
+<code>importresult("D:\\myse\\seml\\seml.csv")</code>  
+<code>exportgrouped("d:\\myse\\cluster.txt", .f., .t.)</code>  
+
+By default, the import function will ignore all false positives keeping only valid connections, which are clustered with the <b>exportgrouped</b> function. Without a ruleset, the function will just cluster by listing reachable candidates as members of a cluster group (without redundancies). The final result file contains the search fields and excludes single candidate clusters. In case the clustering is too loose, it can be tightened by enforcing bi-directional edges by applying the following rule:  
+<code>exportgrouped("d:\\myse\\cluster.txt", "min > 50 @ 0", .f., .t.)</code>   
+The rule ensures that the linkage is true positive in both directions, because the "min" parameter is based on the SEML probability transformed into the identity. True positives have a probability above 0.5 which translates into an identitiy larger than 50%.  
+[[SEML]](#seml)   
+[[exportmeta]](#exportmeta)  
+[[exportgrouped]](#exportgrouped)  
+[[exportresult]](#exportresult)  
+[[exportextended]](#exportextended)  
+[[importresult]](#importresult)  
 
 ## SEML
 The SearchEngine Machine Learning approach facilitates semi-automated quality management for large search projects. The SearchEngine is quite capable to linking very large datasets by fuzzy criteria. But, given the underlying search strategy, it may retrieve too many false positives in an effort to avoid false negatives. Although, the balance of recall and precision is a fundamental element of all linkage endeavours, it is very difficult to maintain. Avoiding false positives at any cost would increase the amount of unobserved false negatives due to constrains imposed by an engine specialized in retrieval. Apart from the fact that ex-ante definitions for such a balance are impossible to stipulate, it is significantly less complex to filter false positives from the matches, a job that can be performed manually by browsing through the data guided by a sense for the objective of the match. Of course, for a large search project this is not a feasible approach. 
@@ -265,11 +321,11 @@ The training samples should be provided as tab-delimited text files with column 
 
 Exceptions during the script run are usually caused by malformed sample files. Make sure that the "searched", "found" and "equal" columns only contain integer numbers or are empty. A common reason for an error is a typo in the "equal" field preventing the transformation into a number.
 
-The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.feather" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
+The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.csv" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
 
-The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented category. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. 
+The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented category. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. The Python script can handle meta data of any size. The STATA version has to fit the whole data into the memory.
 
-Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.feather". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
+Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.csv". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
 
 The training will be skipped if there is no training file or samples but only the neural network file ("seml.brn" or "seml.brain") and the meta data. This allows to directly commence with the prediction based on an already trained neural network. The meta data has to be compatible with the original training data and the whole search context should be similar. This shortcut is only advisable for gradual updates.
 
@@ -297,7 +353,7 @@ Microsoft (just google it).
 All txt files have to be tab-delimited.
 
 **Output:**  
-- meta\.feather - prepared and compressed meta data (csv format also available, see "output" setting).
+- meta\.csv - a copy of the meta data complemented by additional columns based on the raw meta data.
 - sample\.csv - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
 - training\.csv - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
 - seml\.brain\.log - training output of the confusion matrices if applicable.
@@ -335,9 +391,10 @@ All csv files are comma-separated.
 False = keep original distribution (default), True = balancing of true and false positives
 - epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000)
 - batch - batch size for training (default 8)
-- output - output format for the meta data based on extension:  
-csv = slow comma-separated text format but highly interoperable with many systems  
-feather = fast binary format but almost only used in the python world (default)  
+- meta_path - path to meta.txt respectively meta.csv file if the same meta data is used for separate trainings:  
+by default the meta data is next to the training data (empty string); specify a path, e.g. 'd:\\myse\\seml', for a different directory
+- chuncksize - number of meta records per chunk to prevent out-of-memory errors:  
+n = specific chunk size, i.e. 1000000 (default), -1 = whole meta data will be read as one chunk,   
 
 Settings have to be changed directly in the script.  
 Exceptions during the processing of the training data \(sample files\) are usualy caused by invalid values in the "equal" columns.
@@ -527,7 +584,7 @@ The preferences set technical aspects of the SearchEngine. The search depth dete
 [[timer]](#timer)  
 
 ### Action
-This main section controls the major actions of the SearchEngine starting with the search itself. This action will retrieve the candidates according the search types and the search settings. The identity of already found candidates in the result table can be adjusted with the research action carrying out a "what-if" scenario based on the current settings. The research action ignores all settings related to controlling the size of candidate lists like cutoff or activation. With refine the identities can be reappraised using the string distance metric LRCPD to replace the frequency based heuristic.  
+This main section controls the major actions of the SearchEngine starting with the search itself. This action will retrieve the candidates according the search types and the search settings. The identity of already found candidates in the result table can be adjusted with the research action carrying out a "what-if" scenario based on the current settings. The research action ignores all settings related to controlling the size of candidate lists. With refine the identities can be reappraised using the string distance metric LRCPD to replace the frequency based heuristic.  
 The actions Strip and Mirror affect an existing result table by either stripping unwanted or redundant results or by mirroring a result table after self-referential searches. The latter provides, in conjunction with the research action, the bi-directional edges for the grouped export.  
 These search related action will be disabled unless the SearchEngine index files, consisting of the registry table and linkage files, have been created. Those files can be recreated if a misconception regarding the search type setup has occurred. In case a search requires a different search type setup, but the existing setup is still useful, a fresh installation into a different directory would be the more sensible procedure. A rarely used action is the expansion of the registry with the frequencies of the search table because the consequences are difficult to assess and control. 
 
@@ -537,7 +594,7 @@ This is the main action of the SearchEngine. It will create the result table or 
 [[Search Strategy]](#search-strategy)  
 
 #### Action>Research
-The research action recalculates the identity according to the current settings without retrieving new candidates. It ignores all settings that restrict the retrieval like threshold or cutoff. The research can be limited on specific runs, i.e. the mirrored run of a self-referential search. There are options to interact the new identity with the existing identity. Because the absolute identification potential, called score, depends on the priority setting of the search types, it is also subject to changes requiring a mode of integration. The research action can be restricted to search types without destructive preparers. This option is intended to be used with the reverse option of the refine action. Because this specific usage of the action is already integrated into the search action, this option is deprecated.   
+The research action recalculates the identity according to the current settings without retrieving new candidates. It ignores all settings that restrict the retrieval like threshold or cutoff. Feedback will only be recognized as intended when activation is deactivated (zero). The research can be limited on specific runs, i.e. the mirrored run of a self-referential search. There are options to interact the new identity with the existing identity. Because the absolute identification potential, called score, depends on the priority setting of the search types, it is also subject to changes requiring a mode of integration. The research action can be restricted to search types without destructive preparers. This option is intended to be used with the reverse option of the refine action. Because this specific usage of the action is already integrated into the search action, this option is deprecated.   
 [[research]](#research)  
 
 #### Action>Refine
@@ -685,6 +742,8 @@ is used to trigger <b>feedback</b> only if the number of potential candidates eq
 Weak search terms, usually composed of few very common words, conjure large lists of mostly false positive candidates. Unfortunately, most of the time these candidates are retrieved with the same identity making it impossible to curtail them with the <b>cutoff</b> setting. After introducing variation just for this purpose, inflated lists can be truncated much closer to the <b>cutoff</b> point. If a <b>cutoff</b> is specified together with an <b>activation</b> limit, this variation is only temporary to enable truncation based of the relevance of the noise caused by additional words. The final results will not show a feedback effect. If <b>cutoff</b> or <b>activation</b> is omitted, the feedback effect remains. Usually, <b>activation</b> is set to the same value as <b>cutoff</b> namely the expected number of candidates given the quality and context of the base table, i.e. \"at max, 10 candidates seem to be plausible\".  
 
 You can use the command <b>contain</b> as a shortcut for setting up a strategy for the <b>containment</b> of weak search terms.  
+
+If <b>feedback</b> is applied in the context of the <b>research</b> command, <b>activation</b> has to be decativated (zero), otherwise it will be considered to be part of <b>containment</b> and ignored.  
 [[Config>Settings]](#configsettings)  
 [[Containment]](#containment)  
 [[contain]](#contain)  
@@ -784,6 +843,14 @@ Examples:
 <code>erase()</code> deletes the SearchEngine index files. The SearchEngine can now be recreated.   
 [[create]](#create)  
 [[force]](#force)
+
+#### execute
+<code>execute(*Scmd [, Lnowait])</code>  
+executes external operating commands or programs. <i>Scmd</i> can be a Windows executable command or a programm name specified as a command line call including parameters. Be aware that the quotating marks used for some parameters have to be \"double\", therefore it is advised to use \'single\' quotations marks to enclose <i>Scmd</i>. By default, the script execution will wait until the external command or programm has finished. By setting <i>Lnowait</i> to .t., the SearchEngine will continue with the script independent of the command or program status.
+
+Examples:  
+<code>execute('md "D:\\myse\\seml test"')</code> creates a new directory "seml test". Double quotes are required due to the space character in the directory name.  
+<code>execute('D:\\myse\se\searchengine.exe d:\\myse\\search.se', .t.)</code> calls another searchengine to execute the script \"search\.se\" while continuing with the current script.   
 
 #### expand
 <code>expand([*IexpandMode*])</code>  
@@ -965,7 +1032,9 @@ sets the <i>Nfeedback</i> parameter, which can be a percentage number between 0 
 
 The SearchEngine is focused on retrieval of candidates and therefore ignores any additional noise within them. Of course, this may lead to inflated candidate lists for weak search terms, i.e. \"London Limited, London\". Feedback is one component to fight this inflation by introducing variation among the candidates where by default no variation exists due to the focus on matching the search term words. If <b>activation</b> is specified feedback will only applied if the count of candidates equals or exceeds this number. This affects the identity of candidates with more relevant noise stronger than candidates with weak or no noise (additional words). By specifying an additional <b>cutoff</b> for the number of candidates, the feedback will only be applied temporarily to create variation for the cutoff. 
 
-If <b>feedback</b> is used in conjunction with <b>cutoff</b> and <b>activation</b> to reduce inflated candidate lists due to weak search terms, a low value of 10\(%\) suffices. <b>cutoff</b> and <b>activation</b> should be set to the number of expected candidates depending on the quality of the base table.  
+If <b>feedback</b> is used in conjunction with <b>cutoff</b> and <b>activation</b> to reduce inflated candidate lists due to weak search terms, a low value of 10\(%\) suffices. <b>cutoff</b> and <b>activation</b> should be set to the number of expected candidates depending on the quality of the base table.
+
+If <b>feedback</b> is applied in the context of the <b>research</b> command, <b>activation</b> has to be decativated (zero), otherwise it will be considered to be part of <b>containment</b> and ignored.  
 
 You can use the command <b>contain</b> as a shortcut for setting up a strategy for the <b>containment</b> of weak search terms.  
 [[Config>Settings]](#configsettings)  
@@ -1012,7 +1081,7 @@ as the main title is "SearchEngine".
 
 #### importbase
 <code>importbase(*Sfile* [, *Lnomemos*])</code>  
-imports respectively declares the base table. If the file extension is \".txt\", the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the base table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import the base table will appear as Foxpro table (extension \".dbf\").
+imports respectively declares the base table. If the file extension is \".txt\" or anything but \".dbf\", for that matter, the SearchEngine first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf\". An existing table will be declared as the base table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file should be tab-delimited with a header line with column names. Usually, the data is exported from a different system into the intermediate text format. The success of the import depends on the flawless structure of the text file. You should blank all critical control characters within the source fields: tabulator \(ascii: 9\), line feed \(ascii: 10\) and  carriage return \(ascii: 13\). Export only necessary search fields and one unique identifier to avoid superfluous data transfer. After a successful import, the base table will appear as Foxpro table (extension \".dbf\").
 
 <i>Lnomemos</i> prevents the usage of memo fields during import. Memo fields are required if text fields exceed the length of 254 characters. In the case of suppressed memo fields a data loss of 0.1% is considered tolerable to handle outliers as truncation is already authorized. Use memo fields if you expect longer texts in the data. Set <i>Lnomemos</i> to .t. if text fields longer than 254 characters can be considered unwanted outliers. Memo fields appear as type \"M\" and characters fields as type \"C\" in the table structure (see below).
 
@@ -1021,8 +1090,8 @@ You can import the text file again by deleting the corresponding Foxpro table (e
 [[show]](#show)  
 
 #### importresult
-<code>importresult(*Sfile*)</code>  
-declares respectively imports the result table. In general, the result table will be created and maintained by the SearchEngine and there is no need for importing. You can use the function <b>result</b> to declare a result table without the import option. If the <b>importresult</b> function encounters the file extension \".txt\", it first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the result table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file needs to be tab-delimited with a header line with column names. The formatting should be the same as the text files exported with <b>export</b>. A result table has the following fields and format:  
+<code>importresult(*Sfile* [, *Lkeep9*])</code>  
+declares respectively imports the result table. In general, the result table will be created and maintained by the SearchEngine and there is no need for importing. You can use the function <b>result</b> to declare a result table without the import option. If the <b>importresult</b> function encounters any file extension other than \"\.dbf\" (i.e. \"\.txt\", \"\.csv\", \"\.tsv\"), it first checks the existence of an already imported Foxpro table with the same name and the extension \".dbf". An existing table will be declared as the result table. Otherwise, <i>Sfile</i> will be imported into a Foxpro table. A text file should be tab-delimited with a header line with column names. Due to the simple structure of result files, other delimiter can also be used. The formatting should be the same as the text files exported with <b>export</b>. A result table has the following fields and format:  
 
 **searched** - integer - record numbers of the search table (not counting the header) referring to search terms  
 **found** - integer - record numbers of the base table  (not counting the header) referring to candidates  
@@ -1031,12 +1100,14 @@ declares respectively imports the result table. In general, the result table wil
 **score** - float - absolute identification potential  
 **run** - integer - search run indidator between 1 and 255  
 
-Only the fields "searched" and "found" are required for the import. All other fields can be omitted and will be replaced with default values, although this may limit functions referring to those elements, e.g. run filter selection. Only the field "equal" is completely optional and has no further impact except for being reported by exports.  
+Only the fields "searched" and "found" are required for the import. All other fields can be omitted and will be replaced with default values, although this may limit functions referring to those elements, e.g. run filter selection. If the field \"equal\" exists, all records marked with a \"9\" as false positives are omitted from import. The <i>Lkeep9</b> switch on .t. deactivates this behavior and false positives will be imported. The field **identity** can be substituted with the field **brain**. This allows to import the output files of the SearchEngine Machine Learning approach <b>SEML</b> \"seml\.txt\" respectively \"seml\.csv\" into the SearchEngine for further processing, i.e. clustering with <b>exportgrouped</b>. The **brain** values are probabilities between 0 and 1 and will be transformed into an **identity** percentage.
 
-Usually, the result table will be created and maintained by the SearchEngine and there is no need to import text files. The import option is intended for the rare case where specific manipulations of the results are necessary. Export the results with the <b>export</b> function to process the data with external tools and applications. As long as the resulting text file corresponds with the prescribed structure, it can be imported back into the SearchEngine to further use its features. A classical example is the removal of candidates ("found") or search terms ("searched") from the results according to non-search related, external criteria. A malformatted text file will cause an error and cancel the import.  
+Beyond the import of <b>SEML</b> output files, the import option is intended for the rare case where specific manipulations of the results are necessary. Export the results with the <b>export</b> function to process the data with external tools and applications. As long as the resulting text file corresponds with the prescribed structure, it can be imported back into the SearchEngine to further use its features. A typical example is the removal of candidates ("found") or search terms ("searched") from the results according to non-search related, external criteria. A malformed text file will cause an error and cancel the import.  
 [[Config>File Locations]](#configfile-locations)  
 [[result]](#result)  
 [[export]](#export)  
+[[SEML]](#seml)  
+[[exportgrouped]](#exportgrouped)  
 
 #### importsearch
 <code>importsearch(*Sfile* [, *Lnomemos*])</code>  
@@ -1235,12 +1306,15 @@ In contrast to the <b>refine</b> function, the <b>research</b> function can also
 3 = minimize score by choosing the lower one  
  
 <i>Srunfilter</i> is a list of comma separated search runs to be filtered for researching. Ranges can be defined with a minus sign, e.g "1-3, 7, 9". This parameter allows to target the research on specific runs.  
+
+Be aware that <b>feeback</b> will ignored when <b>activation</b> is active (larger than zero). This is to prevent accidental usage of feedback in your <b>research</b> after implementing <b>containment</b> for the <b>search</b> command. If you intend to apply <b>feedback</b> for your <b>research</b> function, set <b>activation</b> to zero.  
  
 In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function. Still, it is useful to create an order among the candidates without interfering with the retrieval, for example by applying a small <b>feedback</b> on specific fields:  
  
 <code>types("firm 70, street 10, zip 10, city 10")</code> The search type setting may deviate from retrieval.  
 <code>unjoin()</code>  
 <code>join("applicant", "firm")</code> We only want to apply feedback on the firm search field and associated types.  
+<code>activation()</code> deactivates activation, otherwise feedback will be ignored as leftover from containment.  
 <code>feedback(5)</code> applies a small feedback on the firm name to create an order among the candidates.  
 <code>research(1)</code> replaces the identity to a maximum of 70% (no update of the score).  
 <code>unjoin()</code> resets the linkage of the search fields to exclude the firm name.  
@@ -1259,6 +1333,9 @@ In general, you will rarely use the <b>research</b> or <b>refine</b> commands as
 [[join]](#join)  
 [[unjoin]](#unjoin)  
 [[feedback]](#feedback)  
+[[activation]](#activation)  
+[[Containment]](#containment)  
+[[contain]](#contain)  
 
 #### reset
 <code>reset()</code>  
@@ -1291,8 +1368,12 @@ sets the result table by specifying the file path in <i>Sresult</i>. As the resu
 
 It contains the retrieved candidates of previous search runs. Every result table has its own independent run counter reporting the number of search runs performed on it. Every entry consists of a record number field referring the search table called "searched", a record number of the candidate in the base table called "found", the identity, the absolute identification potential of the search term "score" and the "run" number of the first retrieval. Every combination of "searched" and "found" can only be retrieved once. If the same candidate is found at a later run, it will be ignored. Even if a run is without any new candidates, the run counter will be incremented. It is possible to rearrange and compress the runs with the <b>split</b> function.
 
-A result table is always more attached to a specific search table than to the base table, which can be attached to many search tables. Therefore, its file path should reflect its association with the search table. This can be done by naming it accordingly and/or by choosing a path close to the search table.  
+A result table is always more attached to a specific search table than to the base table, which can be attached to many search tables. Therefore, its file path should reflect its association with the search table. This can be done by naming it accordingly and/or by choosing a path close to the search table. 
+
+The result table can also be defined with the <b>importresult</b> function, which additionally allows to import text-files. This allows to externally manipulate the results after exporting them with the <b>exportresult</b> function for advanced purposes.  
 [[Config>File Locations]](#configfile-locations)  
+[[importresult]](#importresult)  
+[[exportresult]](#exportresult)  
 [[search]](#search)  
 [[split]](#split)  
 
