@@ -10,7 +10,7 @@ The documentaion can be found in the  **doc** directory. It consists of a [manua
 Windows
 
 ## Getting started
-It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
+Consult the manual [doc/searchengine.md](https://github.com/ThorstenDoherr/searchengine/blob/master/doc/searchengine.md#installation) file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
 2025.12.01
