@@ -4,7 +4,7 @@
 The **SE** directory contains the SearchEngine. If you are not interested in the source code, ignore the **code** directory. The **SEML** directory contains STATA scripts for the **SearchEngine Machine Learning** approach to refine your results after matching. If you want to dabble with the SearchEngine, try the test files in the **data** directory. In the **dll** directory, you can find potentially missing DLLs in case the SearchEngine complains at startup.
 
 ## Documentation
-The documentaion can be found in the  **doc** directory. It consists of a manual, a background paper and presentations explaining the algorithm and major features.
+The documentaion can be found in the  **doc** directory. It consists of a [manual](https://github.com/ThorstenDoherr/searchengine/blob/master/doc/searchengine.md), a background paper and presentations explaining the algorithm and major features.
 
 ## Prerequisites
 Windows
@@ -13,6 +13,17 @@ Windows
 It is recommended to install a Markdown app or a plugin for your browser to read the **doc/searchengine.md** file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2025.12.01
+- self-referential searches (mono) skip redundant matches where searched equals found
+- seml.csv/seml.txt files can be imported as result tables by transforming the probability (brain) into the identity
+- option to skip false positives (equal = 9) in imported result tables (default is skipping)
+- introduced an alternative way for self-referential clustering in the documentation
+- fixed a bug in exportgrouped preventing execution without a cascade definition
+- fixed a multi-processing bug where workers could not be started due to an inflated cache
+- fixed a bug in the research dialog window
+- fixed the reporting of inferior candidates when using refinement in conjunction with darwinian and zealous
+- seml.py can now handle meta.txt files of any size (not available for STATA version seml.do)
+
 2025.10.06 \(Summer School Edition\)
 - small GUI improvement regarding activation setting
 
