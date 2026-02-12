@@ -1,6 +1,6 @@
 *=========================================================================*
 *    Modul:      searchengine.prg
-*    Date:       2025.12.01
+*    Date:       2026.02.12
 *    Author:     Thorsten Doherr
 *    Procedure:  custom.prg
 *                cluster.prg
@@ -39,7 +39,7 @@
 #define BENCHBATCH 200000
 
 function version_of_searchengine()
-	return "2025.12.01"
+	return "2026.02.12"
 endfunc
 
 function mp_export(from as Integer, to as Integer)
@@ -4390,7 +4390,7 @@ define class ExportTable as mp_ExportTable
 		if m.wc > 1
 			m.main = createobject("Collection")
 			m.main.add(this)
-			m.main.add(m.engine.toString())
+			m.main.add(m.engine.toString(.t.))
 			m.col = createobject("Collection")
 			m.col.add(this)
 			for m.i = 2 to m.wc
@@ -4954,7 +4954,7 @@ define class ExtendedExportTable as mp_ExportTable
 		if m.wc > 1
 			m.main = createobject("Collection")
 			m.main.add(this)
-			m.main.add(m.engine.toString())
+			m.main.add(m.engine.toString(.t.))
 			m.local = createobject("Collection")
 			m.local.add(this)
 			for m.i = 2 to m.wc
@@ -5485,7 +5485,7 @@ define class GroupedExportTable as mp_ExportTable
 		if m.wc > 1
 			m.main = createobject("Collection")
 			m.main.add(this)
-			m.main.add(m.engine.toString())
+			m.main.add(m.engine.toString(.t.))
 			m.local = createobject("Collection")
 			m.local.add(this)
 			for m.i = 2 to m.wc
@@ -5935,7 +5935,7 @@ define class MetaExportTable as mp_ExportTable
 			this.close()
 			m.main = createobject("Collection")
 			m.main.add(this)
-			m.main.add(m.engine.toString())
+			m.main.add(m.engine.toString(.t.))
 			m.local = createobject("Collection")
 			m.local.add(this)
 			for m.i = 2 to m.wc
@@ -6692,7 +6692,7 @@ define class SearchEngine as custom
 	endfunc
 
 	function setInfo(info)
-		this.info = alltrim(m.info)
+		this.info = alltrim(alltrim(m.info), chr(10), chr(13))
 	endfunc
 
 	function getInfo()
@@ -7277,12 +7277,14 @@ define class SearchEngine as custom
 		return alltrim(left(m.str, m.pos-1))
 	endfunc
 
-	function toString()
-		local str
+	function toString(essential as Boolean)
+	local str, table
 		this.confirmChanges()
 		m.str = "[Engine]"+chr(13)+chr(10)
-		m.str = m.str+"Class: "+proper(this.class)+chr(13)+chr(10)
-		m.str = m.str+"Version: "+version_of_searchengine()+iif(this.advanced, " [advanced]", "")+chr(13)+chr(10)
+		if not m.essential
+			m.str = m.str+"Class: "+proper(this.class)+chr(13)+chr(10)
+			m.str = m.str+"Version: "+version_of_searchengine()+iif(this.advanced, " [advanced]", "")+chr(13)+chr(10)
+		endif
 		m.str = m.str+"EnginePath: "+lower(this.engine.getPath())+chr(13)+chr(10)
 		m.str = m.str+"Slot: "+this.getSlot()+chr(13)+chr(10)
 		m.str = m.str+"Flags: "
@@ -7300,26 +7302,28 @@ define class SearchEngine as custom
 			m.str = m.str+"none"
 		endif
 		m.str = m.str+chr(13)+chr(10)
-		m.str = m.str+"Synchronized: "
-		m.str = m.str+iif(this.isSearchedSynchronized(),"searched, ","")
-		m.str = m.str+iif(this.isFoundSynchronized(),"found, ","")
-		if right(m.str,2) == ", "
-			m.str = left(m.str,len(m.str)-2)
-		else
-			m.str = m.str+"none"
+		if not m.essential
+			m.str = m.str+"Synchronized: "
+			m.str = m.str+iif(this.isSearchedSynchronized(),"searched, ","")
+			m.str = m.str+iif(this.isFoundSynchronized(),"found, ","")
+			if right(m.str,2) == ", "
+				m.str = left(m.str,len(m.str)-2)
+			else
+				m.str = m.str+"none"
+			endif
+			m.str = m.str+chr(13)+chr(10)
+			m.str = m.str+"Ready: "
+			m.str = m.str+iif(this.isSearchReady(),"Search, ","")
+			m.str = m.str+iif(this.isBaseTableReady(),"BaseTable, ","")
+			m.str = m.str+iif(this.isSearchTableReady(),"SearchTable, ","")
+			m.str = m.str+iif(this.isResultTableReady(),"ResultTable, ","")
+			if right(m.str,2) == ", "
+				m.str = left(m.str,len(m.str)-2)
+			else
+				m.str = m.str+"none"
+			endif
+			m.str = m.str+chr(13)+chr(10)
 		endif
-		m.str = m.str+chr(13)+chr(10)
-		m.str = m.str+"Ready: "
-		m.str = m.str+iif(this.isSearchReady(),"Search, ","")
-		m.str = m.str+iif(this.isBaseTableReady(),"BaseTable, ","")
-		m.str = m.str+iif(this.isSearchTableReady(),"SearchTable, ","")
-		m.str = m.str+iif(this.isResultTableReady(),"ResultTable, ","")
-		if right(m.str,2) == ", "
-			m.str = left(m.str,len(m.str)-2)
-		else
-			m.str = m.str+"none"
-		endif
-		m.str = m.str+chr(13)+chr(10)
 		if this.searchTypes.isValid()
 			m.str = m.str+"Types: "+this.searchTypes.toString()+chr(13)+chr(10)
 		endif
@@ -7341,30 +7345,52 @@ define class SearchEngine as custom
 		if this.lrcpdscope != DEFLRCPDSCOPE
 			m.str = m.str+"LrcpdScope: "+ltrim(str(this.lrcpdscope,18))+chr(13)+chr(10)
 		endif
-		if not this.copy 
-			m.str = m.str+"MP: "
-			if not this.pfw.isParallel()
-				m.str = m.str+"deactivated"
-			else
-				m.str = m.str+ltrim(str(this.mp(),12))+"/"+ltrim(str(this.pfw.getCPUcount(),12))+" CPU"+iif(this.getSafeMode()," (safe mode)","")
+		if not m.essential
+			if not this.copy 
+				m.str = m.str+"MP: "
+				if not this.pfw.isParallel()
+					m.str = m.str+"deactivated"
+				else
+					m.str = m.str+ltrim(str(this.mp(),12))+"/"+ltrim(str(this.pfw.getCPUcount(),12))+" CPU"+iif(this.getSafeMode()," (safe mode)","")
+				endif
+				m.str = m.str+chr(13)+chr(10)
 			endif
-			m.str = m.str+chr(13)+chr(10)
-		endif
-		if not (empty(this.preparer.xmlerror) and empty(this.preparermsg))
-			m.str = m.str+chr(13)+chr(10)+"PreparerMessage: "+chr(13)+chr(10)
-			if not empty(this.preparer.xmlerror)
-				m.str = m.str+this.preparer.xmlerror+chr(13)+chr(10)
-			endif
-			if not empty(this.preparermsg)
-				m.str = m.str+this.preparermsg+chr(13)+chr(10)
+			if not (empty(this.preparer.xmlerror) and empty(this.preparermsg))
+				m.str = m.str+chr(13)+chr(10)+"PreparerMessage: "+chr(13)+chr(10)
+				if not empty(this.preparer.xmlerror)
+					m.str = m.str+this.preparer.xmlerror+chr(13)+chr(10)
+				endif
+				if not empty(this.preparermsg)
+					m.str = m.str+this.preparermsg+chr(13)+chr(10)
+				endif
 			endif
 		endif
 		m.str = m.str+chr(13)+chr(10)+"[ResultTable]"+chr(13)+chr(10)
-		m.str = m.str+this.result.toString()
+		if m.essential
+			m.str = m.str+"DBF: "+proper(this.result.getDBF())+chr(13)+chr(10)
+		else
+			m.str = m.str+this.result.toString()
+		endif
 		m.str = m.str+chr(13)+chr(10)+"[BaseTable]"+chr(13)+chr(10)
-		m.str = m.str+this.baseCluster.toString()
+		if m.essential
+			m.str = m.str+"TableCount: "+ltrim(str(this.baseCluster.getTableCount(),18))+chr(13)+chr(10)
+			if this.baseCluster.getTableCount() > 0
+				m.table = this.baseCluster.getTable(1)
+				m.str = m.str+"DBF: "+proper(m.table.getDBF())+chr(13)+chr(10)
+			endif
+		else
+			m.str = m.str+this.baseCluster.toString()
+		endif
 		m.str = m.str+chr(13)+chr(10)+"[SearchTable]"+chr(13)+chr(10)
-		m.str = m.str+this.searchCluster.toString()
+		if m.essential
+			m.str = m.str+"TableCount: "+ltrim(str(this.searchCluster.getTableCount(),18))+chr(13)+chr(10)
+			if this.searchCluster.getTableCount() > 0
+				m.table = this.searchCluster.getTable(1)
+				m.str = m.str+"DBF: "+proper(m.table.getDBF())+chr(13)+chr(10)
+			endif
+		else
+			m.str = m.str+this.searchCluster.toString()
+		endif
 		if this.searchFieldJoin.getJoinCount() > 0
 			m.str = m.str+"SearchFieldJoin: "+proper(this.searchFieldJoin.toString())+chr(13)+chr(10)
 		endif
@@ -7407,7 +7433,7 @@ define class SearchEngine as custom
 	function saveEngine(slot)
 		if vartype(m.slot) == "L" 
 			if m.slot == .t.
-				return this.engine.save(this.toString(),"Default",.t.)
+				return this.engine.save(this.toString(.t.),"Default",.t.)
 			endif
 			m.slot = ""
 		endif
@@ -7415,10 +7441,10 @@ define class SearchEngine as custom
 			m.slot = this.slot
 		endif
 		if empty(m.slot)
-			return this.engine.save(this.toString(),"Default")
+			return this.engine.save(this.toString(.t.),"Default")
 		endif
 		this.slot = alltrim(m.slot)
-		if not this.engine.save(this.toString(),this.slot)
+		if not this.engine.save(this.toString(.t.),this.slot)
 			this.messenger.errorMessage("Unable to save engine slot.")
 			return .f.
 		endif
@@ -7426,7 +7452,7 @@ define class SearchEngine as custom
 	endfunc
 	
 	function loadEngine(slot)
-	local str, lex, lax, lux, psl, l, path
+	local str, orig, lex, lax, lux, psl, l, path
 	local lineCount, line, invalid, rc, copy
 		m.psl = createobject("PreservedSettingList")
 		m.psl.set("exclusive","off")
@@ -7511,73 +7537,78 @@ define class SearchEngine as custom
 					endif
 				endif
 			endfor
+			m.orig = createobject("String", m.str.toString())
 			m.str.blankPattern(";,="+chr(9))
 			m.str.startLexem(" ")
 			m.lex = m.str.getLexem()
 			do while not m.str.endOfLexem()
+				if not m.str.getLexemLineChange()
+					m.lex = m.str.getLexem()
+					loop
+				endif
 				m.lex = upper(m.lex)
-				m.lax = upper(m.str.viewLexem())
 				do case
 					case m.lex == "[BASETABLE]"
 						m.lux = 1
-						m.lex = upper(m.str.getLexem(3))
-						if m.lex = "TABLECOUNT:"
-							m.lux = max(val(m.str.getLexem()),1)
-							m.lex = upper(m.str.getLexem())
-						endif
-						if m.lex == "ALIAS:"
-							m.lex = upper(m.str.getLexem(2))
-						endif
-						if m.lex == "DBF:"
-							m.lax = ""
-							m.lex = m.str.getLexem()
-							do while not m.str.getLexemLineChange() and not m.str.endOfLexem()
-								m.lax = m.lax+m.lex+" "
-								m.lex = m.str.getLexem()
-							enddo
-							if not empty(m.lax)
-								this.setBaseTable(m.lax,m.lux)
+						m.lex = m.str.getLexem()
+						do while not m.str.endOfLexem()
+							if m.str.getLexemLineChange()
+								m.lex = upper(m.lex)
+								if like("[*]", m.lex)
+									exit
+								endif
+								if m.lex = "TABLECOUNT:"
+									m.lux = max(val(m.str.getLexemLine()),1)
+									m.lex = m.str.getLexem()
+									loop
+								endif
+								if m.lex == "DBF:"
+									this.setBaseTable(m.str.getLexemLine(), m.lux)
+									m.lex = m.str.getLexem()
+									exit
+								endif
 							endif
-						endif
+							m.lex = m.str.getLexem()
+						enddo
 					case m.lex == "[RESULTTABLE]"
-						m.lex = upper(m.str.getLexem(3))
-						if m.lex == "ALIAS:"
-							m.lex = upper(m.str.getLexem(2))
-						endif
-						if m.lex == "DBF:"
-							m.lax = ""
-							m.lex = m.str.getLexem()
-							do while not m.str.getLexemLineChange() and not m.str.endOfLexem()
-								m.lax = m.lax+m.lex+" "
-								m.lex = m.str.getLexem()
-							enddo
-							if not empty(m.lax)
-								this.setResultTable(m.lax)
-								m.lex = m.str.getLexem()
+						m.lex = m.str.getLexem()
+						do while not m.str.endOfLexem()
+							if m.str.getLexemLineChange()
+								m.lex = upper(m.lex)
+								if like("[*]", m.lex)
+									exit
+								endif
+								if m.lex == "DBF:"
+									this.setResultTable(m.str.getLexemLine())
+									m.lex = m.str.getLexem()
+									exit
+								endif
 							endif
-						endif
+							m.lex = m.str.getLexem()
+						enddo
 					case m.lex == "[SEARCHTABLE]"
 						m.lux = 1
-						m.lex = upper(m.str.getLexem(3))
-						if m.lex = "TABLECOUNT:"
-							m.lux = max(val(m.str.getLexem()),1)
-							m.lex = upper(m.str.getLexem())
-						endif
-						if m.lex == "ALIAS:"
-							m.lex = upper(m.str.getLexem(2))
-						endif
-						if m.lex == "DBF:"
-							m.lax = ""
-							m.lex = m.str.getLexem()
-							do while not m.str.getLexemLineChange() and not m.str.endOfLexem()
-								m.lax = m.lax+m.lex+" "
-								m.lex = m.str.getLexem()
-							enddo
-							if not empty(m.lax)
-								this.setSearchTable(m.lax,m.lux)
+						m.lex = m.str.getLexem()
+						do while not m.str.endOfLexem()
+							if m.str.getLexemLineChange()
+								m.lex = upper(m.lex)
+								if like("[*]", m.lex)
+									exit
+								endif
+								if m.lex = "TABLECOUNT:"
+									m.lux = max(val(m.str.getLexemLine()),1)
+									m.lex = m.str.getLexem()
+									loop
+								endif
+								if m.lex == "DBF:"
+									this.setSearchTable(m.str.getLexemLine(), m.lux)
+									m.lex = m.str.getLexem()
+									exit
+								endif
 							endif
-						endif
-					case m.lex == "SEARCHFIELDJOIN:" or m.lex == "SEARCHFIELDS:"
+							m.lex = m.str.getLexem()
+						enddo
+					case inlist(m.lex, "SEARCHFIELDJOIN:", "SEARCHFIELDS:")
 						m.lex = m.str.getLexem()
 						m.lax = m.str.viewLexem()
 						do while not m.str.endOfLexem() and not m.str.getLexemLineChange()
@@ -7645,8 +7676,9 @@ define class SearchEngine as custom
 							m.lex = m.str.getLexem()
 						enddo
 					case m.lex == "INFO:" or m.lex == "[INFO]"
-						m.lex = m.str.getLexem()
-						this.setInfo(m.lex+m.str.getLexemRemainder())
+						m.lex = ltrim(m.orig.getCutString(m.str.getLexemPosition()), chr(10), chr(13))
+						this.setInfo(m.lex)
+						exit
 					otherwise
 						m.lex = m.str.getLexem()
 				endcase
@@ -8471,7 +8503,7 @@ define class SearchEngine as custom
 			this.messenger.errormessage("Unable to create the registry.")
 			return .f.
 		endif
-		m.engine = this.toString()
+		m.engine = this.toString(.t.)
 		this.changed = .t.
 		m.tmp = createobject("TempAlias")
 		this.baseCluster.setKey()
@@ -8876,7 +8908,7 @@ define class SearchEngine as custom
 			this.messenger.errormessage("Registry is in use.")
 			return .f.
 		endif
-		m.engine = this.toString()
+		m.engine = this.toString(.t.)
 		this.changed = .t.
 		m.col = createobject("Collection")
 		m.searchcnt = this.searchcluster.reccount()
@@ -8908,7 +8940,7 @@ define class SearchEngine as custom
 				endfor
 				this.pfw.linkMessenger(this.messenger)
 				this.pfw.startWorkers()
-				this.pfw.callWorkers("mp_open",m.engine, m.psl, m.col, m.updreg)
+				this.pfw.callWorkers("mp_open", m.engine, m.psl, m.col, m.updreg)
 				this.pfw.wait() && make sure all workers are idle, to maintain batch sequence
 				this.pfw.callWorkers("mp_expand",1,m.searchcnt)
 				this.pfw.wait(.t.)
@@ -8974,9 +9006,9 @@ define class SearchEngine as custom
 					m.updreg.useShared()
 					this.pfw.linkMessenger(this.messenger)
 					this.pfw.startWorkers()
-					this.pfw.callWorkers("mp_open",m.engine, m.psl, .f., m.updreg)
+					this.pfw.callWorkers("mp_open", m.engine, m.psl, .f., m.updreg)
 					this.pfw.wait() && make sure all workers are idle
-					this.pfw.callWorkers("mp_restore",1,m.updreg.reccount())
+					this.pfw.callWorkers("mp_restore", 1, m.updreg.reccount())
 					this.pfw.wait(.t.)
 				else
 					m.updreg.useExclusive()
@@ -8987,7 +9019,7 @@ define class SearchEngine as custom
 					m.updreg.useShared()
 					this.pfw.linkMessenger(this.messenger)
 					this.pfw.startWorkers()
-					this.pfw.callWorkers("mp_open",m.engine, m.psl, .f., m.updreg)
+					this.pfw.callWorkers("mp_open", m.engine, m.psl, .f., m.updreg)
 					this.pfw.wait() && make sure all workers are idle
 					this.pfw.callWorkers("mp_expand", 1, m.searchcnt)
 					this.pfw.wait(.t.)
@@ -9027,7 +9059,7 @@ define class SearchEngine as custom
 			m.col.add(m.upd)
 			this.pfw.linkMessenger(this.messenger)
 			this.pfw.startWorkers()
-			this.pfw.callWorkers("mp_open",m.engine, m.psl, .f., m.col)
+			this.pfw.callWorkers("mp_open", m.engine, m.psl, .f., m.col)
 			this.pfw.wait() && make sure all workers are idle
 			this.pfw.callWorkers("mp_transfer", 1, m.upd.reccount(), max(m.expandMode,1))
 			this.pfw.wait(.t.)
@@ -9308,7 +9340,7 @@ define class SearchEngine as custom
 			this.messenger.errormessage("Unable to get exclusive access on ResultTable.")
 			return .f.
 		endif
-		m.engine = this.toString()
+		m.engine = this.toString(.t.)
 		this.changed = .t.
 		m.run = max(this.result.getRun(),0)
 		m.runchr = chr(m.run)
@@ -9403,7 +9435,7 @@ define class SearchEngine as custom
 			this.result.useShared()
 			this.pfw.linkMessenger(this.messenger)
 			this.pfw.startWorkers()
-			this.pfw.callWorkers("mp_open",m.engine, m.psl, m.col, .f.)
+			this.pfw.callWorkers("mp_open", m.engine, m.psl, m.col, .f.)
 			this.pfw.wait() && make sure all workers are idle, to maintain batch sequence
 		else
 			this.result.useExclusive() && only for clarity, result is already exclusive
@@ -9922,7 +9954,7 @@ define class SearchEngine as custom
 			m.to = this.locateTo(m.runFilter)
 		endif
 		this.changed = .t.
-		m.engine = this.toString()
+		m.engine = this.toString(.t.)
 		m.wc = this.pfw.setOptimalWorkerCount(m.to-from+1,100)		
 		this.messenger.startProgress("Researching <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Researching","Canceled.")
@@ -10191,7 +10223,7 @@ define class SearchEngine as custom
 			m.to = this.locateTo(m.runFilter)
 		endif
 		this.changed = .t.
-		m.engine = this.toString()
+		m.engine = this.toString(.t.)
 		m.wc = this.pfw.setOptimalWorkerCount(m.to-m.from+1,100)		
 		this.messenger.startProgress("Researching <<0>>/"+transform(m.to-m.from+1))
 		this.messenger.startCancel("Cancel operation?","Refining","Canceled.")
@@ -11887,8 +11919,8 @@ define class SearchEngine as custom
 		return .t.
 	endfunc
 
-	function _show()
-		return rtrim(this.toString(),chr(13),chr(10))
+	function _show(essential)
+		return rtrim(this.toString(m.essential),chr(13),chr(10))
 	endfunc
 	
 	function _loadpreparer()
