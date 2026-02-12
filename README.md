@@ -13,6 +13,13 @@ Windows
 Consult the manual [doc/searchengine.md](https://github.com/ThorstenDoherr/searchengine/blob/master/doc/searchengine.md#installation) file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2026.02.12
+- save format for the settings is reduced to the essential information keeping compatibility
+- shutdown warning dialog is only shown when actual changes to the settings may get lost 
+- the "Load Settings" menu issues a warning when changes to the current settings may get lost
+- "Notes" menu is now working as intendet
+- seml.do can now handle meta.txt files of any size
+
 2025.12.15 \[2025.12.01\]
 - self-referential searches (mono) skip redundant matches where searched equals found
 - seml.csv/seml.txt files can be imported as result tables by transforming the probability (brain) into the identity
@@ -22,7 +29,7 @@ Consult the manual [doc/searchengine.md](https://github.com/ThorstenDoherr/searc
 - fixed a multi-processing bug where workers could not be started due to an inflated cache
 - fixed a bug in the research dialog window
 - fixed the reporting of inferior candidates when using refinement in conjunction with darwinian and zealous
-- seml.py can now handle meta.txt files of any size (not available for STATA version seml.do)
+- seml.py can now handle meta.txt files of any size
 
 2025.10.06 \(Summer School Edition\)
 - small GUI improvement regarding activation setting
