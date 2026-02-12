@@ -55,9 +55,12 @@ On the other hand, we have unfocused sources where the search context is only a 
 [[Compound Search]](#compound-search)  
 
 ### Noise
-Noise occurs mostly in unfocused data sources. Noise are non-relevant components in the search term diluting and diverging the search context. Typical instances are scraped web data where fields are misaligned, user content created without supervision, superfluous additions like marketing statements or sub-ordinate entities requiring additional information like departments of firms. A significant amount of noise may force you to use an unfocused source instead of a focused one because additional components in the candidates have no impact on the search success. A small dose of noise like variation in legal forms is harmless and should not influence the overarching search strategy. Choose always the source with the highest amount of significant noise as base table. If this is a <b>focused</b> source, you can still implement an <b>incremental search</b>. Otherwise, implement a <b>compound search</b> on the <b>unfocused</b> base table. And finally, in case the extent of the noise is difficult to assess, you can always use two installments of the SearchEngine switching base tables and merge the final outcomes (after post-processing).  
+Noise occurs mostly in unfocused data sources. Noise are non-relevant components in the search term diluting and diverging the search context. Typical instances are scraped web data where fields are misaligned, user content created without supervision, superfluous additions like marketing statements or sub-ordinate entities requiring additional information like departments of firms. A significant amount of noise may force you to use an unfocused source instead of a focused one because additional components in the candidates have no impact on the search success. A small dose of noise like variation in legal forms is harmless and should not influence the overarching search strategy. Choose always the source with the highest amount of significant noise as base table. If this is a <b>focused</b> source, you can still implement an <b>incremental search</b>. Otherwise, implement a <b>compound search</b> on the <b>unfocused</b> base table. And finally, in case the extent of the noise is difficult to assess, you can always use two installments of the SearchEngine switching base tables and merge the final outcomes (after post-processing).
+
+In case, you are forced to use a noisy but significant smaller table as base table, the heuristic properties of the larger search table can be preserved by imposing the search table word frequencies on the registry with the <b>expand</b> command.
 [[Incremental Search]](#incremental-search)  
 [[Compound Search]](#compound-search)  
+[[expand]](#expand)  
 
 ### Containment
 Weak search terms, like a company name consisting of only a legal form in a large city, can generate humonguous candidate lists of false positives. Usually, you have expectations for the maximum of a plausible size of a candidate list depending on the underlying search context. An <b>incremental search</b> has smaller candidate lists per search term than a <b>compound search</b>. But even for a <b>compound search</b>, it is possible to give an educated guess for a realistic number of variations to a searched entity. To keep the results of a search within these boundaries, you can specify a <b>cutoff</b> representing this educated guess. In a candidate list, sorted by identity in descending order, the identity at the cutoff position will become a temporary threshold. Because candidate lists of weak search terms have usually no variation, a fact that would render this approach useless, the <b>cutoff</b> works together with <b>feedback</b> and <b>activation</b> to temporarily create variation for an efficient containment of inflated candidate lists. <b>feedback</b> is a mechanism that discounts identity according to the relevance of surplus words of the candidates while <b>activation</b> is just a trigger to declare the <b>feedback</b> as a support feature for the <b>cutoff</b>. All these settings are summarized under the command <b>contain</b>.  Please browse through the documentation of these commands for a better understanding of containment.  
@@ -135,7 +138,7 @@ The first example can be reproduced with the toy data provided in the "data" dir
 <code>search(2, 1)</code>  
 <code>types("firm 0, firm 70")</code>  
 <code>search(2, 1)</code>  
-<code>feedback(20)</code>  
+<code>feedback(100)</code>  
 <code>activation()</code>  
 <code>types("firm 70 log, firm 0")</code>  
 <code>research("1")</code>  
@@ -143,7 +146,7 @@ The first example can be reproduced with the toy data provided in the "data" dir
 <code>research("2,3")</code>  
 <code>strip(.t.)</code>  
 
-The <b>compound search</b> strategy retrieves the majority of the matches with a conventional search step based on a low threshold waiving the necessity of address similarity. The results are merged with two search steps using linguistic search types (3-grams) for the firm name, the first one applying log smoothing. Because we expect candidates with a high variation, an <b>incremental</b> approach with a <b>darwinian</b> setting is out of the question. All steps have to be merged without skipping search records resulting in a much higher run time. Because the base table is focused, we can exploit this to remove unnecessary redundancy. The two <b>research</b> steps impose a <b>feedback</b> of 20% on the candidates with log smoothing of the firm search types. The feedback in conjunction with the smoothing favors candidates with a higher overlap with the search term. The research steps only affect candidates retrieved by the corresponding search steps. Be aware that <b>activation</b> has to be deactivated (zero) for the <b>feedback</b> to be recognized as intended. Finally, the <b>strip</b> command implements an **inverse darwinan cutoff** of search terms competing for the same candidate. This procedure greatly reduces the amount of false positives at a minimal risk of false negatives preparing the data for the SearchEngine Machine Learning approach <b>SEML</b> by removing confounding clutter.
+The <b>compound search</b> strategy retrieves the majority of the matches with a conventional search step based on a low threshold waiving the necessity of address similarity. The results are merged with two search steps using linguistic search types (3-grams) for the firm name, the first one applying log smoothing. Because we expect candidates with a high variation, an <b>incremental</b> approach with a <b>darwinian</b> setting is out of the question. All steps have to be merged without skipping search records resulting in a much higher run time. Because the base table is focused, we can exploit this to remove unnecessary redundancy. The two <b>research</b> steps impose a <b>feedback</b> of 100% on the candidates with log smoothing of the firm search types. The feedback in conjunction with the smoothing favors candidates with a higher overlap with the search term. The research steps only affect candidates retrieved by the corresponding search steps. Be aware that <b>activation</b> has to be deactivated (zero) for the <b>feedback</b> to be recognized as intended. Finally, the <b>strip</b> command implements an **inverse darwinan cutoff** of search terms competing for the same candidate. This procedure greatly reduces the amount of false positives at a minimal risk of false negatives preparing the data for the SearchEngine Machine Learning approach <b>SEML</b> by removing confounding clutter.
 
 The second example script is based on a real setting. It matches a focused company database with the affiliations of a bibliometric database with a lot of <b>noise</b> and partially incomplete addresses. This search does not use linguistic search types due to the unfavorable relation between complexity and potential recall gains:
 
@@ -166,7 +169,7 @@ The second example script is based on a real setting. It matches a focused compa
 <code>save("orbis")</code>  
 <code>unjoin()</code>  
 <code>join("firm", "affil")</code>  
-<code>feedback(20)</code>  
+<code>feedback(100)</code>  
 <code>activation()</code>  
 <code>research()</code>  
 <code>unjoin()</code>  
@@ -178,7 +181,7 @@ The second example script is based on a real setting. It matches a focused compa
 <code>load()</code>  
 <code>strip(.t.)</code>  
 
-This strategy example consists of two search steps. One requires at least some matching parts of the address with a threshold of 75% and a second one ignoring the address fields but with a higher threshold of 95%. Of course, an identity of 85% of the first run cannot be compared to the same identity of the second run. To harmonize the identities, we redistribute the search type priorities and apply a feedback of 20% only on the name by unjoining the address fields and calling the research action. To complete the identities in the result table, which now have a maximum of 70%, we unjoin the name and rejoin the address fields. The research action is additive and without feedback. By loading the previously saved settings, the original setup is restored and all fields properly joined again. The strip action conducts the inverse dawinian approach to exploit the fact of having a focused search table. The result table will be stripped of redundant linkages.  
+This strategy example consists of two search steps. One requires at least some matching parts of the address with a threshold of 75% and a second one ignoring the address fields but with a higher threshold of 95%. Of course, an identity of 85% of the first run cannot be compared to the same identity of the second run. To harmonize the identities, we redistribute the search type priorities and apply a feedback of 100% only on the name by unjoining the address fields and calling the research action. To complete the identities in the result table, which now have a maximum of 70%, we unjoin the name and rejoin the address fields. The research action is additive and without feedback. By loading the previously saved settings, the original setup is restored and all fields properly joined again. The strip action conducts the inverse dawinian approach to exploit the fact of having a focused search table. The result table will be stripped of redundant linkages.  
 
 The <b>compound search</b> retrieves much more false positives than an <b>incremental search</b>. For large search projects that cannot be validated manually, it is recommended to process the results with the SearchEngine Machine Learning approach <b>SEML</b>.  
 [[Unfocused Data Sources]](#unfocused-data-sources)  
@@ -323,7 +326,7 @@ Exceptions during the script run are usually caused by malformed sample files. M
 
 The meta data has to be named "meta.txt" to be recognized by the script. It will first import the "meta.txt" file and calculate some additional parameters which could not be calculated by the <b>exportmeta</b> command. These are the standard deviations of the fields with the prefix "csf" and "cfs" containing string distances between search term (searched) and candidate (found) of the search fields. The standard deviations are clustered by the search record field "searched" and imputed with zero where only one candidate exists for a specific "searched" ID. The imported file will be saved under "meta.dta" (STATA) respectively "meta.csv" (Python). The meta data and the training sample are merged into the training data keeping only the overlap of the sample. In the "equal" variable, the nines (9) are finally transformed into a zeroes (0) as, beyond this point, misinterpretation is of no concern. By default 10% of the training data is retained by marking it as "ground truth", reserved to test the performance of out-of-sample prediction. The file "training.dta" respectively "training.csv" will contain the final training data.
 
-The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Mostly, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented category. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. The Python script can handle meta data of any size. The STATA version has to fit the whole data into the memory.
+The script iterates through several neural network hidden layer setups. The setups range from a simple perceptron without hidden neurons, to single layered networks with 25 to 100 hidden neurons up to dual layered networks with 100 hidden neurons per layer. For every setup, a confusion matrix with recall, precision and accuracy rate is calculated against the "ground truth" to determine the out-of-sample performance. The best network, according to this accuracy, is saved into a so called brain file with the name "seml.brn" (STATA) respectively "seml.brain" (Python). This procedure should prevent overfitting and also under-specification. All parameters in the setting section of the script relate to the training of the neural network. Most of the time, you will only change the default value for the "equal" assignment. You can also change the list of neural network hidden layer layouts, i.e. to skip the lighter layouts or the other way round. True and false positives can be virtually balanced in case of a heavily skewed distribution to accentuate the underrepresented category. For a full description of the settings consult the respective script sections **seml\.py** or **seml\.do**. Both scripts can handle meta data of any size as long as the training data fits into the physical memory.
 
 Finally, the script will apply the neural network stored in the brain file on the transformed meta data in "meta.dta" respectively "meta.csv". The probability of a true positive is stored in the "brain" variable. According to the convention, the "equal" variable will be 1 if "brain" is greater than 0.5 and 9 otherwise. If applicable, the original assignment of the sample is attached in the "sample" variable. In STATA, the results are saved in the files "seml.dta" and its tab-delimited equivalent "seml.txt" containing the searched (search table record number), found (base table record number) and the mentioned fields equal, brain and sample. The Python script only generates the comma-separated "seml.csv" file. Keep in mind that the record numbers do not include header lines (1 is always the first data line).
 
@@ -334,7 +337,7 @@ The training will be skipped if there is no training file or samples but only th
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
 will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
-prevent overfitting. 
+prevent overfitting. The script can handle meta data of any size but the training data cannot exceed memory limits.
 
 **Requirements:**
 
@@ -376,7 +379,7 @@ All csv files are comma-separated.
 - To retrain the network with different settings: delete the seml\.brain file.
 - To retrain the network with different retention: additionally delete the the training\.csv file.
 - To retrain the network after changes to the sample file(s): additionally delete the sample\.csv file.
-- To retrain the network after changes to meta.txt: additionally delete the meta\.feather file.
+- To retrain the network after changes to meta.txt: additionally delete the meta\.csv file.
 
 **Settings:**  
 - default - global default if "equal" assignment in the candidate block header is missing:  
@@ -404,7 +407,7 @@ Exceptions during the processing of the training data \(sample files\) are usual
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
 will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
-prevent overfitting. 
+prevent overfitting. The script can handle meta data of any size but the training data cannot exceed memory limits.
 
 **Requirements:**
 
@@ -420,7 +423,7 @@ SearchEngine GitHub package. Copy its contents into the current working director
 All txt files have to be tab-delimited.
 
 **Output:**  
-- meta\.dta - a copy of the meta data complemented by additional columns based on the raw meta data.
+- meta\*\.dta - processed meta data based on the raw meta data separated into sequential chunks (see Settings: chunksize).
 - sample\.dta - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
 - training\.dta - training data: candidate assignment (searched, found, equal), retention indicator, and the meta data.
 - seml\.brn\.log - training output of the confusion matrices if applicable.
@@ -442,7 +445,7 @@ All txt files have to be tab-delimited.
 - To retrain the network with different settings: delete the seml.brn file.
 - To retrain the network with different retention: additionally delete the training.dta file.
 - To retrain the network after changes to the sample file(s): additionally delete the sample.dta file.
-- To retrain the network after changes to meta.txt: additionally delete the meta.dta file.
+- To retrain the network after changes to meta.txt: additionally delete the meta\*\.dta files.
 
 **Settings:**  
 - default - global default if "equal" assignment in the candidate block header is missing:  
@@ -458,6 +461,11 @@ False = keep original distribution (default), True = balancing of true and false
 - epochs - number of training iterations (default 500)
 - eta - initial learining rate (default 0.1)
 - batch - batch size for training (default 8)
+- meta_path - path to meta.txt respectively meta\*\.dta file(s) if the same meta is used for separate trainings:  
+by default the meta data is next to the training data (empty string); specify a path, e.g. "d:/myse/seml", for a different directory
+- chunksize - number of meta records per chunk to prevent out-of-memory errors:  
+-1 = whole meta data will be read as one chunk, n = specific chunk size, i.e. 3000000 (default)  
+Every chunk will create a sequentially numbered meta file, i.e. meta1.dta, meta2.dta,...
 
 Settings have to be changed directly in the script.
 
@@ -863,8 +871,26 @@ expands the SearchEngine by merging a virtual registry of the search table with 
 4 = increment base table frequency by search table frequency  
 5 = use the average of both frequencies  
 
-This command is rarely used. It allows to adjust the frequencies of the base table to the idiosyncrasies of a potentially biased search table. For example, the search table contains only wineries while the base table is a general company database. The frequencies of the word "winery" or synonyms in the registry can be adjusted to the frequencies of the search table. Because the effect of such a manipulation is difficult to assess and, in case the base table represents the population, pointless, this command should only be used when both tables are relatively small and a bias towards specific words may have a large effect.  
-[[Action>Expand]](#actionexpand)
+This command allows to merge the frequencies of the base table with the search table. This is useful when one table is significantly smaller as the other but contains too much noise to provide effective search terms as search table. Additional clutter in the base table has no effect on the search success. The <b>expand</b> command adjusts the heuristic properties of the smaller base table according to the larger, more representative search table. In the following example, a smaller table has to become the base table due to worse data quality while the larger table with more concise data will provide the search terms. By expanding the frequencies using the larger search table, the heuristics of the larger table can be retained.
+
+Example:  
+<code>importBase("D:\\myse\\applicants.txt")</code> declares the noisy table as base table.   
+<code>create("name NOABBREV, name NOABBREV GRAM3, address SEPNUM, country")</code>  
+<code>importSearch("D:\\myse\\firms.txt")</code> declares the better maintained larger table as the search table.  
+<code>result("D:\\myse\\firms_result.dbf")</code>  
+<code>unjoin()</code>  
+<code>join("firm", "name")</code> search fields have to be joined before expanding the registry.  
+<code>join("addr", "address")</code>  
+<code>join("ctr", "country")</code>  
+<code>expand(2)</code> maximizes the frequencies according to both registries.  
+
+It is important to join the search fields and search types before the <b>expand</b> command to link the corresponding search types of the temporary search table registry with the base table registry. If a <b>compound search</b> or an <b>incremental search</b> strategy is required, depends on wether the base table is focused of not. In most cases, data with additional clutter inapprobriate to provide search terms originates from unfocused sources.  
+[[Action>Expand]](#actionexpand)  
+[[Noise]](#noise)  
+[[Incremental Search]](#incremental-search)  
+[[Compound Search]](#compound-search)  
+[[Focused Data Sources]](#focused-data-sources)  
+[[Unfocused Data Sources]](#unfocused-data-sources)  
 
 #### export
 <code>export(*Stable* [, *Ssearchkey*, *Sfoundkey*] [, *Nlow*, *Nhigh* [, *Lexclusive*]] [, *Srunfilter*], [*Ltext*])</code>  
@@ -1506,8 +1532,8 @@ Read the chapter about <b>search strategies</b> and the <b>discussion paper</b> 
 [[research]](#research)  
 
 #### show
-<code>show()</code>  
-displays the SearchEngine structure string in all its glory.  
+<code>show([*Lessential*])</code>  
+displays the SearchEngine structure string in all its glory. When <i>Lessential</i> is .t., the output will be restricted to the items necessary to restore the SearchEngine settings. The internal save format corresponds with the essential output.    
 [[GUI]](#gui)
 
 #### slot
@@ -1582,7 +1608,7 @@ Search types are deactivated by assigning a priority of zero. This can be useful
 
 Besides the priority, a search type has multiple ways to adjust the calculation of the relative identification potential <i>RIP</i> of the words of the associated search field:
 
-The *offset* component directly follows the priority separated by a space. It can be negative. The *offset* of a search type will be added to the word frequency of every word in the search field before the calculation of the <i>RIP</i>. This smooths the distribution of the potentials. A negative offset will reduce the frequencies up to a minimum of 1 to curtail the frequency distribution. If a negative *offset* exceeds the highest frequency the <i>RIP</i>s become homogenous transforming the frequency based into a word based heuristic. This is the most relevant usage of this otherwise outdated smoothing method.
+The *offset* component directly follows the priority separated by a space. It can be negative. The *offset* of a search type will be added to the word frequency of every word in the search field before the calculation of the <i>RIP</i>. This smooths the distribution of the potentials. A negative offset will reduce the frequencies up to a minimum of 1 to curtail the frequency distribution. If a negative *offset* exceeds the highest frequency the <i>RIP</i>s become homogenous transforming the frequency based into a word based heuristic. It can also be used in conjunction with *log* smoothing, i.e. to diminish the differences up to a given frequency declared by a negative offset value.
 
 The *log* component is declared with the keyword "log" at the end of a search type definition. It is a more common approach to smooth the <i>RIP</i> distribution of a search type. Before the calculation of the <i>RIP</i>, every single frequency will be transformed to its natural logarithm (base e). This is a much more intuitive smoothing method than the arbitrary definition of an additive numeric *offset*. Log smoothing should be part of any search strategy using search types with n-grams, because of the skewed distribution of the frequencies that may favor the fragments containing the typo/misspelling. Searching with and without log smoothing in such a case may yield complementary results. 
 
