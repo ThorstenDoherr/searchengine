@@ -3,7 +3,7 @@ python seml.py
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
 will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
-prevent overfitting. 
+prevent overfitting. The script can handle meta data of any size but the training data cannot exceed memory limits. 
 
 Requirements:
 The script will need Python 3.x. It will try to automatically download all necessary python packages if not already

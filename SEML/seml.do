@@ -3,7 +3,7 @@ do seml.do
 Trains a neural network based on meta information and scrutinized training samples to identify false positives in 
 SearchEngine results. Several network profiles will be trained and the best in regard of the retained sub-sample 
 will be used to predict false positives in the meta data. The retention represents the out-of-sample prediction to
-prevent overfitting. 
+prevent overfitting. The script can handle meta data of any size but the training data cannot exceed memory limits. 
 
 Requirements:
 The script will need the brain package for STATA. It can be downloaded from the ssc repository with:
@@ -21,7 +21,7 @@ meta.txt - full meta data export of the SearchEngine result table.
 All txt files have to be tab-delimited.
 
 Output:
-meta.dta - a copy of the meta data complemented by additional columns based on the raw meta data.
+meta*.dta - processed meta data based on the raw meta data separated into sequential chunks (see Settings: chunksize).
 sample.dta - assigns the essential "equal" variable to every candidate based on the sample files and default setting.
 training.dta - training data: canidate assignment (searched, found, equal), retention indicator, and the meta data.
 seml.brn.log - training output of the confusion matrices if applicable.
@@ -44,7 +44,7 @@ It will always try to use the dta files first but will compile them from the txt
 To retrain the network with different settings: delete the seml.brn file.
 To retrain the network with different retention: additionally delete the training.dta file
 To retrain the network after changes to the sample file(s): additionally delete the sample.dta file.
-To retrain the network after changes to meta.txt: additionally delete the meta.dta file.
+To retrain the network after changes to meta.txt: additionally delete the meta*.dta files.
 
 Settings:
 default - global default if "equal" assignment in the candidate block header is missing:
@@ -60,6 +60,12 @@ balance - balancing of true and false positives in case of heavily skewed distri
 epochs - maximum number of training iterations (will not be exhausted in case of plateau, default 5000)
 eta - initial learining rate (default 0.1)
 batch - batch size for training (larger than 1 will activate MP on Windows, default 8)
+meta_path - path to meta.txt respectively meta*.dta file(s) if the same meta is used for separate trainings:
+            by default the meta data is next to the training data (empty string); specify a path,
+			e.g. "d:/myse/seml", for a different directory
+chunksize - number of meta records per chunk to prevent out-of-memory errors:
+            -1 = whole meta data will be read as one chunk, n = specific chunk size, i.e. 3000000 (default) 
+			Every chunk will create a sequentially numbered meta file, i.e. meta1.dta, meta2.dta,...
 */
 global default = 0 // default for equal: 0 = keep missing, 1 = missing is true positive, 9 = missing is false positive
 global conflict = 0 // multiple samples conflict preference: 9 = false pos., 1 = true pos., 0 = keep first occurrence  
@@ -70,8 +76,11 @@ global balanced = 0 // 1 to balance false & true positives, 0 to keep distributi
 global epochs = 5000 // maximum number of iterations (will not be exhausted in case of plateau)
 global eta = 0.1 // initial learning rate 
 global batch = 8 // mini batch size (larger than 1 will activate MP on Windows)
+global meta_path = "" // path to meta.txt respectively meta*.dta file(s) if not same directory as training data, i.e. "d:/myse/seml'
+global chunksize = 3000000 // meta chunk size to prevent memory overflow: -1 = complete, n = chunks of n records, i.e. 3000000
 
 clear all
+frames reset
 set more off
 
 cap program drop prepare_sample
@@ -151,56 +160,132 @@ program define load_a_sample
 	qui replace equal = 0 if equal == 9
 end
 
+cap program drop connect_meta
+program define connect_meta
+	tempfile orphan
+	di as text "checking " as result `"${meta_path}meta1.dta"'
+	cap confirm file `"${meta_path}meta1.dta"'
+	if _rc != 0 {
+		frame create meta
+		if $chunksize < 1 {
+			global chunksize = 9999999999
+		}
+		local ind = 1
+		local from = 2
+		local to = `from' + $chunksize - 1
+		frame change default
+		di as text "importing chunk " as result "1-`to'"
+		qui import delimited  `"${meta_path}meta.txt"', enc("latin1") varnames(1) rowrange(`from':`to') clear
+		while 1 {
+			local searched = searched[_N]
+			frame change meta
+			local from = `to'+1
+			local to = `from' + $chunksize - 1
+			di as text "importing chunk " as result "`from'-`to'"
+			qui import delimited `"${meta_path}meta.txt"', enc("latin1") varnames(1) rowrange(`from':`to') clear
+			local N = _N
+			if `N' == 0 {
+				continue, break
+			}
+			local n = 0
+			forvalue i = 1/`N' {
+				if searched[`i'] != `searched' {
+					local n = `i'-1
+					continue, break
+				}
+			}
+			if `n' > 0 {
+				frame put in 1/`n', into(orphan)
+				frame change orphan
+				qui save `orphan', replace
+				frame change meta
+				qui drop in 1/`n'
+				frame drop orphan
+				frame change default
+				qui append using `orphan'
+			}
+			else {
+				frame change default
+			}
+			if `n' < `N' {
+				prepare_meta
+				local N = _N
+				di as text "saving " as result `"${meta_path}meta`ind'.dta"' as text " (" as result "`N'" as text ")"
+				qui save `"${meta_path}meta`ind'.dta"', replace
+				local ind = `ind'+1
+				qui frame copy meta default, replace
+			}
+		}
+		frame change default
+		frame drop meta
+		prepare_meta
+		local N = _N
+		di as text "saving " as result `"${meta_path}meta`ind'.dta"' as text " (" as result "`N'" as text ")"
+		qui save `"${meta_path}meta`ind'.dta"', replace
+		local ind = `ind'+1
+		cap confirm file `"${meta_path}meta`ind'.dta"'
+		while _rc == 0 {
+			erase `"${meta_path}meta`ind'.dta"'
+			local ind = `ind'+1
+			cap confirm file `"${meta_path}meta`ind'.dta"'
+		}
+	}
+	qui des using `"${meta_path}meta1.dta"'
+	di as text "rows " as result r(N) as text ", cols " as result r(k)
+end
+
 cap program drop prepare_meta
 program define prepare_meta
-	di as text "checking " as result "meta.dta"
-	cap confirm file meta.dta
-	if _rc != 0 {
-		di as text "importing " as result "meta.txt"
-		qui import delimited meta.txt, enc("latin1") varnames(1) clear
-		sort searched found
-		cap foreach v of varlist csf* {
-			egen `v'sd = sd(`v'), by(searched)
-			qui replace `v'sd = 0 if `v'sd == .
-		}
-		cap foreach v of varlist cfs* {
-			egen `v'sd = sd(`v'), by(searched)
-			qui replace `v'sd = 0 if `v'sd == .
-		}
-		cap gen float cntln = ln(cnt)
-		di as text "saving " as result "meta.dta"
-		qui save meta, replace
-		clear
+	sort searched found
+	cap foreach v of varlist csf* {
+		egen `v'sd = sd(`v'), by(searched)
+		qui replace `v'sd = 0 if `v'sd == .
 	}
-	qui des using meta
-	di as text "rows " as result r(N) as text ", cols " as result r(k)
+	cap foreach v of varlist cfs* {
+		egen `v'sd = sd(`v'), by(searched)
+		qui replace `v'sd = 0 if `v'sd == .
+	}
+	cap gen float cntln = ln(cnt)
 end
 
 cap program drop compose_training
 program define compose_training
-	tempname frame
 	di as text "checking " as result "training.dta"
 	cap use training, clear
 	if _rc != 0 {
 		prepare_sample
-		prepare_meta
+		connect_meta
 		qui use sample, clear
+		local N = _N
 		qui gen byte retention = uniform() <= $retention
 		order searched found retention equal
-		qui merge n:1 searched found using meta, keep(master match)
-		qui count if _merge == 1
+		local ind = 1
+		while 1 {
+			cap confirm file `"${meta_path}meta`ind'.dta"'
+			if _rc != 0 {
+				continue, break
+			}
+			di as text "merging " as result `"${meta_path}meta`ind'.dta"'
+			qui merge n:1 searched found using `"${meta_path}meta`ind'.dta"', keep(master match match_update) update
+			drop _merge
+			local ind = `ind' + 1
+		}
+		qui count if identity == .
 		if r(N) > 0 {
 			di in red "sample records not found in meta: " as result r(N)
 			error 999
 		}
-		drop _merge
+		if _N != `N' {
+			di in red "meta contains duplicate entries"
+			error 999
+		}
 		qui des, fullnames varlist
 		if regexm(r(varlist),".+ equal[ ]+(.+)") {
 			local meta = regexs(1)
 		}
 		local drop = ""
 		foreach v of varlist `meta' {
-			qui sum `v' if retention
+			qui sum `v' if retention == 0
 			if r(max) == r(min) {
 				local drop = "`drop' `v'"
 			}
@@ -217,10 +302,10 @@ program define compose_training
 	qui des
 	di as text "rows " as result r(N) as text ", cols " as result r(k)
 	di as text "training and retention" _continue
-	frame put retention equal, into(`frame')
-	frame `frame': qui replace equal = 9 if equal == 0
-	frame `frame': tab equal retention
-	frame drop `frame'
+	frame put retention equal, into(stats)
+	frame stats: qui replace equal = 9 if equal == 0
+	frame stats: tab equal retention
+	frame drop stats
 end
 
 cap program drop training
@@ -323,31 +408,70 @@ end
 
 cap program drop prediction
 program define prediction
-	prepare_meta
-	qui use meta, clear
-	di as text "predicting..."
-	qui brain think brain
-	keep searched found brain
-	qui gen byte _equal = cond(brain > 0.5,1,9)
-	cap merge 1:1 searched found using sample, keep(master match) update replace
+	connect_meta
+	local ind = 1
+	qui file open seml using `"seml.txt"', write text replace
+	while 1 {
+		cap confirm file `"${meta_path}meta`ind'.dta"'
+		if _rc != 0 {
+			continue, break
+		}
+		di as text "predicting " as result `"${meta_path}meta`ind'.dta"'
+		qui use `"${meta_path}meta`ind'.dta"', clear
+		qui brain think brain
+		keep searched found brain
+		qui gen byte _equal = cond(brain > 0.5,1,9)
+		cap merge 1:1 searched found using sample, keep(master match) update replace
+		if _rc == 0 {
+			drop _merge
+			qui replace equal = 9 if equal == 0
+			rename equal sample
+			rename _equal equal
+		}
+		cap rename _equal equal
+		order searched found brain equal
+		format brain %8.6f
+		local N = _N
+		cap confirm var sample
+		if _rc == 0 {
+			if `ind' == 1 {
+				file write seml "searched" _tab "found" _tab "equal" _tab "brain" _tab "sample" _newline
+			}
+			forvalue i = 1/`N' {
+				file write seml (searched[`i']) _tab (found[`i']) _tab (equal[`i']) _tab %8.6f (brain[`i']) _tab (sample[`i']) _newline
+			}
+		}
+		else {
+			if `ind' == 1 {
+				file write seml "searched" _tab "found" _tab "equal" _tab "brain" _newline
+			}
+			forvalue i = 1/`N' {
+				file write seml (searched[`i']) _tab (found[`i']) _tab (equal[`i']) _tab %8.6f (brain[`i']) _newline
+			}
+		}
+		local ind = `ind' + 1
+	}
+	file close seml
+	di as text "prediction saved in " as result "seml.txt"
+	qui import delimited seml.txt, varn(1) enc(latin1) clear
+	format %8.6f brain
+	format %12.0f searched found
+	format %1.0f equal sample
+	qui save seml.dta, replace
+	di as text "prediction saved in " as result "seml.dta"
+	cap confirm var sample
 	if _rc == 0 {
-		di as text "attaching " as result "sample.dta" _continue
-		drop _merge
-		qui replace equal = 9 if equal == 0
-		rename equal sample
-		rename _equal equal
+		di as text "prediction vs. sample"
 		tab equal sample
 	}
-	cap rename _equal equal
-	order searched found brain equal
-	format brain %8.6f
-	di as text "saving " as result "seml.dta" as text " and " as result "seml.txt"
-	qui save seml, replace
-	qui export delimited seml.txt, delim(tab) noquote datafmt replace
 end
 
 cap program drop main
 program define main
+	global meta_path = trim(`"${meta_path}"')
+	if `"$meta_path"' != "" & regexm(`"${meta_path}"',".*[\\/]$") == 0 {
+		global meta_path = `"${meta_path}/"'
+	}
 	cap brain load seml.brn
 	if _rc != 0 {
 		di as result "TRAINING"
