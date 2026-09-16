@@ -13,6 +13,11 @@ Windows
 Consult the manual [doc/searchengine.md](https://github.com/ThorstenDoherr/searchengine/blob/master/doc/searchengine.md#installation) file for installation instructions. Alternatively, read the **doc/searchengine.pdf**.
 
 ## Version history
+2026.09.16
+- recompiled executable based on latest Visual FoxPro Advanced
+- seml.do and seml.py interpret equal = 5 as missing that will not be overwritten by global default
+- updated slides and documentation
+
 2026.02.12
 - save format for the settings is reduced to the essential information keeping compatibility
 - shutdown warning dialog is only shown when actual changes to the settings may get lost 
