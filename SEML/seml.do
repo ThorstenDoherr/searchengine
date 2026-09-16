@@ -31,7 +31,8 @@ seml.txt - tab delimited prediction file for your convenience.
 
 Labeling:
 - Read the manual about efficient labeling.
-- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The "equal" variable has to be 1(-4) match) or (6-)9 (non-match) in sample files (zeroes and 5 are considered missings).
+- In the case of a global default, use equal = 5 to impose missings and avoid decisions.
 - The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
 - A value in a candidate block header defines the default value for the block (reduces typing).
 - The default value in the canidate block header is used for all missings and zeroes within a block.
@@ -154,7 +155,7 @@ program define load_a_sample
 	qui replace equal = default if equal == . | equal == 0
 	drop default
 	qui drop if found == .
-	qui replace equal = 1 if equal >= 1 & equal <= 5
+	qui replace equal = 1 if equal >= 1 & equal < 5
 	qui replace equal = 9 if equal > 5 & equal <= 9
 	qui drop if equal != 1 & equal != 9
 	qui replace equal = 0 if equal == 9
@@ -461,7 +462,7 @@ program define prediction
 	di as text "prediction saved in " as result "seml.dta"
 	cap confirm var sample
 	if _rc == 0 {
-		di as text "prediction vs. sample"
+		di as text "prediction vs. sample" _continue
 		tab equal sample
 	}
 end

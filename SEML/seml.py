@@ -35,7 +35,8 @@ All csv files are comma-separated.
 
 Labeling:
 - Read the manual about efficient labeling.
-- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The "equal" variable has to be 1(-4) match) or (6-)9 (non-match) in sample files (zeroes and 5 are considered missings).
+- In the case of a global default, use equal = 5 to impose missings and avoid decisions.
 - The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
 - A value in a candidate block header defines the default value for the block (reduces typing).
 - The default value in the canidate block header is used for all missings and zeroes within a block.
@@ -187,7 +188,7 @@ def read_a_sample(file):
     sample = sample.merge(equal, how='left', on='searched', suffixes=(None, '_u'))
     sample['equal'] = sample['equal'].fillna(sample['equal_u'])
     sample = sample.drop(columns=['equal_u']).dropna().astype('int')
-    sample['equal'] = sample['equal'].apply(lambda x : 1 if x > 0 and x <= 5 else 0 if x > 5 and x <= 9 else 9)
+    sample['equal'] = sample['equal'].apply(lambda x : 1 if x > 0 and x < 5 else 0 if x > 5 and x <= 9 else 9)
     sample.drop(sample[sample['equal'] == 9].index, inplace=True)
     sample_unique = sample.drop_duplicates(subset=['searched', 'found'], keep='first')
     if len(sample_unique) < len(sample):
