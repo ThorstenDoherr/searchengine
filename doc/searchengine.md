@@ -301,11 +301,11 @@ The meta data also contains string distances, overlap indicators across fields a
 [[types]](#types)  
 
 ### Training Sample
-It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it with the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, do not forget to restore the original result table with the <b>result</b> function or by simply loading a previous setting saved before the sample draw. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
+It requires four steps to export a training sample. First, use the <b>exportresult</b> function to export the sample based on an absolute number or a share of the search terms (records) represented by the current result table. A sample of 1000 search records will consist of all candidates retrieved for those records. Second, replace the current result table with the sample by assigning it using the <b>result</b> function. These two steps are combined in the GUI window <b>File>Export>Result Export</b>. Now, you can export the training sample with the <b>exportextended</b> function, which creates a text file in a convenient format. Before we commence with the labeling, do not forget to restore the original result table with the <b>result</b> function or by simply loading a previous setting saved before the sample draw. Following this procedure, you can export multiple samples if you intent to distribute the labeling workload. In general, sample sizes between 1000 and 2000 should suffice. This is the equivalent to one or two lazy afternoons of menial work, which you can transfer onto millions of matches. Of course, the SEML approach is not suitable for small search projects below the size of a robust training sample.
 
 The results may have a very skewed distribution with many candidates allocated to few search terms. You can check the distribution with the <b>statistics</b> function. To capture the outliers, it can be beneficial to draw a complementary sample weighted by the number of candidates especially in the case of a <b>compound search</b> without <b>containment</b>. Be cognizant that those samples are usually much larger and therefore require a smaller sample size pertaining search terms. The provided machine learning scripts can handle multiple training datasets and are capable to balance skewed distributions to some extend.
 
-Import the exported training sample into any spreadsheet tool of your choice. The file is separated into blocks. The header of a block is the search term followed by the associated candidates. The fields "searched" and "found" refer to the record numbers in the base and search table. The labeling will be carried out in the "equal" field. Enter a "1" for a valid match (true positive) and a "9" for a wrong assignment (false positive). It is strongly discouraged to use a "0" in that context because it is associated with missing values. You can reduce the typing by using the "equal" field of the search term line (header) as the default value for the whole block. Exceptions to the default value of the block can be marked in the "equal" field of the respective candidate (if "9" is the default, "1" is the exception and vice versa). Another way to improve efficiency is to declare a sweeping default value for the whole training data based on the general tendency, i.e. all matches are defaulting to true positive when they are in the majority. Do not forget to realize this implicit rule in the data after labeling. The SEML script has a convenience setting for that purpose (see following section). 
+Import the exported training sample into any spreadsheet tool of your choice. The file is separated into blocks. The header of a block is the search term followed by the associated candidates. The fields "searched" and "found" refer to the record numbers in the base and search table. The labeling will be carried out in the "equal" field. Enter a "1" ("2", "3", "4") for a valid match (true positive) and a ("6", "7, "8") "9" for a wrong assignment (false positive). It is strongly discouraged to use a "0" in that context because it is associated with missing values. Use a "5" to declare a match as missing essentially avoiding a decision. You can reduce the typing by using the "equal" field of the search term line (header) as the default value for the whole block. Exceptions to the default value of the block can be marked in the "equal" field of the respective candidate (if "9" is the default, "1" is the exception and vice versa). Another way to improve efficiency is to declare a sweeping default value for the whole training data based on the general tendency, i.e. all matches are defaulting to true positive when they are in the majority. Do not forget to realize this implicit rule in the data after labeling. The SEML script has a convenience setting for that purpose (see following section). Because a "0" (zero) will always be replaced by default settings, you have to use a "5" to manifest a real missing resulting in omission of the match for training.
 
 Do not expect wonders from the machine learning. The meta data does not carry any semantic information. It can only derive rules from consistent labeling that does not include too much human intuition into the decision process. If you accept subsidiaries and branches of a company in a firm match but exclude cantinas and other service oriented subsidiaries, there may not be enough information in the meta data too capture this decision. However, it is quite capable of the distinction between rare entities with a high plausibility and common names bearing a higher risk of false allocations. If you have additional data available about the matched data sets related with the search context, you can avoid to confuse the AI by applying a rule based filtering process after the SEML approach. Remove all "true positives" with specific industry codes or create a rank among the surviving candidates for a search term that favors your intention. Assigning a patent applicant to the largest company among multiple candidates will also assign all patents to the parent company, which is the legal owner after all. In short, be as generous with the assignment of true positives as you can afford considering subsequent filtering or ranking options.  
 [[File>Export>Result Export]](#fileexportresult-export)  
@@ -366,7 +366,8 @@ All txt files have to be tab-delimited.
 All csv files are comma-separated.
 
 **Labeling:**
-- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The "equal" variable has to be 1(-4) match) or (6-)9 (non-match) in sample files (zeroes and 5 are considered missings).
+- In the case of a global default, use equal = 5 to impose missings and avoid decisions.
 - The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
 - A value in a candidate block header defines the default value for the block (reduces typing).
 - The default value in the candidate block header is used for all missings and zeroes within a block.
@@ -432,7 +433,8 @@ All txt files have to be tab-delimited.
 - seml\.txt - tab delimited prediction file for your convenience.
 
 **Labeling:**
-- The "equal" variable has to be 1 (match) or 9 (non-match) in sample files (zeroes are considered missings).
+- The "equal" variable has to be 1(-4) match) or (6-)9 (non-match) in sample files (zeroes and 5 are considered missings).
+- In the case of a global default, use equal = 5 to impose missings and avoid decisions.
 - The data is separated into candidate blocks consisting of a header with the search term followed by candidates.
 - A value in a candidate block header defines the default value for the block (reduces typing).
 - The default value in the candidate block header is used for all missings and zeroes within a block.
@@ -1335,13 +1337,13 @@ In contrast to the <b>refine</b> function, the <b>research</b> function can also
 
 Be aware that <b>feeback</b> will ignored when <b>activation</b> is active (larger than zero). This is to prevent accidental usage of feedback in your <b>research</b> after implementing <b>containment</b> for the <b>search</b> command. If you intend to apply <b>feedback</b> for your <b>research</b> function, set <b>activation</b> to zero.  
  
-In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function. Still, it is useful to create an order among the candidates without interfering with the retrieval, for example by applying a small <b>feedback</b> on specific fields:  
+In general, you will rarely use the <b>research</b> or <b>refine</b> commands as their main purpose is the re-evaluation of linguistic search types, which is already integrated into the <b>search</b> function. Still, it is useful to create an order among the candidates without interfering with the retrieval, for example by applying a <b>feedback</b> on specific fields, an essential element of the **inverse darwinian cutoff** after a <b>compound search</b>:  
  
 <code>types("firm 70, street 10, zip 10, city 10")</code> The search type setting may deviate from retrieval.  
 <code>unjoin()</code>  
 <code>join("applicant", "firm")</code> We only want to apply feedback on the firm search field and associated types.  
 <code>activation()</code> deactivates activation, otherwise feedback will be ignored as leftover from containment.  
-<code>feedback(5)</code> applies a small feedback on the firm name to create an order among the candidates.  
+<code>feedback(100)</code> applies full feedback on the firm name to create an order among the candidates.  
 <code>research(1)</code> replaces the identity to a maximum of 70% (no update of the score).  
 <code>unjoin()</code> resets the linkage of the search fields to exclude the firm name.  
 <code>join("street")</code>  
@@ -1362,6 +1364,7 @@ In general, you will rarely use the <b>research</b> or <b>refine</b> commands as
 [[activation]](#activation)  
 [[Containment]](#containment)  
 [[contain]](#contain)  
+[[Compound Search]](#compound-search)  
 
 #### reset
 <code>reset()</code>  
